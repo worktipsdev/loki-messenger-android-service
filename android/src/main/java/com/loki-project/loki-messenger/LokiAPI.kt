@@ -15,7 +15,7 @@ class LokiAPI(private val hexEncodedPublicKey: String) {
     // endregion
 
     // region Types
-    sealed class Error(val description: String) : Exception {
+    sealed class Error(val description: String) : Exception() {
         /**
          * Only applicable to snode targets as proof of work isn't required for P2P messaging.
          */
