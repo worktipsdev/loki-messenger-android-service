@@ -3,7 +3,7 @@ package com.`loki-project`.`loki-messenger`
 import java.util.*
 
 class LokiP2PAPI(private val hexEncodedPublicKey: String) {
-    private val peerInfo = mutableMapOf<String, PeerInfo>()
+    internal val peerInfo = mutableMapOf<String, PeerInfo>()
     private val pingIntervals = mutableMapOf<String, Int>()
     private val timers = mutableMapOf<String, Timer>()
 

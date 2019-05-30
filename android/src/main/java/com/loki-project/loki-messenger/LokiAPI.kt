@@ -1,6 +1,7 @@
 package com.`loki-project`.`loki-messenger`
 
 import nl.komponents.kovenant.Promise
+import nl.komponents.kovenant.all
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.task
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
@@ -14,7 +15,7 @@ class LokiAPI(private val hexEncodedPublicKey: String) {
     // endregion
 
     // region Types
-    sealed class Error(val description: String) : java.lang.Error() {
+    sealed class Error(val description: String) : Exception {
         /**
          * Only applicable to snode targets as proof of work isn't required for P2P messaging.
          */
@@ -51,6 +52,36 @@ class LokiAPI(private val hexEncodedPublicKey: String) {
                 }
             }
         }.map { it.toSet() }
+    }
+
+    fun sendSignalMessage(signalMessage: Map<*, *>, hexEncodedPublicKey: String, timestamp: Int, onP2PSuccess: () -> Unit): Promise<Set<Promise<Any, Exception>>, Exception> {
+        val lokiMessage = LokiMessage.from(signalMessage) ?: return task { throw Error.ProofOfWorkCalculationFailed }
+        val destination = lokiMessage.destination
+        fun sendLokiMessage(lokiMessage: LokiMessage, target: LokiAPITarget): Promise<Any, Exception> {
+            val parameters = lokiMessage.toJSON()
+            return invoke(LokiAPITarget.Method.SendMessage, target, hexEncodedPublicKey, parameters)
+        }
+        fun sendLokiMessageUsingSwarmAPI(): Promise<Set<Promise<Any, Exception>>, Exception> {
+            val powPromise = lokiMessage.calculatePoW()
+            val swarmPromise = LokiSwarmAPI.getTargetSnodes(hexEncodedPublicKey)
+            return all(powPromise, swarmPromise).map {
+                val lokiMessageWithPoW = it[0] as LokiMessage
+                val swarm = it[1] as List<LokiAPITarget>
+                swarm.map { sendLokiMessage(lokiMessageWithPoW, it) }.toSet()
+            }
+        }
+        val p2pAPI = LokiP2PAPI(hexEncodedPublicKey)
+        val peer = p2pAPI.peerInfo[hexEncodedPublicKey]
+        if (peer != null && lokiMessage.isPing && peer.isOnline) {
+            val target = LokiAPITarget(peer.address, peer.port)
+            return task { listOf( target ) }.map { it.map { sendLokiMessage(lokiMessage, it) } }.map { it.toSet() }.success {
+                p2pAPI.markAsOnline(hexEncodedPublicKey)
+                onP2PSuccess()
+            }
+            // TODO: Handle failure
+        } else {
+            return sendLokiMessageUsingSwarmAPI()
+        }
     }
     // endregion
 

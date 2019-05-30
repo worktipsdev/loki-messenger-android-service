@@ -1,5 +1,8 @@
 package com.`loki-project`.`loki-messenger`
 
+import nl.komponents.kovenant.Promise
+import nl.komponents.kovenant.task
+
 data class LokiMessage(
     /**
      * The hex encoded public key of the receiver.
@@ -34,5 +37,13 @@ data class LokiMessage(
         fun from(signalMessage: Map<*, *>): LokiMessage? {
             return null
         }
+    }
+
+    fun calculatePoW(): Promise<LokiMessage, Exception> {
+        return task { throw Exception("not implemented") }
+    }
+
+    fun toJSON(): Map<String, Any> {
+        return mapOf()
     }
 }
