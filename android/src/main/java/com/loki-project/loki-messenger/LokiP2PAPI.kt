@@ -2,7 +2,7 @@ package com.`loki-project`.`loki-messenger`
 
 import java.util.*
 
-internal class LokiP2PAPI(private val hexEncodedPublicKey: String) {
+class LokiP2PAPI(private val hexEncodedPublicKey: String) {
     private val peerInfo = mutableMapOf<String, PeerInfo>()
     private val pingIntervals = mutableMapOf<String, Int>()
     private val timers = mutableMapOf<String, Timer>()
@@ -18,8 +18,8 @@ internal class LokiP2PAPI(private val hexEncodedPublicKey: String) {
     internal data class PeerInfo(val hexEncodedPublicKey: String, val address: String, val port: Int, val isOnline: Boolean)
     // endregion
 
-    // region Internal API
-    internal fun handlePeerInfoReceived(hexEncodedPublicKey: String, address: String, port: Int, isP2PMessage: Boolean) {
+    // region Pubblic API
+    fun handlePeerInfoReceived(hexEncodedPublicKey: String, address: String, port: Int, isP2PMessage: Boolean) {
         val pingInterval = if (hexEncodedPublicKey < this.hexEncodedPublicKey) 1 * 60 else 2 * 60
         pingIntervals[hexEncodedPublicKey] = pingInterval
         val oldPeerInfo = peerInfo[hexEncodedPublicKey]
@@ -38,15 +38,16 @@ internal class LokiP2PAPI(private val hexEncodedPublicKey: String) {
         }
     }
 
-    internal fun ping(hexEncodedPublicKey: String) {
+
+    fun ping(hexEncodedPublicKey: String) {
         // TODO: Implement
     }
 
-    internal fun markAsOnline(hexEncodedPublicKey: String) {
+    fun markAsOnline(hexEncodedPublicKey: String) {
         // TODO: Implement
     }
 
-    internal fun markAsOffline(hexEncodedPublicKey: String) {
+    fun markAsOffline(hexEncodedPublicKey: String) {
         // TODO: Implement
     }
     // endregion

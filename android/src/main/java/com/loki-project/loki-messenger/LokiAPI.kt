@@ -1,5 +1,8 @@
 package com.`loki-project`.`loki-messenger`
 
+import nl.komponents.kovenant.Promise
+import nl.komponents.kovenant.functional.map
+import nl.komponents.kovenant.task
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
 
 class LokiAPI(private val hexEncodedPublicKey: String) {
@@ -24,24 +27,30 @@ class LokiAPI(private val hexEncodedPublicKey: String) {
     /**
      * `hexEncodedPublicKey` is used for swarm cache management.
      */
-    internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String, parameters: Map<String, Any>) {
-        // TODO: Implement
+    internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String, parameters: Map<String, Any>): Promise<Any, Exception> {
+        return task { Unit }
     }
     // endregion
 
     // region Public API
-    fun getMessages() {
-        LokiSwarmAPI.getTargetSnodes(hexEncodedPublicKey).forEach { targetSnode ->
-            val lastHashValue = ""
-            val parameters = mapOf( "pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue )
-            invoke(LokiAPITarget.Method.GetMessages, targetSnode, hexEncodedPublicKey, parameters)
-            val rawResponse: Any = mapOf<String, Any>()
-            val json = rawResponse as? Map<*, *> ?: return
-            val rawMessages = json["messages"] as? List<*> ?: return
-            updateLastMessageHashValueIfPossible(targetSnode, rawMessages)
-            val newRawMessages = removeDuplicates(rawMessages)
-            parseEnvelopes(newRawMessages)
-        }
+    fun getMessages(): Promise<Set<Promise<List<Envelope>, Exception>>, Exception> {
+        return LokiSwarmAPI.getTargetSnodes(hexEncodedPublicKey).map { targetSnodes ->
+            targetSnodes.map { targetSnode ->
+                val lastHashValue = ""
+                val parameters = mapOf( "pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue )
+                invoke(LokiAPITarget.Method.GetMessages, targetSnode, hexEncodedPublicKey, parameters) map { rawResponse ->
+                    val json = rawResponse as? Map<*, *>
+                    val rawMessages = json?.get("messages") as? List<*>
+                    if (json != null && rawMessages != null) {
+                        updateLastMessageHashValueIfPossible(targetSnode, rawMessages)
+                        val newRawMessages = removeDuplicates(rawMessages)
+                        parseEnvelopes(newRawMessages)
+                    } else {
+                        listOf()
+                    }
+                }
+            }
+        }.map { it.toSet() }
     }
     // endregion
 
