@@ -25,7 +25,7 @@ data class LokiMessage(
      *
      * - Note: Expressed as milliseconds since 00:00:00 UTC on 1 January 1970.
      */
-    internal var timestamp: Int? = null,
+    internal var timestamp: Long? = null,
     /**
      * The base 64 encoded proof of work, if applicable (P2P messages don't require proof of work).
      */
@@ -39,8 +39,19 @@ data class LokiMessage(
         }
     }
 
+    /**
+     * Calculate the proof of work for this message
+     * @return Promise<LokiMessage, Exception> The promise of a new message with is `timestamp` and `nonce` set
+     */
     fun calculatePoW(): Promise<LokiMessage, Exception> {
-        return task { throw Exception("not implemented") }
+        return task {
+            val now = System.currentTimeMillis()
+            val nonce = ProofOfWork.calculate(data, pubKey = destination, timestamp = now, ttl = ttl)
+            if (nonce != null) {
+                return@task this.copy(nonce = nonce, timestamp = now)
+            }
+            throw Exception("Proof of work calculation failed!")
+        }
     }
 
     fun toJSON(): Map<String, Any> {
