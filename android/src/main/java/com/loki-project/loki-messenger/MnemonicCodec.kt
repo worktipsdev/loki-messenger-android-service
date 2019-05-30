@@ -27,25 +27,25 @@ class MnemonicCodec(val context: Context) {
 
         internal fun loadWordSet(): List<String> {
             val cachedResult = wordSetCache[this]
-            return if (cachedResult != null) {
-                cachedResult
+            if (cachedResult != null) {
+                return cachedResult
             } else {
                 val contents = context.assets.open(configuration.filename + ".txt").bufferedReader().readLine()
                 val result = contents.split(",")
                 wordSetCache[this] = result
-                result
+                return result
             }
         }
 
         internal fun loadTruncatedWordSet(): List<String> {
             val cachedResult = wordSetCache[this]
-            return if (cachedResult != null) {
-                cachedResult
+            if (cachedResult != null) {
+                return cachedResult
             } else {
                 val prefixLength = configuration.prefixLength
                 val result = loadWordSet().map { it.substring(0 until prefixLength) }
                 truncatedWordSetCache[this] = result
-                result
+                return result
             }
         }
     }

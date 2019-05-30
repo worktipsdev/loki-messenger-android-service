@@ -21,15 +21,15 @@ object LokiSwarmAPI {
 
     private fun getSwarm(hexEncodedPublicKey: String): List<LokiAPITarget> {
         val cachedSwarm = swarmCache[hexEncodedPublicKey]
-        return if (cachedSwarm != null && cachedSwarm.size >= minimumSnodeCount) {
-            cachedSwarm
+        if (cachedSwarm != null && cachedSwarm.size >= minimumSnodeCount) {
+            return cachedSwarm
         } else {
             val parameters = mapOf( "pubKey" to hexEncodedPublicKey )
             val randomSnode = getRandomSnode()
             LokiAPI(hexEncodedPublicKey).invoke(LokiAPITarget.Method.GetSwarm, randomSnode, hexEncodedPublicKey, parameters)
             val swarm = parseTargets()
             swarmCache[hexEncodedPublicKey] = swarm
-            swarm
+            return swarm
         }
     }
     // endregion
