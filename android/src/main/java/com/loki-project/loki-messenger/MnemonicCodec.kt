@@ -21,11 +21,11 @@ class MnemonicCodec(val context: Context) {
         }
 
         companion object {
-            val wordSetCache = mutableMapOf<Language, List<String>>()
-            val truncatedWordSetCache = mutableMapOf<Language, List<String>>()
+            internal val wordSetCache = mutableMapOf<Language, List<String>>()
+            internal val truncatedWordSetCache = mutableMapOf<Language, List<String>>()
         }
 
-        fun loadWordSet(): List<String> {
+        internal fun loadWordSet(): List<String> {
             val cachedResult = wordSetCache[this]
             return if (cachedResult != null) {
                 cachedResult
@@ -37,7 +37,7 @@ class MnemonicCodec(val context: Context) {
             }
         }
 
-        fun loadTruncatedWordSet(): List<String> {
+        internal fun loadTruncatedWordSet(): List<String> {
             val cachedResult = wordSetCache[this]
             return if (cachedResult != null) {
                 cachedResult
