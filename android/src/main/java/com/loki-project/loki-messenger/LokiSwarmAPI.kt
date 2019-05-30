@@ -2,7 +2,7 @@ package com.`loki-project`.`loki-messenger`
 
 import java.security.SecureRandom
 
-object LokiSwarmAPI {
+internal object LokiSwarmAPI {
 
     // region Settings
     private val minimumSnodeCount = 2
@@ -35,7 +35,7 @@ object LokiSwarmAPI {
     // endregion
 
     // region Public API
-    fun getTargetSnodes(hexEncodedPublicKey: String): List<LokiAPITarget> {
+    internal fun getTargetSnodes(hexEncodedPublicKey: String): List<LokiAPITarget> {
         // SecureRandom() should be cryptographically secure
         return getSwarm(hexEncodedPublicKey).shuffled(SecureRandom()).take(targetSnodeCount)
     }

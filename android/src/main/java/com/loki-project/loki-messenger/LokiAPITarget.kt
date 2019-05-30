@@ -1,8 +1,8 @@
 package com.`loki-project`.`loki-messenger`
 
-class LokiAPITarget(val address: String, val port: Int) {
+internal class LokiAPITarget(val address: String, val port: Int) {
 
-    enum class Method(val rawValue: String) {
+    internal enum class Method(val rawValue: String) {
         /**
          * Only supported by snode targets.
          */

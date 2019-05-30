@@ -1,4 +1,4 @@
-package org.thoughtcrime.securesms.loki
+package com.`loki-project`.`loki-messenger`
 
 import android.content.Context
 import java.util.zip.CRC32
