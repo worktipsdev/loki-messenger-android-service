@@ -38,7 +38,6 @@ class LokiP2PAPI(private val hexEncodedPublicKey: String) {
         }
     }
 
-
     fun ping(hexEncodedPublicKey: String) {
         // TODO: Implement
     }

@@ -29,17 +29,16 @@ internal object LokiSwarmAPI {
     private fun getSwarm(hexEncodedPublicKey: String): Promise<List<LokiAPITarget>, Exception> {
         val cachedSwarm = swarmCache[hexEncodedPublicKey]
         if (cachedSwarm != null && cachedSwarm.size >= minimumSnodeCount) {
-            // The copy below is a workaround for a Kotlin compiler issue
-            val cachedSwarmCopy = mutableListOf<LokiAPITarget>()
+            val cachedSwarmCopy = mutableListOf<LokiAPITarget>() // Workaround for a Kotlin compiler issue
             cachedSwarmCopy.addAll(cachedSwarm)
             return task { cachedSwarmCopy }
         } else {
             val parameters = mapOf( "pubKey" to hexEncodedPublicKey )
-            return getRandomSnode() bind {
+            return getRandomSnode().bind {
                 LokiAPI(hexEncodedPublicKey).invoke(LokiAPITarget.Method.GetSwarm, it, hexEncodedPublicKey, parameters)
-            } map {
+            }.map {
                 parseTargets(it)
-            } success {
+            }.success {
                 swarmCache[hexEncodedPublicKey] = it
             }
         }
@@ -49,7 +48,7 @@ internal object LokiSwarmAPI {
     // region Public API
     internal fun getTargetSnodes(hexEncodedPublicKey: String): Promise<List<LokiAPITarget>, Exception> {
         // SecureRandom() should be cryptographically secure
-        return getSwarm(hexEncodedPublicKey) then { it.shuffled(SecureRandom()).take(targetSnodeCount) }
+        return getSwarm(hexEncodedPublicKey).then { it.shuffled(SecureRandom()).take(targetSnodeCount) }
     }
     // endregion
 

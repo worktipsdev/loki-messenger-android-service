@@ -38,7 +38,7 @@ class LokiAPI(private val hexEncodedPublicKey: String) {
             targetSnodes.map { targetSnode ->
                 val lastHashValue = ""
                 val parameters = mapOf( "pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue )
-                invoke(LokiAPITarget.Method.GetMessages, targetSnode, hexEncodedPublicKey, parameters) map { rawResponse ->
+                invoke(LokiAPITarget.Method.GetMessages, targetSnode, hexEncodedPublicKey, parameters).map { rawResponse ->
                     val json = rawResponse as? Map<*, *>
                     val rawMessages = json?.get("messages") as? List<*>
                     if (json != null && rawMessages != null) {
