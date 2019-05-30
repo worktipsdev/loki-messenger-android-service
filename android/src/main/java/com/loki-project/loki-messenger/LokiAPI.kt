@@ -1,6 +1,8 @@
 package com.`loki-project`.`loki-messenger`
 
-class LokiAPI(val hexEncodedPublicKey: String) {
+import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
+
+class LokiAPI(private val hexEncodedPublicKey: String) {
 
     // region Settings
     private val version = "v1"
@@ -19,6 +21,9 @@ class LokiAPI(val hexEncodedPublicKey: String) {
     // endregion
 
     // region Internal API
+    /**
+     * `hexEncodedPublicKey` is used for swarm cache management.
+     */
     internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String, parameters: Map<String, Any>) {
         // TODO: Implement
     }
@@ -26,6 +31,31 @@ class LokiAPI(val hexEncodedPublicKey: String) {
 
     // region Public API
     fun getMessages() {
-
+        LokiSwarmAPI.getTargetSnodes(hexEncodedPublicKey).forEach { targetSnode ->
+            val lastHashValue = ""
+            val parameters = mapOf( "pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue )
+            invoke(LokiAPITarget.Method.GetMessages, targetSnode, hexEncodedPublicKey, parameters)
+            val rawResponse: Any = mapOf<String, Any>()
+            val json = rawResponse as? Map<*, *> ?: return
+            val rawMessages = json["messages"] as? List<*> ?: return
+            updateLastMessageHashValueIfPossible(targetSnode, rawMessages)
+            val newRawMessages = removeDuplicates(rawMessages)
+            parseEnvelopes(newRawMessages)
+        }
     }
+    // endregion
+
+    // region Parsing
+    private fun updateLastMessageHashValueIfPossible(target: LokiAPITarget, rawMessages: List<*>) {
+        // TODO: Implement
+    }
+
+    private fun removeDuplicates(rawMessages: List<*>): List<*> {
+        return listOf<Map<String, Any>>()
+    }
+
+    private fun parseEnvelopes(rawMessages: List<*>): List<Envelope> {
+        return listOf()
+    }
+    // endregion
 }

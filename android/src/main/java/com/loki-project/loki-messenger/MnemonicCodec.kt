@@ -6,9 +6,9 @@ import java.util.zip.CRC32
 /**
  * Based on [mnemonic.js](https://github.com/loki-project/loki-messenger/blob/development/libloki/modules/mnemonic.js) .
  */
-class MnemonicCodec(val context: Context) {
+class MnemonicCodec(private val context: Context) {
 
-    class Language(val context: Context, val configuration: Configuration) {
+    class Language(private val context: Context, private val configuration: Configuration) {
 
         data class Configuration(val filename: String, val prefixLength: Int) {
 
