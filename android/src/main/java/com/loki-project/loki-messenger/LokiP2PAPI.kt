@@ -18,7 +18,7 @@ class LokiP2PAPI(private val hexEncodedPublicKey: String) {
     internal data class PeerInfo(val hexEncodedPublicKey: String, val address: String, val port: Int, val isOnline: Boolean)
     // endregion
 
-    // region Pubblic API
+    // region Public API
     fun handlePeerInfoReceived(hexEncodedPublicKey: String, address: String, port: Int, isP2PMessage: Boolean) {
         val pingInterval = if (hexEncodedPublicKey < this.hexEncodedPublicKey) 1 * 60 else 2 * 60
         pingIntervals[hexEncodedPublicKey] = pingInterval
