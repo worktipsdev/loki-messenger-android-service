@@ -25,6 +25,8 @@ group            = group_info
 repositories {
     mavenCentral()
     mavenLocal()
+    jcenter()
+    google()
 }
 
 dependencies {
