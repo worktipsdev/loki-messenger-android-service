@@ -1,7 +1,9 @@
 package com.`loki-project`.`loki-messenger`
 
+import android.util.Log
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.all
+import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.task
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
@@ -34,7 +36,7 @@ class LokiAPI(private val hexEncodedPublicKey: String) {
     // endregion
 
     // region Public API
-    fun getMessages(): Promise<Set<Promise<List<Envelope>, Exception>>, Exception> {
+    fun getMessages(): Promise<Set<MessageListPromise>, Exception> {
         return LokiSwarmAPI.getTargetSnodes(hexEncodedPublicKey).map { targetSnodes ->
             targetSnodes.map { targetSnode ->
                 val lastHashValue = ""
@@ -54,31 +56,40 @@ class LokiAPI(private val hexEncodedPublicKey: String) {
         }.map { it.toSet() }
     }
 
-    fun sendSignalMessage(signalMessage: Map<*, *>, hexEncodedPublicKey: String, timestamp: Int, onP2PSuccess: () -> Unit): Promise<Set<Promise<Any, Exception>>, Exception> {
-        val lokiMessage = LokiMessage.from(signalMessage) ?: return task { throw Error.ProofOfWorkCalculationFailed }
+    @kotlin.ExperimentalUnsignedTypes
+    fun sendSignalMessage(signalMessage: Map<*, *>, timestamp: Int, onP2PSuccess: () -> Unit): Promise<Set<RawResponsePromise>, Exception> {
+        val lokiMessage = LokiMessage.from(signalMessage) ?: return task { throw Error.MessageConversionFailed }
         val destination = lokiMessage.destination
-        fun sendLokiMessage(lokiMessage: LokiMessage, target: LokiAPITarget): Promise<Any, Exception> {
+        fun sendLokiMessage(lokiMessage: LokiMessage, target: LokiAPITarget): RawResponsePromise {
             val parameters = lokiMessage.toJSON()
-            return invoke(LokiAPITarget.Method.SendMessage, target, hexEncodedPublicKey, parameters)
+            return invoke(LokiAPITarget.Method.SendMessage, target, destination, parameters)
         }
-        fun sendLokiMessageUsingSwarmAPI(): Promise<Set<Promise<Any, Exception>>, Exception> {
+        fun sendLokiMessageUsingSwarmAPI(): Promise<Set<RawResponsePromise>, Exception> {
             val powPromise = lokiMessage.calculatePoW()
-            val swarmPromise = LokiSwarmAPI.getTargetSnodes(hexEncodedPublicKey)
+            val swarmPromise = LokiSwarmAPI.getTargetSnodes(destination)
             return all(powPromise, swarmPromise).map {
                 val lokiMessageWithPoW = it[0] as LokiMessage
-                val swarm = it[1] as List<LokiAPITarget>
-                swarm.map { sendLokiMessage(lokiMessageWithPoW, it) }.toSet()
+                val swarm = it[1] as List<*>
+                swarm.map { sendLokiMessage(lokiMessageWithPoW, it as LokiAPITarget) }.toSet()
             }
         }
-        val p2pAPI = LokiP2PAPI(hexEncodedPublicKey)
-        val peer = p2pAPI.peerInfo[hexEncodedPublicKey]
-        if (peer != null && lokiMessage.isPing && peer.isOnline) {
+        val p2pAPI = LokiP2PAPI(destination)
+        val peer = p2pAPI.peerInfo[destination]
+        if (peer != null && (lokiMessage.isPing || peer.isOnline)) {
             val target = LokiAPITarget(peer.address, peer.port)
-            return task { listOf( target ) }.map { it.map { sendLokiMessage(lokiMessage, it) } }.map { it.toSet() }.success {
-                p2pAPI.markAsOnline(hexEncodedPublicKey)
+            val deferred = deferred<Set<RawResponsePromise>, Exception>()
+            task { listOf( target ) }.map { it.map { sendLokiMessage(lokiMessage, it) } }.map { it.toSet() }.success {
+                p2pAPI.markAsOnline(destination)
                 onP2PSuccess()
+                deferred.resolve(it)
+            }.fail {
+                p2pAPI.markAsOffline(destination)
+                if (lokiMessage.isPing) {
+                    Log.w("Loki", "Failed to ping $destination; marking contact as offline.")
+                }
+                sendLokiMessageUsingSwarmAPI().success { deferred.resolve(it) }.fail { deferred.reject(it) }
             }
-            // TODO: Handle failure
+            return deferred.promise
         } else {
             return sendLokiMessageUsingSwarmAPI()
         }
@@ -99,3 +110,9 @@ class LokiAPI(private val hexEncodedPublicKey: String) {
     }
     // endregion
 }
+
+// region Convenience
+typealias RawResponse = Any
+typealias MessageListPromise = Promise<List<Envelope>, Exception>
+typealias RawResponsePromise = Promise<RawResponse, Exception>
+// endregion
