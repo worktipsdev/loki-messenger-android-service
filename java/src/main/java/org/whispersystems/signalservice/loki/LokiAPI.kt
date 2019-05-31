@@ -40,7 +40,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
     fun getMessages(): Promise<Set<MessageListPromise>, Exception> {
         return LokiSwarmAPI(database).getTargetSnodes(hexEncodedPublicKey).map { targetSnodes ->
             targetSnodes.map { targetSnode ->
-                val lastHashValue = ""
+                val lastHashValue = database.getLastMessageHashValue(targetSnode) ?: ""
                 val parameters = mapOf( "pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue )
                 invoke(LokiAPITarget.Method.GetMessages, targetSnode, hexEncodedPublicKey, parameters).map { rawResponse ->
                     val json = rawResponse as? Map<*, *>
@@ -99,11 +99,30 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
 
     // region Parsing
     private fun updateLastMessageHashValueIfPossible(target: LokiAPITarget, rawMessages: List<*>) {
-        // TODO: Implement
+        val lastMessage = rawMessages.last() as? Map<*, *>
+        val hashValue = lastMessage?.get("hash") as? String
+        if (hashValue != null) {
+            database.setLastMessageHashValue(target, hashValue)
+        } else {
+            println("[Loki] Failed to update last message hash value from: $rawMessages.")
+        }
     }
 
     private fun removeDuplicates(rawMessages: List<*>): List<*> {
-        return listOf<Map<String, Any>>()
+        val receivedMessageHashValues = database.getReceivedMessageHashValues()?.toMutableSet() ?: mutableSetOf()
+        return rawMessages.filter { rawMessage ->
+            val rawMessageAsJSON = rawMessage as? Map<*, *>
+            val hashValue = rawMessageAsJSON?.get("hash") as? String
+            if (hashValue != null) {
+                val isDuplicate = receivedMessageHashValues.contains(hashValue)
+                receivedMessageHashValues.add(hashValue)
+                database.setReceivedMessageHashValues(receivedMessageHashValues)
+                !isDuplicate
+            } else {
+                println("[Loki] Missing hash value for message: $rawMessage.")
+                false
+            }
+        }
     }
 
     private fun parseEnvelopes(rawMessages: List<*>): List<Envelope> {
