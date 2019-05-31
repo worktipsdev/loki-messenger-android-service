@@ -60,12 +60,12 @@ internal data class LokiMessage(
         }
     }
 
-    internal fun toJSON(): Map<String, Any> {
-        val result = mutableMapOf<String, Any>( "pubKey" to destination, "data" to data, "ttl" to ttl )
+    internal fun toJSON(): Map<String, String> {
+        val result = mutableMapOf( "pubKey" to destination, "data" to data, "ttl" to ttl.toString() )
         val timestamp = timestamp
         val nonce = nonce
         if (timestamp != null && nonce != null) {
-            result["timestamp"] = timestamp
+            result["timestamp"] = timestamp.toString()
             result["nonce"] = nonce
         }
         return result

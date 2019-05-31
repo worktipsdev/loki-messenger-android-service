@@ -5,9 +5,12 @@ import nl.komponents.kovenant.all
 import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.task
+import okhttp3.*
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
+import java.io.IOException
 
 class LokiAPI(private val hexEncodedPublicKey: String, private val database: LokiDatabaseProtocol) {
+    private val connection = OkHttpClient()
 
     // region Settings
     internal companion object {
@@ -31,8 +34,23 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
     /**
      * `hexEncodedPublicKey` is the hex encoded public key of the user the call is associated with. This is needed for swarm cache maintenance.
      */
-    internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String, parameters: Map<String, Any>): Promise<Any, Exception> {
-        return task { Unit }
+    internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String, parameters: Map<String, String>): RawResponsePromise {
+        val url = "${target.address}:${target.port}/$version/storage_rpc"
+        val body = FormBody.Builder()
+        parameters.forEach { body.add(it.key, it.value) }
+        val request = Request.Builder().url(url).post(body.build()).build()
+        val deferred = deferred<Any, Exception>()
+        connection.newCall(request).enqueue(object : Callback {
+
+            override fun onResponse(call: Call, response: Response) {
+                deferred.resolve(Unit) // TODO: Decode response
+            }
+
+            override fun onFailure(call: Call, exception: IOException) {
+                deferred.reject(exception)
+            }
+        })
+        return deferred.promise
     }
     // endregion
 
@@ -126,7 +144,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
     }
 
     private fun parseEnvelopes(rawMessages: List<*>): List<Envelope> {
-        return listOf()
+        return listOf() // TODO: Implement
     }
     // endregion
 }
