@@ -97,7 +97,7 @@ class FallBackSessionCipher(private val identityKeyStore: IdentityKeyStore, priv
     }
 }
 
-// - Private extensions
+// region Private extensions
 
 private val HEX_CHARS = "0123456789ABCDEF".toCharArray()
 
@@ -122,3 +122,5 @@ private fun SignalProtocolAddress.pubKeyData(): ByteArray {
     }
     return address.hexStringToByteArray()
 }
+
+// endregion
