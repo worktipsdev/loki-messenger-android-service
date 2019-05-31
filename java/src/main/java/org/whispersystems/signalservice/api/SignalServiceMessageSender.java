@@ -72,6 +72,7 @@ import org.whispersystems.signalservice.internal.push.http.AttachmentCipherOutpu
 import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
+import org.whispersystems.signalservice.loki.LokiServiceCipher;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -885,7 +886,8 @@ public class SignalServiceMessageSender {
   {
     for (int i=0;i<4;i++) {
       try {
-        OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online);
+        // TODO: Set isFriendRequest to `true` on a friend request message
+        OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, false);
         Optional<SignalServiceMessagePipe> pipe             = this.pipe.get();
         Optional<SignalServiceMessagePipe> unidentifiedPipe = this.unidentifiedPipe.get();
 
@@ -1010,7 +1012,8 @@ public class SignalServiceMessageSender {
                                                        Optional<UnidentifiedAccess> unidentifiedAccess,
                                                        long                         timestamp,
                                                        byte[]                       plaintext,
-                                                       boolean                      online)
+                                                       boolean                      online,
+                                                       boolean                      isFriendRequest)
       throws IOException, InvalidKeyException, UntrustedIdentityException
   {
     List<OutgoingPushMessage> messages = new LinkedList<>();
@@ -1020,7 +1023,10 @@ public class SignalServiceMessageSender {
     }
 
     for (int deviceId : store.getSubDeviceSessions(recipient.getNumber())) {
-      if (store.containsSession(new SignalProtocolAddress(recipient.getNumber(), deviceId))) {
+      // Loki - Check if we need to encrypt using our own cipher
+      if (isFriendRequest) {
+        messages.add(getEncryptedFriendRequestMessage(recipient, deviceId, plaintext));
+      } else if (store.containsSession(new SignalProtocolAddress(recipient.getNumber(), deviceId))) {
         messages.add(getEncryptedMessage(socket, recipient, unidentifiedAccess, deviceId, plaintext));
       }
     }
@@ -1065,6 +1071,13 @@ public class SignalServiceMessageSender {
     } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
       throw new UntrustedIdentityException("Untrusted on send", recipient.getNumber(), e.getUntrustedIdentity());
     }
+  }
+
+  // Loki: Custom function to encrypt our friend request messages
+  private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceId, byte[] plaintext) {
+    SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceId);
+    LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store);
+    return cipher.encryptWithFallbackCipher(signalProtocolAddress, plaintext);
   }
 
   private void handleMismatchedDevices(PushServiceSocket socket, SignalServiceAddress recipient,

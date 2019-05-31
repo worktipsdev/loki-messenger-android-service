@@ -238,6 +238,11 @@ public class SignalServiceEnvelope {
     return envelope.getType().getNumber() == Envelope.Type.UNIDENTIFIED_SENDER_VALUE;
   }
 
+  public boolean isFriendRequest() {
+    // TODO: Implement this once we have envelope types
+    return false;
+  }
+
   private byte[] getPlaintext(byte[] ciphertext, SecretKeySpec cipherKey) throws IOException {
     try {
       byte[] ivBytes = new byte[IV_LENGTH];

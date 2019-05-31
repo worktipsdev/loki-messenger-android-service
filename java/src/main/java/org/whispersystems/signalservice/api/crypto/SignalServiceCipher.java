@@ -206,7 +206,7 @@ public class SignalServiceCipher {
     }
   }
 
-  private Plaintext decrypt(SignalServiceEnvelope envelope, byte[] ciphertext)
+  protected Plaintext decrypt(SignalServiceEnvelope envelope, byte[] ciphertext)
       throws InvalidMetadataMessageException, InvalidMetadataVersionException,
       ProtocolDuplicateMessageException, ProtocolUntrustedIdentityException,
       ProtocolLegacyMessageException, ProtocolInvalidKeyException,
@@ -643,13 +643,13 @@ public class SignalServiceCipher {
     return new SignalServiceGroup(content.getGroup().getId().toByteArray());
   }
 
-  private static class Metadata {
+  protected static class Metadata {
     private final String  sender;
     private final int     senderDevice;
     private final long    timestamp;
     private final boolean needsReceipt;
 
-    private Metadata(String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+    public Metadata(String sender, int senderDevice, long timestamp, boolean needsReceipt) {
       this.sender       = sender;
       this.senderDevice = senderDevice;
       this.timestamp    = timestamp;
@@ -673,11 +673,11 @@ public class SignalServiceCipher {
     }
   }
 
-  private static class Plaintext {
+  protected static class Plaintext {
     private final Metadata metadata;
     private final byte[]   data;
 
-    private Plaintext(Metadata metadata, byte[] data) {
+    public Plaintext(Metadata metadata, byte[] data) {
       this.metadata = metadata;
       this.data     = data;
     }

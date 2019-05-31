@@ -36,6 +36,16 @@ class FallBackSessionCipher(private val identityKeyStore: IdentityKeyStore, priv
             }
             return null
         }
+    
+    /**
+     * Get the signal session version.
+     * Since this is a custom cipher we just want to pass a value above 2.
+     * This ensures that messages will have padding applied to them if we pass it to `PushTransportDetails`.
+     * @return Int The session version
+     */
+    fun getSessionVersion(): Int {
+        return 3
+    }
 
     /**
      * Encrypt a message
