@@ -19,7 +19,7 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'maven'
 apply plugin: 'signing'
 
-archivesBaseName = "signal-service-android"
+archivesBaseName = "loki-messenger-android-core"
 version          = version_number
 group            = group_info
 
@@ -31,8 +31,8 @@ repositories {
 }
 
 dependencies {
-    compile "org.signal:signal-metadata-android:${signal_version}"
-    compile (project(':java')) {
+    implementation "org.signal:signal-metadata-android:${signal_version}"
+    implementation (project(':java')) {
         exclude group: 'org.signal', module: 'signal-metadata-java'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
     }
@@ -41,7 +41,7 @@ dependencies {
 }
 
 android {
-    compileSdkVersion 25
+    compileSdkVersion 26
     buildToolsVersion '25.0.3'
 
     compileOptions {
@@ -105,15 +105,15 @@ uploadArchives {
         }
 
         pom.project {
-            name 'signal-service-android'
+            name 'loki-messenger-android-core'
             packaging 'aar'
-            description 'Signal Service communication library for Android'
-            url 'https://github.com/WhisperSystems/libsignal-service-java'
+            description 'Loki Messenger Android Core'
+            url 'https://github.com/loki-project/loki-messenger-android-core'
 
             scm {
-                url 'scm:git@github.com:WhisperSystems/libsignal-service-java.git'
-                connection 'scm:git@github.com:WhisperSystems/libsignal-service-java.git'
-                developerConnection 'scm:git@github.com:WhisperSystems/libsignal-service-java.git'
+                url 'scm:git@github.com:loki-project/loki-messenger-android-core.git'
+                connection 'scm:git@github.com:loki-project/loki-messenger-android-core.git'
+                developerConnection 'scm:git@github.com:loki-project/loki-messenger-android-core.git'
             }
 
             licenses {
