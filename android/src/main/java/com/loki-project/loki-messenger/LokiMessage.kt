@@ -39,18 +39,16 @@ data class LokiMessage(
         }
     }
 
-    /**
-     * Calculate the proof of work for this message
-     * @return Promise<LokiMessage, Exception> The promise of a new message with is `timestamp` and `nonce` set
-     */
+    @kotlin.ExperimentalUnsignedTypes
     fun calculatePoW(): Promise<LokiMessage, Exception> {
         return task {
             val now = System.currentTimeMillis()
-            val nonce = ProofOfWork.calculate(data, pubKey = destination, timestamp = now, ttl = ttl)
-            if (nonce != null) {
-                return@task this.copy(nonce = nonce, timestamp = now)
+            val nonce = ProofOfWork.calculate(data, destination, now, ttl)
+            if (nonce != null ) {
+                copy(nonce = nonce, timestamp = now)
+            } else {
+                throw LokiAPI.Error.ProofOfWorkCalculationFailed
             }
-            throw Exception("Proof of work calculation failed!")
         }
     }
 
