@@ -1,4 +1,4 @@
-package org.whispersystems.signalservice.loki.extensions
+package org.whispersystems.signalservice.loki.utilities
 
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
