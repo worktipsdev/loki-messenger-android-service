@@ -26,7 +26,7 @@ class LokiAPI(private val hexEncodedPublicKey: String) {
 
     // region Internal API
     /**
-     * `hexEncodedPublicKey` is used for swarm cache management.
+     * `hexEncodedPublicKey` is the hex encoded public key of the user the call is associated with. This is needed for swarm cache maintenance.
      */
     internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String, parameters: Map<String, Any>): Promise<Any, Exception> {
         return task { Unit }
