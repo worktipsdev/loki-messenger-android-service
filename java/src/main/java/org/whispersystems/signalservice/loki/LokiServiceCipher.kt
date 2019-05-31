@@ -1,5 +1,6 @@
 package org.whispersystems.signalservice.loki
 
+import org.signal.libsignal.metadata.certificate.CertificateValidator
 import org.whispersystems.libsignal.InvalidMessageException
 import org.whispersystems.libsignal.SignalProtocolAddress
 import org.whispersystems.libsignal.protocol.CiphertextMessage
@@ -18,9 +19,12 @@ import org.whispersystems.signalservice.internal.util.Base64
  * The only change that has been made is adding custom `decrypt` logic
  */
 class LokiServiceCipher(
-        private val localAddress: SignalServiceAddress,
-        private val signalProtocolStore: SignalProtocolStore
-        ) : SignalServiceCipher(localAddress, signalProtocolStore, null) {
+        localAddress: SignalServiceAddress,
+        private val signalProtocolStore: SignalProtocolStore,
+        certificateValidator: CertificateValidator?
+        ) : SignalServiceCipher(localAddress, signalProtocolStore, certificateValidator) {
+
+    constructor(localAddress: SignalServiceAddress, signalProtocolStore: SignalProtocolStore) : this(localAddress, signalProtocolStore, null)
 
     /**
      * Encrypt a message with the FallBackSessionCipher
