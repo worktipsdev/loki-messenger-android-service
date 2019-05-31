@@ -1,4 +1,4 @@
-package com.`loki-project`.`loki-messenger`
+package org.whispersystems.signalservice.loki
 
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.functional.bind

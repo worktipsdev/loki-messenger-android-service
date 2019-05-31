@@ -1,4 +1,4 @@
-package com.`loki-project`.`loki-messenger`
+package org.whispersystems.signalservice.loki
 
 import org.whispersystems.curve25519.Curve25519
 import org.whispersystems.libsignal.SignalProtocolAddress

@@ -1,8 +1,8 @@
-package com.`loki-project`.`loki-messenger`
+package org.whispersystems.signalservice.loki
 
-import android.util.Base64
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.task
+import org.whispersystems.signalservice.internal.util.Base64
 
 data class LokiMessage(
     /**
@@ -37,7 +37,7 @@ data class LokiMessage(
 
         fun from(signalMessage: Map<*, *>): LokiMessage? {
             val wrappedMessage = ByteArray(0)
-            val data = Base64.encodeToString(wrappedMessage, Base64.DEFAULT)
+            val data = Base64.encodeBytes(wrappedMessage)
             val destination = signalMessage["destination"] as String
             var ttl = LokiAPI.defaultMessageTTL
             val messageTTL = signalMessage["ttl"] as Int?

@@ -1,14 +1,14 @@
-package com.`loki-project`.`loki-messenger`
+package org.whispersystems.signalservice.loki
 
-import android.content.Context
+import java.io.File
 import java.util.zip.CRC32
 
 /**
  * Based on [mnemonic.js](https://github.com/loki-project/loki-messenger/blob/development/libloki/modules/mnemonic.js) .
  */
-class MnemonicCodec(private val context: Context) {
+class MnemonicCodec(private val languageFileDirectory: File) {
 
-    class Language(private val context: Context, private val configuration: Configuration) {
+    class Language(private val languageFileDirectory: File, private val configuration: Configuration) {
 
         data class Configuration(val filename: String, val prefixLength: Int) {
 
@@ -30,7 +30,8 @@ class MnemonicCodec(private val context: Context) {
             if (cachedResult != null) {
                 return cachedResult
             } else {
-                val contents = context.assets.open(configuration.filename + ".txt").bufferedReader().readLine()
+                val file = File(languageFileDirectory.absolutePath, configuration.filename + ".txt")
+                val contents = file.readText()
                 val result = contents.split(",")
                 wordSetCache[this] = result
                 return result
@@ -60,7 +61,7 @@ class MnemonicCodec(private val context: Context) {
 
     fun encode(hexEncodedString: String, languageConfiguration: Language.Configuration = Language.Configuration.english): String {
         var string = hexEncodedString
-        val language = Language(context, languageConfiguration)
+        val language = Language(languageFileDirectory, languageConfiguration)
         val wordSet = language.loadWordSet()
         val prefixLength = languageConfiguration.prefixLength
         val result = mutableListOf<String>()
@@ -89,14 +90,16 @@ class MnemonicCodec(private val context: Context) {
 
     fun decode(mnemonic: String, languageConfiguration: Language.Configuration = Language.Configuration.english): String {
         val words = mnemonic.split(" ").toMutableList()
-        val language = Language(context, languageConfiguration)
+        val language = Language(languageFileDirectory, languageConfiguration)
         val truncatedWordSet = language.loadTruncatedWordSet()
         val prefixLength = languageConfiguration.prefixLength
         var result = ""
         val n = truncatedWordSet.size
         // Check preconditions
-        if (words.size < 12) { throw DecodingError.InputTooShort }
-        if (words.size % 3 != 0) { throw DecodingError.MissingLastWord }
+        if (words.size < 12) { throw DecodingError.InputTooShort
+        }
+        if (words.size % 3 != 0) { throw DecodingError.MissingLastWord
+        }
         // Get checksum word
         val checksumWord = words.removeAt(words.lastIndex)
         // Decode
@@ -106,7 +109,8 @@ class MnemonicCodec(private val context: Context) {
                 val w2 = truncatedWordSet.indexOf(words[chunkStartIndex + 1].substring(0 until prefixLength))
                 val w3 = truncatedWordSet.indexOf(words[chunkStartIndex + 2].substring(0 until prefixLength))
                 val x = w1 + n * ((n - w1 + w2) % n) + n * n * ((n - w2 + w3) % n)
-                if (x % n != w1) { throw DecodingError.Generic }
+                if (x % n != w1) { throw DecodingError.Generic
+                }
                 val string = "0000000" + x.toString(16)
                 result += swap(string.substring(string.lastIndex - 8 until string.lastIndex))
             } catch (e: Exception) {
@@ -116,7 +120,8 @@ class MnemonicCodec(private val context: Context) {
         // Verify checksum
         val checksumIndex = determineChecksumIndex(words, prefixLength)
         val expectedChecksumWord = words[checksumIndex]
-        if (expectedChecksumWord.substring(0 until prefixLength) != checksumWord.substring(0 until prefixLength)) { throw DecodingError.VerificationFailed }
+        if (expectedChecksumWord.substring(0 until prefixLength) != checksumWord.substring(0 until prefixLength)) { throw DecodingError.VerificationFailed
+        }
         // Return
         return result
     }

@@ -1,7 +1,6 @@
-package com.`loki-project`.`loki-messenger`
+package org.whispersystems.signalservice.loki
 
-import android.util.Base64
-import org.whispersystems.signalservice.BuildConfig
+import org.whispersystems.signalservice.internal.util.Base64
 import java.math.BigInteger
 import java.nio.ByteBuffer
 import java.security.MessageDigest
@@ -13,8 +12,7 @@ import java.security.MessageDigest
 object ProofOfWork {
     private val nonceSize = 8
 
-    private val nonceTrialCount: Int
-        get() = if (BuildConfig.DEBUG) 10 else 100
+    private val nonceTrialCount = 10 // TODO: Change to 100 before release
 
     /**
      * Calculate a proof of work with the given configuration (based on https://bitmessage.org/wiki/Proof_of_work).
@@ -46,7 +44,7 @@ object ProofOfWork {
                 currentTrialValue = newHash.sliceArray(0 until 8).toULong()
             }
 
-            return Base64.encodeToString(nonce.toByteArray(), Base64.DEFAULT)
+            return Base64.encodeBytes(nonce.toByteArray())
         } catch (e: Exception) {
             e.printStackTrace()
             return null

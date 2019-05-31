@@ -1,6 +1,24 @@
-apply plugin: 'java'
-apply plugin: 'maven'
-apply plugin: 'signing'
+buildscript {
+    ext.gradle_version = "3.4.1"
+    ext.kotlin_version = "1.3.31"
+    ext.kovenant_version = "3.3.0"
+
+    repositories {
+        mavenCentral()
+        jcenter()
+        google()
+    }
+
+    dependencies {
+        classpath "com.android.tools.build:gradle:$gradle_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+apply plugin: "java"
+apply plugin: "kotlin"
+apply plugin: "maven"
+apply plugin: "signing"
 
 sourceCompatibility = 1.7
 archivesBaseName    = "signal-service-java"
@@ -9,21 +27,25 @@ group               = group_info
 
 repositories {
     mavenCentral()
-    mavenLocal()
+    jcenter()
+    google()
 }
 
 dependencies {
-    compile 'com.google.protobuf:protobuf-java:2.5.0'
-    compile 'com.googlecode.libphonenumber:libphonenumber:8.10.7'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.8'
+    implementation "com.google.protobuf:protobuf-java:2.5.0"
+    implementation "com.googlecode.libphonenumber:libphonenumber:8.10.7"
+    implementation "com.fasterxml.jackson.core:jackson-databind:2.9.8"
 
-    compile "org.signal:signal-metadata-java:${signal_version}"
-    compile 'com.squareup.okhttp3:okhttp:3.12.1'
-    compile 'org.threeten:threetenbp:1.3.6'
+    implementation "org.signal:signal-metadata-java:${signal_version}"
+    implementation "com.squareup.okhttp3:okhttp:3.12.1"
+    implementation "org.threeten:threetenbp:1.3.6"
 
-    testCompile 'junit:junit:3.8.2'
-    testCompile 'org.assertj:assertj-core:1.7.1'
-    testCompile 'org.conscrypt:conscrypt-openjdk-uber:2.0.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "nl.komponents.kovenant:kovenant:$kovenant_version"
+
+    testImplementation "junit:junit:3.8.2"
+    testImplementation "org.assertj:assertj-core:1.7.1"
+    testImplementation "org.conscrypt:conscrypt-openjdk-uber:2.0.0"
 }
 
 tasks.whenTaskAdded { task ->
@@ -32,22 +54,20 @@ tasks.whenTaskAdded { task ->
     }
 }
 
-
 def isReleaseBuild() {
     return version.contains("SNAPSHOT") == false
 }
 
 def getReleaseRepositoryUrl() {
-    return hasProperty('sonatypeRepo') ? sonatypeRepo
-            : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+    return hasProperty("sonatypeRepo") ? sonatypeRepo  : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
 }
 
 def getRepositoryUsername() {
-    return hasProperty('whisperSonatypeUsername') ? whisperSonatypeUsername : ""
+    return hasProperty("whisperSonatypeUsername") ? whisperSonatypeUsername : ""
 }
 
 def getRepositoryPassword() {
-    return hasProperty('whisperSonatypePassword') ? whisperSonatypePassword : ""
+    return hasProperty("whisperSonatypePassword") ? whisperSonatypePassword : ""
 }
 
 signing {
@@ -65,28 +85,28 @@ uploadArchives {
         }
 
         pom.project {
-            name 'signal-service-java'
-            packaging 'jar'
-            description 'Signal Service communication library for Java'
-            url 'https://github.com/WhisperSystems/libsignal-service-java'
+            name "signal-service-java"
+            packaging "jar"
+            description "Signal Service communication library for Java"
+            url "https://github.com/WhisperSystems/libsignal-service-java"
 
             scm {
-                url 'scm:git@github.com:WhisperSystems/libsignal-service-java.git'
-                connection 'scm:git@github.com:WhisperSystems/libsignal-service-java.git'
-                developerConnection 'scm:git@github.com:WhisperSystems/libsignal-service-java.git'
+                url "scm:git@github.com:WhisperSystems/libsignal-service-java.git"
+                connection "scm:git@github.com:WhisperSystems/libsignal-service-java.git"
+                developerConnection "scm:git@github.com:WhisperSystems/libsignal-service-java.git"
             }
 
             licenses {
                 license {
-                    name 'GPLv3'
-                    url 'https://www.gnu.org/licenses/gpl-3.0.txt'
-                    distribution 'repo'
+                    name "GPLv3"
+                    url "https://www.gnu.org/licenses/gpl-3.0.txt"
+                    distribution "repo"
                 }
             }
 
             developers {
                 developer {
-                    name 'Moxie Marlinspike'
+                    name "Moxie Marlinspike"
                 }
             }
         }
@@ -95,22 +115,22 @@ uploadArchives {
 
 task installArchives(type: Upload) {
     description "Installs the artifacts to the local Maven repository."
-    configuration = configurations['archives']
+    configuration = configurations["archives"]
     repositories {
         mavenDeployer {
-            repository url: "file://${System.properties['user.home']}/.m2/repository"
+            repository url: "file://${System.properties["user.home"]}/.m2/repository"
         }
     }
 }
 
-task packageJavadoc(type: Jar, dependsOn: 'javadoc') {
+task packageJavadoc(type: Jar, dependsOn: "javadoc") {
     from javadoc.destinationDir
-    classifier = 'javadoc'
+    classifier = "javadoc"
 }
 
 task packageSources(type: Jar) {
     from sourceSets.main.allSource
-    classifier = 'sources'
+    classifier = "sources"
 }
 
 artifacts {
