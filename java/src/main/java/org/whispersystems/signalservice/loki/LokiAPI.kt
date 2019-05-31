@@ -56,11 +56,6 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
                     }
                     else -> deferred.reject(Error.Generic)
                 }
-                if (responseCode == 200) {
-                    deferred.resolve(Unit)
-                } else {
-                    deferred.reject(Error.Generic)
-                }
             }
 
             override fun onFailure(call: Call, exception: IOException) {
