@@ -4,23 +4,23 @@ import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.task
 import org.whispersystems.signalservice.internal.util.Base64
 
-data class LokiMessage(
+internal data class LokiMessage(
     /**
      * The hex encoded public key of the receiver.
      */
-    val destination: String,
+    internal val destination: String,
     /**
      * The content of the message.
      */
-    val data: String,
+    internal val data: String,
     /**
      * The time to live for the message in milliseconds.
      */
-    val ttl: Int,
+    internal val ttl: Int,
     /**
      * Whether this message is a ping.
      */
-    val isPing: Boolean,
+    internal val isPing: Boolean,
     /**
      * When the proof of work was calculated, if applicable (P2P messages don't require proof of work).
      *
@@ -33,9 +33,9 @@ data class LokiMessage(
     internal var nonce: String? = null
 ) {
 
-    companion object {
+    internal companion object {
 
-        fun from(signalMessage: Map<*, *>): LokiMessage? {
+        internal fun from(signalMessage: Map<*, *>): LokiMessage? {
             val wrappedMessage = ByteArray(0)
             val data = Base64.encodeBytes(wrappedMessage)
             val destination = signalMessage["destination"] as String
@@ -48,7 +48,7 @@ data class LokiMessage(
     }
 
     @kotlin.ExperimentalUnsignedTypes
-    fun calculatePoW(): Promise<LokiMessage, Exception> {
+    internal fun calculatePoW(): Promise<LokiMessage, Exception> {
         return task {
             val now = System.currentTimeMillis()
             val nonce = ProofOfWork.calculate(data, destination, now, ttl)
@@ -60,7 +60,7 @@ data class LokiMessage(
         }
     }
 
-    fun toJSON(): Map<String, Any> {
+    internal fun toJSON(): Map<String, Any> {
         val result = mutableMapOf<String, Any>( "pubKey" to destination, "data" to data, "ttl" to ttl )
         val timestamp = timestamp
         val nonce = nonce

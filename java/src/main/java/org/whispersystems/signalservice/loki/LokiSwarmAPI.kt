@@ -7,7 +7,7 @@ import nl.komponents.kovenant.task
 import nl.komponents.kovenant.then
 import java.security.SecureRandom
 
-internal object LokiSwarmAPI {
+internal class LokiSwarmAPI(private val database: LokiDatabaseProtocol) {
 
     // region Settings
     private val minimumSnodeCount = 2 // TODO: For debugging purposes
@@ -16,7 +16,9 @@ internal object LokiSwarmAPI {
     // endregion
 
     // region Caching
-    private val swarmCache = mutableMapOf<String, List<LokiAPITarget>>()
+    private var swarmCache: Map<String, List<LokiAPITarget>>
+        get() = database.getSwarmCache() ?: mapOf()
+        set(newValue) = database.setSwarmCache(newValue)
     // endregion
 
     // region Internal API
@@ -35,11 +37,13 @@ internal object LokiSwarmAPI {
         } else {
             val parameters = mapOf( "pubKey" to hexEncodedPublicKey )
             return getRandomSnode().bind {
-                LokiAPI(hexEncodedPublicKey).invoke(LokiAPITarget.Method.GetSwarm, it, hexEncodedPublicKey, parameters)
+                LokiAPI(hexEncodedPublicKey, database).invoke(LokiAPITarget.Method.GetSwarm, it, hexEncodedPublicKey, parameters)
             }.map {
                 parseTargets(it)
             }.success {
-                swarmCache[hexEncodedPublicKey] = it
+                val updatedSwarmCache = swarmCache.toMutableMap()
+                updatedSwarmCache[hexEncodedPublicKey] = it
+                swarmCache = updatedSwarmCache
             }
         }
     }

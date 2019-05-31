@@ -7,10 +7,10 @@ import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.task
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
 
-class LokiAPI(private val hexEncodedPublicKey: String) {
+class LokiAPI(private val hexEncodedPublicKey: String, private val database: LokiDatabaseProtocol) {
 
     // region Settings
-    companion object {
+    internal companion object {
         private val version = "v1"
         private val maxRetryCount = 3
         internal val defaultMessageTTL = 1 * 24 * 60 * 60 * 1000
@@ -38,7 +38,7 @@ class LokiAPI(private val hexEncodedPublicKey: String) {
 
     // region Public API
     fun getMessages(): Promise<Set<MessageListPromise>, Exception> {
-        return LokiSwarmAPI.getTargetSnodes(hexEncodedPublicKey).map { targetSnodes ->
+        return LokiSwarmAPI(database).getTargetSnodes(hexEncodedPublicKey).map { targetSnodes ->
             targetSnodes.map { targetSnode ->
                 val lastHashValue = ""
                 val parameters = mapOf( "pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue )
@@ -67,7 +67,7 @@ class LokiAPI(private val hexEncodedPublicKey: String) {
         }
         fun sendLokiMessageUsingSwarmAPI(): Promise<Set<RawResponsePromise>, Exception> {
             val powPromise = lokiMessage.calculatePoW()
-            val swarmPromise = LokiSwarmAPI.getTargetSnodes(destination)
+            val swarmPromise = LokiSwarmAPI(database).getTargetSnodes(destination)
             return all(powPromise, swarmPromise).map {
                 val lokiMessageWithPoW = it[0] as LokiMessage
                 val swarm = it[1] as List<*>
