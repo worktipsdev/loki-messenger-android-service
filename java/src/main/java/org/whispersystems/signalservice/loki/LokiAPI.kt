@@ -10,7 +10,8 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelo
 import java.io.IOException
 
 class LokiAPI(private val hexEncodedPublicKey: String, private val database: LokiDatabaseProtocol) {
-    private val connection = OkHttpClient()
+
+    private val connection by lazy { OkHttpClient() }
 
     // region Settings
     internal companion object {
@@ -22,6 +23,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
 
     // region Types
     sealed class Error(val description: String) : Exception() {
+        object Generic : Error("An error occurred.")
         /**
          * Only applicable to snode targets as proof of work isn't required for P2P messaging.
          */
@@ -43,7 +45,22 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
         connection.newCall(request).enqueue(object : Callback {
 
             override fun onResponse(call: Call, response: Response) {
-                deferred.resolve(Unit) // TODO: Decode response
+                val responseCode = response.code()
+                when (responseCode) {
+                    200 -> deferred.resolve(Unit) // TODO: Parse response body
+                    421 -> {
+                        // The snode isn't associated with the given public key anymore
+                        println("[Loki] Invalidating swarm for: $hexEncodedPublicKey.")
+                        LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey)
+                        deferred.reject(Error.Generic) // TODO: Retry
+                    }
+                    else -> deferred.reject(Error.Generic)
+                }
+                if (responseCode == 200) {
+                    deferred.resolve(Unit)
+                } else {
+                    deferred.reject(Error.Generic)
+                }
             }
 
             override fun onFailure(call: Call, exception: IOException) {

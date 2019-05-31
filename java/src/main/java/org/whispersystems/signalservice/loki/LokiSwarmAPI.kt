@@ -19,6 +19,16 @@ internal class LokiSwarmAPI(private val database: LokiDatabaseProtocol) {
     private var swarmCache: Map<String, List<LokiAPITarget>>
         get() = database.getSwarmCache() ?: mapOf()
         set(newValue) = database.setSwarmCache(newValue)
+
+    internal fun dropIfNeeded(target: LokiAPITarget, hexEncodedPublicKey: String) {
+        val swarm = swarmCache[hexEncodedPublicKey]?.toMutableList()
+        if (swarm != null && swarm.contains(target)) {
+            swarm.remove(target)
+            val updatedSwarmCache = swarmCache.toMutableMap()
+            updatedSwarmCache[hexEncodedPublicKey] = swarm
+            swarmCache = updatedSwarmCache
+        }
+    }
     // endregion
 
     // region Internal API
