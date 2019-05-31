@@ -1,6 +1,6 @@
 package com.`loki-project`.`loki-messenger`
 
-internal class LokiAPITarget(val address: String, val port: Int) {
+class LokiAPITarget(val address: String, val port: Int) {
 
     internal enum class Method(val rawValue: String) {
         /**
