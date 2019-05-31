@@ -11,9 +11,11 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelo
 class LokiAPI(private val hexEncodedPublicKey: String) {
 
     // region Settings
-    private val version = "v1"
-    private val maxRetryCount = 3
-    private val defaultMessageTTL = 1 * 24 * 60 * 60 * 1000
+    companion object {
+        private val version = "v1"
+        private val maxRetryCount = 3
+        internal val defaultMessageTTL = 1 * 24 * 60 * 60 * 1000
+    }
     // endregion
 
     // region Types
