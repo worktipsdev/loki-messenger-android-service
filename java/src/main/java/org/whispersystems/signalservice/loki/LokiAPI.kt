@@ -7,6 +7,7 @@ import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.task
 import okhttp3.*
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
+import org.whispersystems.signalservice.internal.util.JsonUtil
 import java.io.IOException
 
 class LokiAPI(private val hexEncodedPublicKey: String, private val database: LokiDatabaseProtocol) {
@@ -39,15 +40,19 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
     internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String, parameters: Map<String, String>): RawResponsePromise {
         val url = "${target.address}:${target.port}/$version/storage_rpc"
         val body = FormBody.Builder()
-        parameters.forEach { body.add(it.key, it.value) }
+        body.add("method", method.rawValue)
+        body.add("params", JsonUtil.toJson(parameters))
         val request = Request.Builder().url(url).post(body.build()).build()
-        val deferred = deferred<Any, Exception>()
+        val deferred = deferred<Map<*, *>, Exception>()
         connection.newCall(request).enqueue(object : Callback {
 
             override fun onResponse(call: Call, response: Response) {
-                val responseCode = response.code()
-                when (responseCode) {
-                    200 -> deferred.resolve(Unit) // TODO: Parse response body
+                when (response.code()) {
+                    200 -> {
+                        val bodyAsString = response.body()!!.string()
+                        @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
+                        deferred.resolve(body)
+                    }
                     421 -> {
                         // The snode isn't associated with the given public key anymore
                         println("[Loki] Invalidating swarm for: $hexEncodedPublicKey.")
@@ -162,7 +167,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
 }
 
 // region Convenience
-typealias RawResponse = Any
+typealias RawResponse = Map<*, *>
 typealias MessageListPromise = Promise<List<Envelope>, Exception>
 typealias RawResponsePromise = Promise<RawResponse, Exception>
 // endregion
