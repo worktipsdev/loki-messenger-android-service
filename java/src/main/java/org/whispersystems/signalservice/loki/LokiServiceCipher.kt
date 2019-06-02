@@ -3,13 +3,13 @@ package org.whispersystems.signalservice.loki
 import org.signal.libsignal.metadata.certificate.CertificateValidator
 import org.whispersystems.libsignal.InvalidMessageException
 import org.whispersystems.libsignal.SignalProtocolAddress
-import org.whispersystems.libsignal.protocol.CiphertextMessage
 import org.whispersystems.libsignal.state.SignalProtocolStore
 import org.whispersystems.signalservice.api.crypto.SignalServiceCipher
 import org.whispersystems.signalservice.api.messages.SignalServiceEnvelope
 import org.whispersystems.signalservice.api.push.SignalServiceAddress
 import org.whispersystems.signalservice.internal.push.OutgoingPushMessage
 import org.whispersystems.signalservice.internal.push.PushTransportDetails
+import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope.Type
 import org.whispersystems.signalservice.internal.util.Base64
 
 /**
@@ -38,8 +38,7 @@ class LokiServiceCipher(
         val message = fallBackCipher.encrypt(transportDetails.getPaddedMessageBody(unpaddedMessage))
         val body = Base64.encodeBytes(message)
 
-        // TODO: Replace `WHISPER_TYPE` with our own friend request message type
-        return OutgoingPushMessage(CiphertextMessage.WHISPER_TYPE, destination.deviceId, 0, body)
+        return OutgoingPushMessage(Type.FRIEND_REQUEST_VALUE, destination.deviceId, 0, body)
     }
 
     /**
