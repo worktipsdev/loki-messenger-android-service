@@ -115,19 +115,18 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
                 }.get()
             }
         }
-        val p2pAPI = LokiP2PAPI(destination)
-        val peer = p2pAPI.peerInfo[destination]
+        val peer = LokiP2PAPI.shared.peerInfo[destination]
         if (peer != null && (lokiMessage.isPing || peer.isOnline)) {
             val target = LokiAPITarget(peer.address, peer.port)
             val deferred = deferred<Set<RawResponsePromise>, Exception>()
             retryIfNeeded(maxRetryCount) {
                 task { listOf(target) }.map { it.map { sendLokiMessage(lokiMessage, it) } }.map { it.toSet() }.get()
             }.success {
-                p2pAPI.markAsOnline(destination)
+                LokiP2PAPI.shared.mark(isOnline = true, hexEncodedPublicKey = destination)
                 onP2PSuccess()
                 deferred.resolve(it)
             }.fail {
-                p2pAPI.markAsOffline(destination)
+                LokiP2PAPI.shared.mark(isOnline = false, hexEncodedPublicKey = destination)
                 if (lokiMessage.isPing) {
                     println("[Loki] Failed to ping $destination; marking contact as offline.")
                 }
