@@ -200,18 +200,17 @@ public class SignalServiceCipher {
                   plaintext.getMetadata().getTimestamp(),
                   plaintext.getMetadata().isNeedsReceipt());
 
-          // Loki, set all our properties on one message
           LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiServiceAddressMessage);
           content.setLokiMessage(lokiServiceMessage);
           return content;
-          /* Loki Original Code
+          /* Loki - Original code
            * ================
           return new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), message.getDataMessage()),
                                           plaintext.getMetadata().getSender(),
                                           plaintext.getMetadata().getSenderDevice(),
                                           plaintext.getMetadata().getTimestamp(),
                                           plaintext.getMetadata().isNeedsReceipt());
-        */
+           */
         } else if (message.hasSyncMessage() && localAddress.getNumber().equals(plaintext.getMetadata().getSender())) {
           return new SignalServiceContent(createSynchronizeMessage(plaintext.getMetadata(), message.getSyncMessage()),
                                           plaintext.getMetadata().getSender(),
