@@ -11,6 +11,7 @@ import org.whispersystems.signalservice.internal.push.OutgoingPushMessage
 import org.whispersystems.signalservice.internal.push.PushTransportDetails
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope.Type
 import org.whispersystems.signalservice.internal.util.Base64
+import org.whispersystems.signalservice.loki.utilities.publicKey
 
 /**
  * The only difference between this and `SignalServiceCipher` is the custom encryption/decryption logic.
@@ -18,13 +19,15 @@ import org.whispersystems.signalservice.internal.util.Base64
 class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalProtocolStore: SignalProtocolStore, certificateValidator: CertificateValidator?)
     : SignalServiceCipher(localAddress, signalProtocolStore, certificateValidator) {
 
+    private val userPrivateKey: ByteArray get() = signalProtocolStore.identityKeyPair.privateKey.serialize()
+
     constructor(localAddress: SignalServiceAddress, signalProtocolStore: SignalProtocolStore) : this(localAddress, signalProtocolStore, null)
 
-    fun encryptUsingFallbackSessionCipher(destination: SignalProtocolAddress, unpaddedMessage: ByteArray): OutgoingPushMessage {
-        val fallbackCipher = FallbackSessionCipher(signalProtocolStore, destination)
-        val transportDetails = PushTransportDetails(fallbackCipher.getSessionVersion())
+    fun encryptUsingFallbackSessionCipher(address: SignalProtocolAddress, unpaddedMessage: ByteArray): OutgoingPushMessage {
+        val fallbackCipher = FallbackSessionCipher(userPrivateKey, address.publicKey())
+        val transportDetails = PushTransportDetails(fallbackCipher.sessionVersion)
         val encryptedBody = fallbackCipher.encrypt(transportDetails.getPaddedMessageBody(unpaddedMessage))
-        return OutgoingPushMessage(Type.FRIEND_REQUEST_VALUE, destination.deviceId, 0, Base64.encodeBytes(encryptedBody))
+        return OutgoingPushMessage(Type.FRIEND_REQUEST_VALUE, address.deviceId, 0, Base64.encodeBytes(encryptedBody))
     }
 
     /**
@@ -32,12 +35,12 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
      */
     override fun decrypt(envelope: SignalServiceEnvelope, ciphertext: ByteArray): Plaintext {
         if (envelope.isFriendRequest) {
-            val sourceAddress = SignalProtocolAddress(envelope.source, envelope.sourceDevice)
-            val fallbackCipher = FallbackSessionCipher(signalProtocolStore, sourceAddress)
+            val contactPublicKey = SignalProtocolAddress(envelope.source, envelope.sourceDevice).publicKey()
+            val fallbackCipher = FallbackSessionCipher(userPrivateKey, contactPublicKey)
 
             // Decrypt and un-pad
             val paddedMessage = fallbackCipher.decrypt(ciphertext) ?: throw InvalidMessageException("Failed to decrypt friend request message.")
-            val transportDetails = PushTransportDetails(fallbackCipher.getSessionVersion())
+            val transportDetails = PushTransportDetails(fallbackCipher.sessionVersion)
             val unpaddedMessage = transportDetails.getStrippedPaddingMessageBody(paddedMessage)
 
             val metadata = Metadata(envelope.source, envelope.sourceDevice, envelope.timestamp, false)
