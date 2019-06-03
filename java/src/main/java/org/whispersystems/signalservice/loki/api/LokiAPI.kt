@@ -8,6 +8,7 @@ import nl.komponents.kovenant.task
 import okhttp3.*
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
 
@@ -97,8 +98,8 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
     }
 
     @kotlin.ExperimentalUnsignedTypes
-    fun sendSignalMessage(signalMessage: Map<*, *>, timestamp: Int, onP2PSuccess: () -> Unit): Promise<Set<RawResponsePromise>, Exception> {
-        val lokiMessage = LokiMessage.from(signalMessage) ?: return task { throw Error.MessageConversionFailed }
+    fun sendSignalMessage(message: SignalMessageInfo, onP2PSuccess: () -> Unit): Promise<Set<RawResponsePromise>, Exception> {
+        val lokiMessage = LokiMessage.from(message) ?: return task { throw Error.MessageConversionFailed }
         val destination = lokiMessage.destination
         fun sendLokiMessage(lokiMessage: LokiMessage, target: LokiAPITarget): RawResponsePromise {
             val parameters = lokiMessage.toJSON()
