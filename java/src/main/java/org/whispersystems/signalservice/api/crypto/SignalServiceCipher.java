@@ -69,11 +69,16 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Attach
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Content;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.DataMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope.Type;
+import org.whispersystems.signalservice.internal.push.SignalServiceProtos.LokiAddressMessage;
+import org.whispersystems.signalservice.internal.push.SignalServiceProtos.PreKeyBundleMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.ReceiptMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.TypingMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Verified;
 import org.whispersystems.signalservice.internal.util.Base64;
+import org.whispersystems.signalservice.loki.messages.LokiServiceAddressMessage;
+import org.whispersystems.signalservice.loki.messages.LokiServiceMessage;
+import org.whispersystems.signalservice.loki.messages.LokiServicePreKeyBundleMessage;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -167,12 +172,46 @@ public class SignalServiceCipher {
         Plaintext plaintext = decrypt(envelope, envelope.getContent());
         Content   message   = Content.parseFrom(plaintext.getData());
 
+        // Loki
+        LokiServicePreKeyBundleMessage lokiPreKeyBundleMessage = null;
+        if (message.hasPreKeyBundleMessage()) {
+          PreKeyBundleMessage preKeyBundleMessage = message.getPreKeyBundleMessage();
+          lokiPreKeyBundleMessage = new LokiServicePreKeyBundleMessage(
+                  preKeyBundleMessage.getIdentityKey().toByteArray(),
+                  preKeyBundleMessage.getDeviceId(),
+                  preKeyBundleMessage.getPreKeyId(),
+                  preKeyBundleMessage.getSignedKeyId(),
+                  preKeyBundleMessage.getPreKey().toByteArray(),
+                  preKeyBundleMessage.getSignedKey().toByteArray(),
+                  preKeyBundleMessage.getSignature().toByteArray()
+          );
+        }
+
+        LokiServiceAddressMessage lokiServiceAddressMessage = null;
+        if (message.hasLokiAddressMessage()) {
+          LokiAddressMessage addressMessage = message.getLokiAddressMessage();
+          lokiServiceAddressMessage = new LokiServiceAddressMessage(addressMessage.getP2PAddress(), addressMessage.getP2PPort());
+        }
+
         if (message.hasDataMessage()) {
+          SignalServiceContent content = new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), message.getDataMessage()),
+                  plaintext.getMetadata().getSender(),
+                  plaintext.getMetadata().getSenderDevice(),
+                  plaintext.getMetadata().getTimestamp(),
+                  plaintext.getMetadata().isNeedsReceipt());
+
+          // Loki, set all our properties on one message
+          LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiServiceAddressMessage);
+          content.setLokiMessage(lokiServiceMessage);
+          return content;
+          /* Loki Original Code
+           * ================
           return new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), message.getDataMessage()),
                                           plaintext.getMetadata().getSender(),
                                           plaintext.getMetadata().getSenderDevice(),
                                           plaintext.getMetadata().getTimestamp(),
                                           plaintext.getMetadata().isNeedsReceipt());
+        */
         } else if (message.hasSyncMessage() && localAddress.getNumber().equals(plaintext.getMetadata().getSender())) {
           return new SignalServiceContent(createSynchronizeMessage(plaintext.getMetadata(), message.getSyncMessage()),
                                           plaintext.getMetadata().getSender(),

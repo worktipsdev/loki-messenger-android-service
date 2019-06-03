@@ -9,6 +9,7 @@ package org.whispersystems.signalservice.api.messages;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.messages.calls.SignalServiceCallMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.SignalServiceSyncMessage;
+import org.whispersystems.signalservice.loki.messages.LokiServiceMessage;
 
 public class SignalServiceContent {
 
@@ -22,6 +23,9 @@ public class SignalServiceContent {
   private final Optional<SignalServiceCallMessage>    callMessage;
   private final Optional<SignalServiceReceiptMessage> readMessage;
   private final Optional<SignalServiceTypingMessage>  typingMessage;
+
+  // Loki
+  public Optional<LokiServiceMessage> lokiMessage = Optional.absent();
 
   public SignalServiceContent(SignalServiceDataMessage message, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
     this.sender       = sender;
@@ -123,4 +127,7 @@ public class SignalServiceContent {
   public boolean isNeedsReceipt() {
     return needsReceipt;
   }
+
+  // Loki
+  public void setLokiMessage(LokiServiceMessage message) { lokiMessage = Optional.fromNullable(message); }
 }
