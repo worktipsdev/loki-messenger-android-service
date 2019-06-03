@@ -6,18 +6,12 @@ package org.whispersystems.signalservice.internal.sticker;
 public final class StickerProtos {
   private StickerProtos() {}
   public static void registerAllExtensions(
-      com.google.protobuf.ExtensionRegistryLite registry) {
-  }
-
-  public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {
-    registerAllExtensions(
-        (com.google.protobuf.ExtensionRegistryLite) registry);
   }
-  public interface PackOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:signalservice.Pack)
-      com.google.protobuf.MessageOrBuilder {
+  public interface PackOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
 
+    // optional string title = 1;
     /**
      * <code>optional string title = 1;</code>
      */
@@ -32,6 +26,7 @@ public final class StickerProtos {
     com.google.protobuf.ByteString
         getTitleBytes();
 
+    // optional string author = 2;
     /**
      * <code>optional string author = 2;</code>
      */
@@ -46,6 +41,7 @@ public final class StickerProtos {
     com.google.protobuf.ByteString
         getAuthorBytes();
 
+    // optional .signalservice.Pack.Sticker cover = 3;
     /**
      * <code>optional .signalservice.Pack.Sticker cover = 3;</code>
      */
@@ -59,6 +55,7 @@ public final class StickerProtos {
      */
     org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.StickerOrBuilder getCoverOrBuilder();
 
+    // repeated .signalservice.Pack.Sticker stickers = 4;
     /**
      * <code>repeated .signalservice.Pack.Sticker stickers = 4;</code>
      */
@@ -86,34 +83,36 @@ public final class StickerProtos {
   /**
    * Protobuf type {@code signalservice.Pack}
    */
-  public  static final class Pack extends
-      com.google.protobuf.GeneratedMessageV3 implements
-      // @@protoc_insertion_point(message_implements:signalservice.Pack)
-      PackOrBuilder {
-  private static final long serialVersionUID = 0L;
+  public static final class Pack extends
+      com.google.protobuf.GeneratedMessage
+      implements PackOrBuilder {
     // Use Pack.newBuilder() to construct.
-    private Pack(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+    private Pack(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
       super(builder);
+      this.unknownFields = builder.getUnknownFields();
     }
-    private Pack() {
-      title_ = "";
-      author_ = "";
-      stickers_ = java.util.Collections.emptyList();
+    private Pack(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final Pack defaultInstance;
+    public static Pack getDefaultInstance() {
+      return defaultInstance;
     }
 
+    public Pack getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
     @java.lang.Override
     public final com.google.protobuf.UnknownFieldSet
-    getUnknownFields() {
+        getUnknownFields() {
       return this.unknownFields;
     }
     private Pack(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws com.google.protobuf.InvalidProtocolBufferException {
-      this();
-      if (extensionRegistry == null) {
-        throw new java.lang.NullPointerException();
-      }
+      initFields();
       int mutable_bitField0_ = 0;
       com.google.protobuf.UnknownFieldSet.Builder unknownFields =
           com.google.protobuf.UnknownFieldSet.newBuilder();
@@ -125,21 +124,26 @@ public final class StickerProtos {
             case 0:
               done = true;
               break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000001;
-              title_ = bs;
+              title_ = input.readBytes();
               break;
             }
             case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000002;
-              author_ = bs;
+              author_ = input.readBytes();
               break;
             }
             case 26: {
               org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.Builder subBuilder = null;
-              if (((bitField0_ & 0x00000004) != 0)) {
+              if (((bitField0_ & 0x00000004) == 0x00000004)) {
                 subBuilder = cover_.toBuilder();
               }
               cover_ = input.readMessage(org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.PARSER, extensionRegistry);
@@ -151,19 +155,11 @@ public final class StickerProtos {
               break;
             }
             case 34: {
-              if (!((mutable_bitField0_ & 0x00000008) != 0)) {
+              if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
                 stickers_ = new java.util.ArrayList<org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker>();
                 mutable_bitField0_ |= 0x00000008;
               }
-              stickers_.add(
-                  input.readMessage(org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.PARSER, extensionRegistry));
-              break;
-            }
-            default: {
-              if (!parseUnknownField(
-                  input, unknownFields, extensionRegistry, tag)) {
-                done = true;
-              }
+              stickers_.add(input.readMessage(org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.PARSER, extensionRegistry));
               break;
             }
           }
@@ -172,9 +168,9 @@ public final class StickerProtos {
         throw e.setUnfinishedMessage(this);
       } catch (java.io.IOException e) {
         throw new com.google.protobuf.InvalidProtocolBufferException(
-            e).setUnfinishedMessage(this);
+            e.getMessage()).setUnfinishedMessage(this);
       } finally {
-        if (((mutable_bitField0_ & 0x00000008) != 0)) {
+        if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
           stickers_ = java.util.Collections.unmodifiableList(stickers_);
         }
         this.unknownFields = unknownFields.build();
@@ -186,18 +182,32 @@ public final class StickerProtos {
       return org.whispersystems.signalservice.internal.sticker.StickerProtos.internal_static_signalservice_Pack_descriptor;
     }
 
-    @java.lang.Override
-    protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
         internalGetFieldAccessorTable() {
       return org.whispersystems.signalservice.internal.sticker.StickerProtos.internal_static_signalservice_Pack_fieldAccessorTable
           .ensureFieldAccessorsInitialized(
               org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.class, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Builder.class);
     }
 
-    public interface StickerOrBuilder extends
-        // @@protoc_insertion_point(interface_extends:signalservice.Pack.Sticker)
-        com.google.protobuf.MessageOrBuilder {
+    public static com.google.protobuf.Parser<Pack> PARSER =
+        new com.google.protobuf.AbstractParser<Pack>() {
+      public Pack parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new Pack(input, extensionRegistry);
+      }
+    };
 
+    @java.lang.Override
+    public com.google.protobuf.Parser<Pack> getParserForType() {
+      return PARSER;
+    }
+
+    public interface StickerOrBuilder
+        extends com.google.protobuf.MessageOrBuilder {
+
+      // optional uint32 id = 1;
       /**
        * <code>optional uint32 id = 1;</code>
        */
@@ -207,6 +217,7 @@ public final class StickerProtos {
        */
       int getId();
 
+      // optional string emoji = 2;
       /**
        * <code>optional string emoji = 2;</code>
        */
@@ -224,32 +235,36 @@ public final class StickerProtos {
     /**
      * Protobuf type {@code signalservice.Pack.Sticker}
      */
-    public  static final class Sticker extends
-        com.google.protobuf.GeneratedMessageV3 implements
-        // @@protoc_insertion_point(message_implements:signalservice.Pack.Sticker)
-        StickerOrBuilder {
-    private static final long serialVersionUID = 0L;
+    public static final class Sticker extends
+        com.google.protobuf.GeneratedMessage
+        implements StickerOrBuilder {
       // Use Sticker.newBuilder() to construct.
-      private Sticker(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
+      private Sticker(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
         super(builder);
+        this.unknownFields = builder.getUnknownFields();
       }
-      private Sticker() {
-        emoji_ = "";
+      private Sticker(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+      private static final Sticker defaultInstance;
+      public static Sticker getDefaultInstance() {
+        return defaultInstance;
       }
 
+      public Sticker getDefaultInstanceForType() {
+        return defaultInstance;
+      }
+
+      private final com.google.protobuf.UnknownFieldSet unknownFields;
       @java.lang.Override
       public final com.google.protobuf.UnknownFieldSet
-      getUnknownFields() {
+          getUnknownFields() {
         return this.unknownFields;
       }
       private Sticker(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws com.google.protobuf.InvalidProtocolBufferException {
-        this();
-        if (extensionRegistry == null) {
-          throw new java.lang.NullPointerException();
-        }
+        initFields();
         int mutable_bitField0_ = 0;
         com.google.protobuf.UnknownFieldSet.Builder unknownFields =
             com.google.protobuf.UnknownFieldSet.newBuilder();
@@ -261,22 +276,21 @@ public final class StickerProtos {
               case 0:
                 done = true;
                 break;
+              default: {
+                if (!parseUnknownField(input, unknownFields,
+                                       extensionRegistry, tag)) {
+                  done = true;
+                }
+                break;
+              }
               case 8: {
                 bitField0_ |= 0x00000001;
                 id_ = input.readUInt32();
                 break;
               }
               case 18: {
-                com.google.protobuf.ByteString bs = input.readBytes();
                 bitField0_ |= 0x00000002;
-                emoji_ = bs;
-                break;
-              }
-              default: {
-                if (!parseUnknownField(
-                    input, unknownFields, extensionRegistry, tag)) {
-                  done = true;
-                }
+                emoji_ = input.readBytes();
                 break;
               }
             }
@@ -285,7 +299,7 @@ public final class StickerProtos {
           throw e.setUnfinishedMessage(this);
         } catch (java.io.IOException e) {
           throw new com.google.protobuf.InvalidProtocolBufferException(
-              e).setUnfinishedMessage(this);
+              e.getMessage()).setUnfinishedMessage(this);
         } finally {
           this.unknownFields = unknownFields.build();
           makeExtensionsImmutable();
@@ -296,22 +310,37 @@ public final class StickerProtos {
         return org.whispersystems.signalservice.internal.sticker.StickerProtos.internal_static_signalservice_Pack_Sticker_descriptor;
       }
 
-      @java.lang.Override
-      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return org.whispersystems.signalservice.internal.sticker.StickerProtos.internal_static_signalservice_Pack_Sticker_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
                 org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.class, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.Builder.class);
       }
 
+      public static com.google.protobuf.Parser<Sticker> PARSER =
+          new com.google.protobuf.AbstractParser<Sticker>() {
+        public Sticker parsePartialFrom(
+            com.google.protobuf.CodedInputStream input,
+            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+            throws com.google.protobuf.InvalidProtocolBufferException {
+          return new Sticker(input, extensionRegistry);
+        }
+      };
+
+      @java.lang.Override
+      public com.google.protobuf.Parser<Sticker> getParserForType() {
+        return PARSER;
+      }
+
       private int bitField0_;
+      // optional uint32 id = 1;
       public static final int ID_FIELD_NUMBER = 1;
       private int id_;
       /**
        * <code>optional uint32 id = 1;</code>
        */
       public boolean hasId() {
-        return ((bitField0_ & 0x00000001) != 0);
+        return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
        * <code>optional uint32 id = 1;</code>
@@ -320,13 +349,14 @@ public final class StickerProtos {
         return id_;
       }
 
+      // optional string emoji = 2;
       public static final int EMOJI_FIELD_NUMBER = 2;
-      private volatile java.lang.Object emoji_;
+      private java.lang.Object emoji_;
       /**
        * <code>optional string emoji = 2;</code>
        */
       public boolean hasEmoji() {
-        return ((bitField0_ & 0x00000002) != 0);
+        return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
        * <code>optional string emoji = 2;</code>
@@ -362,102 +392,57 @@ public final class StickerProtos {
         }
       }
 
+      private void initFields() {
+        id_ = 0;
+        emoji_ = "";
+      }
       private byte memoizedIsInitialized = -1;
-      @java.lang.Override
       public final boolean isInitialized() {
         byte isInitialized = memoizedIsInitialized;
-        if (isInitialized == 1) return true;
-        if (isInitialized == 0) return false;
+        if (isInitialized != -1) return isInitialized == 1;
 
         memoizedIsInitialized = 1;
         return true;
       }
 
-      @java.lang.Override
       public void writeTo(com.google.protobuf.CodedOutputStream output)
                           throws java.io.IOException {
-        if (((bitField0_ & 0x00000001) != 0)) {
+        getSerializedSize();
+        if (((bitField0_ & 0x00000001) == 0x00000001)) {
           output.writeUInt32(1, id_);
         }
-        if (((bitField0_ & 0x00000002) != 0)) {
-          com.google.protobuf.GeneratedMessageV3.writeString(output, 2, emoji_);
+        if (((bitField0_ & 0x00000002) == 0x00000002)) {
+          output.writeBytes(2, getEmojiBytes());
         }
-        unknownFields.writeTo(output);
+        getUnknownFields().writeTo(output);
       }
 
-      @java.lang.Override
+      private int memoizedSerializedSize = -1;
       public int getSerializedSize() {
-        int size = memoizedSize;
+        int size = memoizedSerializedSize;
         if (size != -1) return size;
 
         size = 0;
-        if (((bitField0_ & 0x00000001) != 0)) {
+        if (((bitField0_ & 0x00000001) == 0x00000001)) {
           size += com.google.protobuf.CodedOutputStream
             .computeUInt32Size(1, id_);
         }
-        if (((bitField0_ & 0x00000002) != 0)) {
-          size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, emoji_);
+        if (((bitField0_ & 0x00000002) == 0x00000002)) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeBytesSize(2, getEmojiBytes());
         }
-        size += unknownFields.getSerializedSize();
-        memoizedSize = size;
+        size += getUnknownFields().getSerializedSize();
+        memoizedSerializedSize = size;
         return size;
       }
 
+      private static final long serialVersionUID = 0L;
       @java.lang.Override
-      public boolean equals(final java.lang.Object obj) {
-        if (obj == this) {
-         return true;
-        }
-        if (!(obj instanceof org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker)) {
-          return super.equals(obj);
-        }
-        org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker other = (org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker) obj;
-
-        if (hasId() != other.hasId()) return false;
-        if (hasId()) {
-          if (getId()
-              != other.getId()) return false;
-        }
-        if (hasEmoji() != other.hasEmoji()) return false;
-        if (hasEmoji()) {
-          if (!getEmoji()
-              .equals(other.getEmoji())) return false;
-        }
-        if (!unknownFields.equals(other.unknownFields)) return false;
-        return true;
+      protected java.lang.Object writeReplace()
+          throws java.io.ObjectStreamException {
+        return super.writeReplace();
       }
 
-      @java.lang.Override
-      public int hashCode() {
-        if (memoizedHashCode != 0) {
-          return memoizedHashCode;
-        }
-        int hash = 41;
-        hash = (19 * hash) + getDescriptor().hashCode();
-        if (hasId()) {
-          hash = (37 * hash) + ID_FIELD_NUMBER;
-          hash = (53 * hash) + getId();
-        }
-        if (hasEmoji()) {
-          hash = (37 * hash) + EMOJI_FIELD_NUMBER;
-          hash = (53 * hash) + getEmoji().hashCode();
-        }
-        hash = (29 * hash) + unknownFields.hashCode();
-        memoizedHashCode = hash;
-        return hash;
-      }
-
-      public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker parseFrom(
-          java.nio.ByteBuffer data)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return PARSER.parseFrom(data);
-      }
-      public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker parseFrom(
-          java.nio.ByteBuffer data,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return PARSER.parseFrom(data, extensionRegistry);
-      }
       public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker parseFrom(
           com.google.protobuf.ByteString data)
           throws com.google.protobuf.InvalidProtocolBufferException {
@@ -481,59 +466,46 @@ public final class StickerProtos {
       }
       public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker parseFrom(java.io.InputStream input)
           throws java.io.IOException {
-        return com.google.protobuf.GeneratedMessageV3
-            .parseWithIOException(PARSER, input);
+        return PARSER.parseFrom(input);
       }
       public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker parseFrom(
           java.io.InputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        return com.google.protobuf.GeneratedMessageV3
-            .parseWithIOException(PARSER, input, extensionRegistry);
+        return PARSER.parseFrom(input, extensionRegistry);
       }
       public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker parseDelimitedFrom(java.io.InputStream input)
           throws java.io.IOException {
-        return com.google.protobuf.GeneratedMessageV3
-            .parseDelimitedWithIOException(PARSER, input);
+        return PARSER.parseDelimitedFrom(input);
       }
       public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker parseDelimitedFrom(
           java.io.InputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        return com.google.protobuf.GeneratedMessageV3
-            .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+        return PARSER.parseDelimitedFrom(input, extensionRegistry);
       }
       public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker parseFrom(
           com.google.protobuf.CodedInputStream input)
           throws java.io.IOException {
-        return com.google.protobuf.GeneratedMessageV3
-            .parseWithIOException(PARSER, input);
+        return PARSER.parseFrom(input);
       }
       public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker parseFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
           throws java.io.IOException {
-        return com.google.protobuf.GeneratedMessageV3
-            .parseWithIOException(PARSER, input, extensionRegistry);
+        return PARSER.parseFrom(input, extensionRegistry);
       }
 
-      @java.lang.Override
+      public static Builder newBuilder() { return Builder.create(); }
       public Builder newBuilderForType() { return newBuilder(); }
-      public static Builder newBuilder() {
-        return DEFAULT_INSTANCE.toBuilder();
-      }
       public static Builder newBuilder(org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker prototype) {
-        return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+        return newBuilder().mergeFrom(prototype);
       }
-      @java.lang.Override
-      public Builder toBuilder() {
-        return this == DEFAULT_INSTANCE
-            ? new Builder() : new Builder().mergeFrom(this);
-      }
+      public Builder toBuilder() { return newBuilder(this); }
 
       @java.lang.Override
       protected Builder newBuilderForType(
-          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         Builder builder = new Builder(parent);
         return builder;
       }
@@ -541,16 +513,14 @@ public final class StickerProtos {
        * Protobuf type {@code signalservice.Pack.Sticker}
        */
       public static final class Builder extends
-          com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-          // @@protoc_insertion_point(builder_implements:signalservice.Pack.Sticker)
-          org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.StickerOrBuilder {
+          com.google.protobuf.GeneratedMessage.Builder<Builder>
+         implements org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.StickerOrBuilder {
         public static final com.google.protobuf.Descriptors.Descriptor
             getDescriptor() {
           return org.whispersystems.signalservice.internal.sticker.StickerProtos.internal_static_signalservice_Pack_Sticker_descriptor;
         }
 
-        @java.lang.Override
-        protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+        protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
             internalGetFieldAccessorTable() {
           return org.whispersystems.signalservice.internal.sticker.StickerProtos.internal_static_signalservice_Pack_Sticker_fieldAccessorTable
               .ensureFieldAccessorsInitialized(
@@ -563,16 +533,18 @@ public final class StickerProtos {
         }
 
         private Builder(
-            com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+            com.google.protobuf.GeneratedMessage.BuilderParent parent) {
           super(parent);
           maybeForceBuilderInitialization();
         }
         private void maybeForceBuilderInitialization() {
-          if (com.google.protobuf.GeneratedMessageV3
-                  .alwaysUseFieldBuilders) {
+          if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
           }
         }
-        @java.lang.Override
+        private static Builder create() {
+          return new Builder();
+        }
+
         public Builder clear() {
           super.clear();
           id_ = 0;
@@ -582,18 +554,19 @@ public final class StickerProtos {
           return this;
         }
 
-        @java.lang.Override
+        public Builder clone() {
+          return create().mergeFrom(buildPartial());
+        }
+
         public com.google.protobuf.Descriptors.Descriptor
             getDescriptorForType() {
           return org.whispersystems.signalservice.internal.sticker.StickerProtos.internal_static_signalservice_Pack_Sticker_descriptor;
         }
 
-        @java.lang.Override
         public org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker getDefaultInstanceForType() {
           return org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.getDefaultInstance();
         }
 
-        @java.lang.Override
         public org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker build() {
           org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker result = buildPartial();
           if (!result.isInitialized()) {
@@ -602,16 +575,15 @@ public final class StickerProtos {
           return result;
         }
 
-        @java.lang.Override
         public org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker buildPartial() {
           org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker result = new org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker(this);
           int from_bitField0_ = bitField0_;
           int to_bitField0_ = 0;
-          if (((from_bitField0_ & 0x00000001) != 0)) {
-            result.id_ = id_;
+          if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
             to_bitField0_ |= 0x00000001;
           }
-          if (((from_bitField0_ & 0x00000002) != 0)) {
+          result.id_ = id_;
+          if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
             to_bitField0_ |= 0x00000002;
           }
           result.emoji_ = emoji_;
@@ -620,39 +592,6 @@ public final class StickerProtos {
           return result;
         }
 
-        @java.lang.Override
-        public Builder clone() {
-          return super.clone();
-        }
-        @java.lang.Override
-        public Builder setField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            java.lang.Object value) {
-          return super.setField(field, value);
-        }
-        @java.lang.Override
-        public Builder clearField(
-            com.google.protobuf.Descriptors.FieldDescriptor field) {
-          return super.clearField(field);
-        }
-        @java.lang.Override
-        public Builder clearOneof(
-            com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-          return super.clearOneof(oneof);
-        }
-        @java.lang.Override
-        public Builder setRepeatedField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            int index, java.lang.Object value) {
-          return super.setRepeatedField(field, index, value);
-        }
-        @java.lang.Override
-        public Builder addRepeatedField(
-            com.google.protobuf.Descriptors.FieldDescriptor field,
-            java.lang.Object value) {
-          return super.addRepeatedField(field, value);
-        }
-        @java.lang.Override
         public Builder mergeFrom(com.google.protobuf.Message other) {
           if (other instanceof org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker) {
             return mergeFrom((org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker)other);
@@ -672,17 +611,14 @@ public final class StickerProtos {
             emoji_ = other.emoji_;
             onChanged();
           }
-          this.mergeUnknownFields(other.unknownFields);
-          onChanged();
+          this.mergeUnknownFields(other.getUnknownFields());
           return this;
         }
 
-        @java.lang.Override
         public final boolean isInitialized() {
           return true;
         }
 
-        @java.lang.Override
         public Builder mergeFrom(
             com.google.protobuf.CodedInputStream input,
             com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -692,7 +628,7 @@ public final class StickerProtos {
             parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
           } catch (com.google.protobuf.InvalidProtocolBufferException e) {
             parsedMessage = (org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker) e.getUnfinishedMessage();
-            throw e.unwrapIOException();
+            throw e;
           } finally {
             if (parsedMessage != null) {
               mergeFrom(parsedMessage);
@@ -702,12 +638,13 @@ public final class StickerProtos {
         }
         private int bitField0_;
 
+        // optional uint32 id = 1;
         private int id_ ;
         /**
          * <code>optional uint32 id = 1;</code>
          */
         public boolean hasId() {
-          return ((bitField0_ & 0x00000001) != 0);
+          return ((bitField0_ & 0x00000001) == 0x00000001);
         }
         /**
          * <code>optional uint32 id = 1;</code>
@@ -734,12 +671,13 @@ public final class StickerProtos {
           return this;
         }
 
+        // optional string emoji = 2;
         private java.lang.Object emoji_ = "";
         /**
          * <code>optional string emoji = 2;</code>
          */
         public boolean hasEmoji() {
-          return ((bitField0_ & 0x00000002) != 0);
+          return ((bitField0_ & 0x00000002) == 0x00000002);
         }
         /**
          * <code>optional string emoji = 2;</code>
@@ -747,12 +685,9 @@ public final class StickerProtos {
         public java.lang.String getEmoji() {
           java.lang.Object ref = emoji_;
           if (!(ref instanceof java.lang.String)) {
-            com.google.protobuf.ByteString bs =
-                (com.google.protobuf.ByteString) ref;
-            java.lang.String s = bs.toStringUtf8();
-            if (bs.isValidUtf8()) {
-              emoji_ = s;
-            }
+            java.lang.String s = ((com.google.protobuf.ByteString) ref)
+                .toStringUtf8();
+            emoji_ = s;
             return s;
           } else {
             return (java.lang.String) ref;
@@ -809,67 +744,27 @@ public final class StickerProtos {
           onChanged();
           return this;
         }
-        @java.lang.Override
-        public final Builder setUnknownFields(
-            final com.google.protobuf.UnknownFieldSet unknownFields) {
-          return super.setUnknownFields(unknownFields);
-        }
-
-        @java.lang.Override
-        public final Builder mergeUnknownFields(
-            final com.google.protobuf.UnknownFieldSet unknownFields) {
-          return super.mergeUnknownFields(unknownFields);
-        }
-
 
         // @@protoc_insertion_point(builder_scope:signalservice.Pack.Sticker)
       }
 
-      // @@protoc_insertion_point(class_scope:signalservice.Pack.Sticker)
-      private static final org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker DEFAULT_INSTANCE;
       static {
-        DEFAULT_INSTANCE = new org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker();
+        defaultInstance = new Sticker(true);
+        defaultInstance.initFields();
       }
 
-      public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker getDefaultInstance() {
-        return DEFAULT_INSTANCE;
-      }
-
-      @java.lang.Deprecated public static final com.google.protobuf.Parser<Sticker>
-          PARSER = new com.google.protobuf.AbstractParser<Sticker>() {
-        @java.lang.Override
-        public Sticker parsePartialFrom(
-            com.google.protobuf.CodedInputStream input,
-            com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-            throws com.google.protobuf.InvalidProtocolBufferException {
-          return new Sticker(input, extensionRegistry);
-        }
-      };
-
-      public static com.google.protobuf.Parser<Sticker> parser() {
-        return PARSER;
-      }
-
-      @java.lang.Override
-      public com.google.protobuf.Parser<Sticker> getParserForType() {
-        return PARSER;
-      }
-
-      @java.lang.Override
-      public org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker getDefaultInstanceForType() {
-        return DEFAULT_INSTANCE;
-      }
-
+      // @@protoc_insertion_point(class_scope:signalservice.Pack.Sticker)
     }
 
     private int bitField0_;
+    // optional string title = 1;
     public static final int TITLE_FIELD_NUMBER = 1;
-    private volatile java.lang.Object title_;
+    private java.lang.Object title_;
     /**
      * <code>optional string title = 1;</code>
      */
     public boolean hasTitle() {
-      return ((bitField0_ & 0x00000001) != 0);
+      return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
      * <code>optional string title = 1;</code>
@@ -905,13 +800,14 @@ public final class StickerProtos {
       }
     }
 
+    // optional string author = 2;
     public static final int AUTHOR_FIELD_NUMBER = 2;
-    private volatile java.lang.Object author_;
+    private java.lang.Object author_;
     /**
      * <code>optional string author = 2;</code>
      */
     public boolean hasAuthor() {
-      return ((bitField0_ & 0x00000002) != 0);
+      return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
      * <code>optional string author = 2;</code>
@@ -947,27 +843,29 @@ public final class StickerProtos {
       }
     }
 
+    // optional .signalservice.Pack.Sticker cover = 3;
     public static final int COVER_FIELD_NUMBER = 3;
     private org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker cover_;
     /**
      * <code>optional .signalservice.Pack.Sticker cover = 3;</code>
      */
     public boolean hasCover() {
-      return ((bitField0_ & 0x00000004) != 0);
+      return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
      * <code>optional .signalservice.Pack.Sticker cover = 3;</code>
      */
     public org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker getCover() {
-      return cover_ == null ? org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.getDefaultInstance() : cover_;
+      return cover_;
     }
     /**
      * <code>optional .signalservice.Pack.Sticker cover = 3;</code>
      */
     public org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.StickerOrBuilder getCoverOrBuilder() {
-      return cover_ == null ? org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.getDefaultInstance() : cover_;
+      return cover_;
     }
 
+    // repeated .signalservice.Pack.Sticker stickers = 4;
     public static final int STICKERS_FIELD_NUMBER = 4;
     private java.util.List<org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker> stickers_;
     /**
@@ -1003,130 +901,73 @@ public final class StickerProtos {
       return stickers_.get(index);
     }
 
+    private void initFields() {
+      title_ = "";
+      author_ = "";
+      cover_ = org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.getDefaultInstance();
+      stickers_ = java.util.Collections.emptyList();
+    }
     private byte memoizedIsInitialized = -1;
-    @java.lang.Override
     public final boolean isInitialized() {
       byte isInitialized = memoizedIsInitialized;
-      if (isInitialized == 1) return true;
-      if (isInitialized == 0) return false;
+      if (isInitialized != -1) return isInitialized == 1;
 
       memoizedIsInitialized = 1;
       return true;
     }
 
-    @java.lang.Override
     public void writeTo(com.google.protobuf.CodedOutputStream output)
                         throws java.io.IOException {
-      if (((bitField0_ & 0x00000001) != 0)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 1, title_);
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, getTitleBytes());
       }
-      if (((bitField0_ & 0x00000002) != 0)) {
-        com.google.protobuf.GeneratedMessageV3.writeString(output, 2, author_);
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBytes(2, getAuthorBytes());
       }
-      if (((bitField0_ & 0x00000004) != 0)) {
-        output.writeMessage(3, getCover());
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeMessage(3, cover_);
       }
       for (int i = 0; i < stickers_.size(); i++) {
         output.writeMessage(4, stickers_.get(i));
       }
-      unknownFields.writeTo(output);
+      getUnknownFields().writeTo(output);
     }
 
-    @java.lang.Override
+    private int memoizedSerializedSize = -1;
     public int getSerializedSize() {
-      int size = memoizedSize;
+      int size = memoizedSerializedSize;
       if (size != -1) return size;
 
       size = 0;
-      if (((bitField0_ & 0x00000001) != 0)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, title_);
-      }
-      if (((bitField0_ & 0x00000002) != 0)) {
-        size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, author_);
-      }
-      if (((bitField0_ & 0x00000004) != 0)) {
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(3, getCover());
+          .computeBytesSize(1, getTitleBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(2, getAuthorBytes());
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(3, cover_);
       }
       for (int i = 0; i < stickers_.size(); i++) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(4, stickers_.get(i));
       }
-      size += unknownFields.getSerializedSize();
-      memoizedSize = size;
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
       return size;
     }
 
+    private static final long serialVersionUID = 0L;
     @java.lang.Override
-    public boolean equals(final java.lang.Object obj) {
-      if (obj == this) {
-       return true;
-      }
-      if (!(obj instanceof org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack)) {
-        return super.equals(obj);
-      }
-      org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack other = (org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack) obj;
-
-      if (hasTitle() != other.hasTitle()) return false;
-      if (hasTitle()) {
-        if (!getTitle()
-            .equals(other.getTitle())) return false;
-      }
-      if (hasAuthor() != other.hasAuthor()) return false;
-      if (hasAuthor()) {
-        if (!getAuthor()
-            .equals(other.getAuthor())) return false;
-      }
-      if (hasCover() != other.hasCover()) return false;
-      if (hasCover()) {
-        if (!getCover()
-            .equals(other.getCover())) return false;
-      }
-      if (!getStickersList()
-          .equals(other.getStickersList())) return false;
-      if (!unknownFields.equals(other.unknownFields)) return false;
-      return true;
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
     }
 
-    @java.lang.Override
-    public int hashCode() {
-      if (memoizedHashCode != 0) {
-        return memoizedHashCode;
-      }
-      int hash = 41;
-      hash = (19 * hash) + getDescriptor().hashCode();
-      if (hasTitle()) {
-        hash = (37 * hash) + TITLE_FIELD_NUMBER;
-        hash = (53 * hash) + getTitle().hashCode();
-      }
-      if (hasAuthor()) {
-        hash = (37 * hash) + AUTHOR_FIELD_NUMBER;
-        hash = (53 * hash) + getAuthor().hashCode();
-      }
-      if (hasCover()) {
-        hash = (37 * hash) + COVER_FIELD_NUMBER;
-        hash = (53 * hash) + getCover().hashCode();
-      }
-      if (getStickersCount() > 0) {
-        hash = (37 * hash) + STICKERS_FIELD_NUMBER;
-        hash = (53 * hash) + getStickersList().hashCode();
-      }
-      hash = (29 * hash) + unknownFields.hashCode();
-      memoizedHashCode = hash;
-      return hash;
-    }
-
-    public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data);
-    }
-    public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return PARSER.parseFrom(data, extensionRegistry);
-    }
     public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack parseFrom(
         com.google.protobuf.ByteString data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -1150,59 +991,46 @@ public final class StickerProtos {
     }
     public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack parseFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
+      return PARSER.parseFrom(input);
     }
     public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack parseFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
+      return PARSER.parseFrom(input, extensionRegistry);
     }
     public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack parseDelimitedFrom(java.io.InputStream input)
         throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input);
+      return PARSER.parseDelimitedFrom(input);
     }
     public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack parseDelimitedFrom(
         java.io.InputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseDelimitedWithIOException(PARSER, input, extensionRegistry);
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
     }
     public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack parseFrom(
         com.google.protobuf.CodedInputStream input)
         throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input);
+      return PARSER.parseFrom(input);
     }
     public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack parseFrom(
         com.google.protobuf.CodedInputStream input,
         com.google.protobuf.ExtensionRegistryLite extensionRegistry)
         throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageV3
-          .parseWithIOException(PARSER, input, extensionRegistry);
+      return PARSER.parseFrom(input, extensionRegistry);
     }
 
-    @java.lang.Override
+    public static Builder newBuilder() { return Builder.create(); }
     public Builder newBuilderForType() { return newBuilder(); }
-    public static Builder newBuilder() {
-      return DEFAULT_INSTANCE.toBuilder();
-    }
     public static Builder newBuilder(org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack prototype) {
-      return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+      return newBuilder().mergeFrom(prototype);
     }
-    @java.lang.Override
-    public Builder toBuilder() {
-      return this == DEFAULT_INSTANCE
-          ? new Builder() : new Builder().mergeFrom(this);
-    }
+    public Builder toBuilder() { return newBuilder(this); }
 
     @java.lang.Override
     protected Builder newBuilderForType(
-        com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
       Builder builder = new Builder(parent);
       return builder;
     }
@@ -1210,16 +1038,14 @@ public final class StickerProtos {
      * Protobuf type {@code signalservice.Pack}
      */
     public static final class Builder extends
-        com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
-        // @@protoc_insertion_point(builder_implements:signalservice.Pack)
-        org.whispersystems.signalservice.internal.sticker.StickerProtos.PackOrBuilder {
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements org.whispersystems.signalservice.internal.sticker.StickerProtos.PackOrBuilder {
       public static final com.google.protobuf.Descriptors.Descriptor
           getDescriptor() {
         return org.whispersystems.signalservice.internal.sticker.StickerProtos.internal_static_signalservice_Pack_descriptor;
       }
 
-      @java.lang.Override
-      protected com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
           internalGetFieldAccessorTable() {
         return org.whispersystems.signalservice.internal.sticker.StickerProtos.internal_static_signalservice_Pack_fieldAccessorTable
             .ensureFieldAccessorsInitialized(
@@ -1232,18 +1058,20 @@ public final class StickerProtos {
       }
 
       private Builder(
-          com.google.protobuf.GeneratedMessageV3.BuilderParent parent) {
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
         super(parent);
         maybeForceBuilderInitialization();
       }
       private void maybeForceBuilderInitialization() {
-        if (com.google.protobuf.GeneratedMessageV3
-                .alwaysUseFieldBuilders) {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
           getCoverFieldBuilder();
           getStickersFieldBuilder();
         }
       }
-      @java.lang.Override
+      private static Builder create() {
+        return new Builder();
+      }
+
       public Builder clear() {
         super.clear();
         title_ = "";
@@ -1251,7 +1079,7 @@ public final class StickerProtos {
         author_ = "";
         bitField0_ = (bitField0_ & ~0x00000002);
         if (coverBuilder_ == null) {
-          cover_ = null;
+          cover_ = org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.getDefaultInstance();
         } else {
           coverBuilder_.clear();
         }
@@ -1265,18 +1093,19 @@ public final class StickerProtos {
         return this;
       }
 
-      @java.lang.Override
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
       public com.google.protobuf.Descriptors.Descriptor
           getDescriptorForType() {
         return org.whispersystems.signalservice.internal.sticker.StickerProtos.internal_static_signalservice_Pack_descriptor;
       }
 
-      @java.lang.Override
       public org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack getDefaultInstanceForType() {
         return org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.getDefaultInstance();
       }
 
-      @java.lang.Override
       public org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack build() {
         org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack result = buildPartial();
         if (!result.isInitialized()) {
@@ -1285,29 +1114,28 @@ public final class StickerProtos {
         return result;
       }
 
-      @java.lang.Override
       public org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack buildPartial() {
         org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack result = new org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack(this);
         int from_bitField0_ = bitField0_;
         int to_bitField0_ = 0;
-        if (((from_bitField0_ & 0x00000001) != 0)) {
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
           to_bitField0_ |= 0x00000001;
         }
         result.title_ = title_;
-        if (((from_bitField0_ & 0x00000002) != 0)) {
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
           to_bitField0_ |= 0x00000002;
         }
         result.author_ = author_;
-        if (((from_bitField0_ & 0x00000004) != 0)) {
-          if (coverBuilder_ == null) {
-            result.cover_ = cover_;
-          } else {
-            result.cover_ = coverBuilder_.build();
-          }
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
           to_bitField0_ |= 0x00000004;
         }
+        if (coverBuilder_ == null) {
+          result.cover_ = cover_;
+        } else {
+          result.cover_ = coverBuilder_.build();
+        }
         if (stickersBuilder_ == null) {
-          if (((bitField0_ & 0x00000008) != 0)) {
+          if (((bitField0_ & 0x00000008) == 0x00000008)) {
             stickers_ = java.util.Collections.unmodifiableList(stickers_);
             bitField0_ = (bitField0_ & ~0x00000008);
           }
@@ -1320,39 +1148,6 @@ public final class StickerProtos {
         return result;
       }
 
-      @java.lang.Override
-      public Builder clone() {
-        return super.clone();
-      }
-      @java.lang.Override
-      public Builder setField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.setField(field, value);
-      }
-      @java.lang.Override
-      public Builder clearField(
-          com.google.protobuf.Descriptors.FieldDescriptor field) {
-        return super.clearField(field);
-      }
-      @java.lang.Override
-      public Builder clearOneof(
-          com.google.protobuf.Descriptors.OneofDescriptor oneof) {
-        return super.clearOneof(oneof);
-      }
-      @java.lang.Override
-      public Builder setRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          int index, java.lang.Object value) {
-        return super.setRepeatedField(field, index, value);
-      }
-      @java.lang.Override
-      public Builder addRepeatedField(
-          com.google.protobuf.Descriptors.FieldDescriptor field,
-          java.lang.Object value) {
-        return super.addRepeatedField(field, value);
-      }
-      @java.lang.Override
       public Builder mergeFrom(com.google.protobuf.Message other) {
         if (other instanceof org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack) {
           return mergeFrom((org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack)other);
@@ -1396,24 +1191,21 @@ public final class StickerProtos {
               stickers_ = other.stickers_;
               bitField0_ = (bitField0_ & ~0x00000008);
               stickersBuilder_ = 
-                com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders ?
+                com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders ?
                    getStickersFieldBuilder() : null;
             } else {
               stickersBuilder_.addAllMessages(other.stickers_);
             }
           }
         }
-        this.mergeUnknownFields(other.unknownFields);
-        onChanged();
+        this.mergeUnknownFields(other.getUnknownFields());
         return this;
       }
 
-      @java.lang.Override
       public final boolean isInitialized() {
         return true;
       }
 
-      @java.lang.Override
       public Builder mergeFrom(
           com.google.protobuf.CodedInputStream input,
           com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -1423,7 +1215,7 @@ public final class StickerProtos {
           parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
           parsedMessage = (org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack) e.getUnfinishedMessage();
-          throw e.unwrapIOException();
+          throw e;
         } finally {
           if (parsedMessage != null) {
             mergeFrom(parsedMessage);
@@ -1433,12 +1225,13 @@ public final class StickerProtos {
       }
       private int bitField0_;
 
+      // optional string title = 1;
       private java.lang.Object title_ = "";
       /**
        * <code>optional string title = 1;</code>
        */
       public boolean hasTitle() {
-        return ((bitField0_ & 0x00000001) != 0);
+        return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
        * <code>optional string title = 1;</code>
@@ -1446,12 +1239,9 @@ public final class StickerProtos {
       public java.lang.String getTitle() {
         java.lang.Object ref = title_;
         if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            title_ = s;
-          }
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          title_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -1509,12 +1299,13 @@ public final class StickerProtos {
         return this;
       }
 
+      // optional string author = 2;
       private java.lang.Object author_ = "";
       /**
        * <code>optional string author = 2;</code>
        */
       public boolean hasAuthor() {
-        return ((bitField0_ & 0x00000002) != 0);
+        return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
        * <code>optional string author = 2;</code>
@@ -1522,12 +1313,9 @@ public final class StickerProtos {
       public java.lang.String getAuthor() {
         java.lang.Object ref = author_;
         if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            author_ = s;
-          }
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          author_ = s;
           return s;
         } else {
           return (java.lang.String) ref;
@@ -1585,21 +1373,22 @@ public final class StickerProtos {
         return this;
       }
 
-      private org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker cover_;
-      private com.google.protobuf.SingleFieldBuilderV3<
+      // optional .signalservice.Pack.Sticker cover = 3;
+      private org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker cover_ = org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.getDefaultInstance();
+      private com.google.protobuf.SingleFieldBuilder<
           org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.Builder, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.StickerOrBuilder> coverBuilder_;
       /**
        * <code>optional .signalservice.Pack.Sticker cover = 3;</code>
        */
       public boolean hasCover() {
-        return ((bitField0_ & 0x00000004) != 0);
+        return ((bitField0_ & 0x00000004) == 0x00000004);
       }
       /**
        * <code>optional .signalservice.Pack.Sticker cover = 3;</code>
        */
       public org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker getCover() {
         if (coverBuilder_ == null) {
-          return cover_ == null ? org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.getDefaultInstance() : cover_;
+          return cover_;
         } else {
           return coverBuilder_.getMessage();
         }
@@ -1639,8 +1428,7 @@ public final class StickerProtos {
        */
       public Builder mergeCover(org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker value) {
         if (coverBuilder_ == null) {
-          if (((bitField0_ & 0x00000004) != 0) &&
-              cover_ != null &&
+          if (((bitField0_ & 0x00000004) == 0x00000004) &&
               cover_ != org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.getDefaultInstance()) {
             cover_ =
               org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.newBuilder(cover_).mergeFrom(value).buildPartial();
@@ -1659,7 +1447,7 @@ public final class StickerProtos {
        */
       public Builder clearCover() {
         if (coverBuilder_ == null) {
-          cover_ = null;
+          cover_ = org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.getDefaultInstance();
           onChanged();
         } else {
           coverBuilder_.clear();
@@ -1682,20 +1470,19 @@ public final class StickerProtos {
         if (coverBuilder_ != null) {
           return coverBuilder_.getMessageOrBuilder();
         } else {
-          return cover_ == null ?
-              org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.getDefaultInstance() : cover_;
+          return cover_;
         }
       }
       /**
        * <code>optional .signalservice.Pack.Sticker cover = 3;</code>
        */
-      private com.google.protobuf.SingleFieldBuilderV3<
+      private com.google.protobuf.SingleFieldBuilder<
           org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.Builder, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.StickerOrBuilder> 
           getCoverFieldBuilder() {
         if (coverBuilder_ == null) {
-          coverBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+          coverBuilder_ = new com.google.protobuf.SingleFieldBuilder<
               org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.Builder, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.StickerOrBuilder>(
-                  getCover(),
+                  cover_,
                   getParentForChildren(),
                   isClean());
           cover_ = null;
@@ -1703,16 +1490,17 @@ public final class StickerProtos {
         return coverBuilder_;
       }
 
+      // repeated .signalservice.Pack.Sticker stickers = 4;
       private java.util.List<org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker> stickers_ =
         java.util.Collections.emptyList();
       private void ensureStickersIsMutable() {
-        if (!((bitField0_ & 0x00000008) != 0)) {
+        if (!((bitField0_ & 0x00000008) == 0x00000008)) {
           stickers_ = new java.util.ArrayList<org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker>(stickers_);
           bitField0_ |= 0x00000008;
          }
       }
 
-      private com.google.protobuf.RepeatedFieldBuilderV3<
+      private com.google.protobuf.RepeatedFieldBuilder<
           org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.Builder, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.StickerOrBuilder> stickersBuilder_;
 
       /**
@@ -1844,8 +1632,7 @@ public final class StickerProtos {
           java.lang.Iterable<? extends org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker> values) {
         if (stickersBuilder_ == null) {
           ensureStickersIsMutable();
-          com.google.protobuf.AbstractMessageLite.Builder.addAll(
-              values, stickers_);
+          super.addAll(values, stickers_);
           onChanged();
         } else {
           stickersBuilder_.addAllMessages(values);
@@ -1928,89 +1715,48 @@ public final class StickerProtos {
            getStickersBuilderList() {
         return getStickersFieldBuilder().getBuilderList();
       }
-      private com.google.protobuf.RepeatedFieldBuilderV3<
+      private com.google.protobuf.RepeatedFieldBuilder<
           org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.Builder, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.StickerOrBuilder> 
           getStickersFieldBuilder() {
         if (stickersBuilder_ == null) {
-          stickersBuilder_ = new com.google.protobuf.RepeatedFieldBuilderV3<
+          stickersBuilder_ = new com.google.protobuf.RepeatedFieldBuilder<
               org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.Sticker.Builder, org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack.StickerOrBuilder>(
                   stickers_,
-                  ((bitField0_ & 0x00000008) != 0),
+                  ((bitField0_ & 0x00000008) == 0x00000008),
                   getParentForChildren(),
                   isClean());
           stickers_ = null;
         }
         return stickersBuilder_;
       }
-      @java.lang.Override
-      public final Builder setUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.setUnknownFields(unknownFields);
-      }
-
-      @java.lang.Override
-      public final Builder mergeUnknownFields(
-          final com.google.protobuf.UnknownFieldSet unknownFields) {
-        return super.mergeUnknownFields(unknownFields);
-      }
-
 
       // @@protoc_insertion_point(builder_scope:signalservice.Pack)
     }
 
-    // @@protoc_insertion_point(class_scope:signalservice.Pack)
-    private static final org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack DEFAULT_INSTANCE;
     static {
-      DEFAULT_INSTANCE = new org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack();
+      defaultInstance = new Pack(true);
+      defaultInstance.initFields();
     }
 
-    public static org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    @java.lang.Deprecated public static final com.google.protobuf.Parser<Pack>
-        PARSER = new com.google.protobuf.AbstractParser<Pack>() {
-      @java.lang.Override
-      public Pack parsePartialFrom(
-          com.google.protobuf.CodedInputStream input,
-          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-          throws com.google.protobuf.InvalidProtocolBufferException {
-        return new Pack(input, extensionRegistry);
-      }
-    };
-
-    public static com.google.protobuf.Parser<Pack> parser() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public com.google.protobuf.Parser<Pack> getParserForType() {
-      return PARSER;
-    }
-
-    @java.lang.Override
-    public org.whispersystems.signalservice.internal.sticker.StickerProtos.Pack getDefaultInstanceForType() {
-      return DEFAULT_INSTANCE;
-    }
-
+    // @@protoc_insertion_point(class_scope:signalservice.Pack)
   }
 
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_signalservice_Pack_descriptor;
-  private static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_signalservice_Pack_fieldAccessorTable;
-  private static final com.google.protobuf.Descriptors.Descriptor
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_signalservice_Pack_Sticker_descriptor;
-  private static final 
-    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_signalservice_Pack_Sticker_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
     return descriptor;
   }
-  private static  com.google.protobuf.Descriptors.FileDescriptor
+  private static com.google.protobuf.Descriptors.FileDescriptor
       descriptor;
   static {
     java.lang.String[] descriptorData = {
@@ -2023,29 +1769,29 @@ public final class StickerProtos {
       "vice.internal.stickerB\rStickerProtos"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
-        new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
-          public com.google.protobuf.ExtensionRegistry assignDescriptors(
-              com.google.protobuf.Descriptors.FileDescriptor root) {
-            descriptor = root;
-            return null;
-          }
-        };
+      new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
+        public com.google.protobuf.ExtensionRegistry assignDescriptors(
+            com.google.protobuf.Descriptors.FileDescriptor root) {
+          descriptor = root;
+          internal_static_signalservice_Pack_descriptor =
+            getDescriptor().getMessageTypes().get(0);
+          internal_static_signalservice_Pack_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_signalservice_Pack_descriptor,
+              new java.lang.String[] { "Title", "Author", "Cover", "Stickers", });
+          internal_static_signalservice_Pack_Sticker_descriptor =
+            internal_static_signalservice_Pack_descriptor.getNestedTypes().get(0);
+          internal_static_signalservice_Pack_Sticker_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_signalservice_Pack_Sticker_descriptor,
+              new java.lang.String[] { "Id", "Emoji", });
+          return null;
+        }
+      };
     com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
         new com.google.protobuf.Descriptors.FileDescriptor[] {
         }, assigner);
-    internal_static_signalservice_Pack_descriptor =
-      getDescriptor().getMessageTypes().get(0);
-    internal_static_signalservice_Pack_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_signalservice_Pack_descriptor,
-        new java.lang.String[] { "Title", "Author", "Cover", "Stickers", });
-    internal_static_signalservice_Pack_Sticker_descriptor =
-      internal_static_signalservice_Pack_descriptor.getNestedTypes().get(0);
-    internal_static_signalservice_Pack_Sticker_fieldAccessorTable = new
-      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-        internal_static_signalservice_Pack_Sticker_descriptor,
-        new java.lang.String[] { "Id", "Emoji", });
   }
 
   // @@protoc_insertion_point(outer_class_scope)

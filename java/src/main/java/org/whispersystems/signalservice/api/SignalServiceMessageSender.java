@@ -887,7 +887,8 @@ public class SignalServiceMessageSender {
     for (int i=0;i<4;i++) {
       try {
         // TODO: Set isFriendRequest to `true` on a friend request message
-        OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, false);
+        // For now we always set it to true until we have the friend request ui and logic implemented
+        OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, true);
         Optional<SignalServiceMessagePipe> pipe             = this.pipe.get();
         Optional<SignalServiceMessagePipe> unidentifiedPipe = this.unidentifiedPipe.get();
 
