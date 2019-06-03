@@ -76,9 +76,9 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMe
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.TypingMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Verified;
 import org.whispersystems.signalservice.internal.util.Base64;
-import org.whispersystems.signalservice.loki.messages.LokiServiceAddressMessage;
-import org.whispersystems.signalservice.loki.messages.LokiServiceMessage;
-import org.whispersystems.signalservice.loki.messages.LokiServicePreKeyBundleMessage;
+import org.whispersystems.signalservice.loki.messaging.LokiServiceAddressMessage;
+import org.whispersystems.signalservice.loki.messaging.LokiServiceMessage;
+import org.whispersystems.signalservice.loki.messaging.LokiServicePreKeyBundleMessage;
 
 import java.util.HashMap;
 import java.util.LinkedList;

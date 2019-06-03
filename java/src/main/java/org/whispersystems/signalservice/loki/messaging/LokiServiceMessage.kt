@@ -1,4 +1,4 @@
-package org.whispersystems.signalservice.loki.messages
+package org.whispersystems.signalservice.loki.messaging
 
 data class LokiServiceMessage(var preKeyBundleMessage: LokiServicePreKeyBundleMessage?, var addressMessage: LokiServiceAddressMessage?)
 
