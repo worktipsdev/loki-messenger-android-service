@@ -65,17 +65,19 @@ import org.whispersystems.signalservice.api.messages.shared.SharedContact;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
 import org.whispersystems.signalservice.internal.push.OutgoingPushMessage;
 import org.whispersystems.signalservice.internal.push.PushTransportDetails;
-import org.whispersystems.signalservice.internal.push.SignalServiceProtos.*;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.AttachmentPointer;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Content;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.DataMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope.Type;
+import org.whispersystems.signalservice.internal.push.SignalServiceProtos.LokiAddressMessage;
+import org.whispersystems.signalservice.internal.push.SignalServiceProtos.PreKeyBundleMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.ReceiptMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.TypingMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Verified;
 import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.loki.messages.LokiServiceAddressMessage;
+import org.whispersystems.signalservice.loki.messages.LokiServiceMessage;
 import org.whispersystems.signalservice.loki.messages.LokiServicePreKeyBundleMessage;
 
 import java.util.HashMap;
@@ -197,8 +199,10 @@ public class SignalServiceCipher {
                   plaintext.getMetadata().getSenderDevice(),
                   plaintext.getMetadata().getTimestamp(),
                   plaintext.getMetadata().isNeedsReceipt());
-          content.setLokiPreKeyBundleMessage(lokiPreKeyBundleMessage);
-          content.setLokiAddressMessage(lokiServiceAddressMessage);
+
+          // Loki, set all our properties on one message
+          LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiServiceAddressMessage);
+          content.setLokiMessage(lokiServiceMessage);
           return content;
           /* Loki Original Code
            * ================
