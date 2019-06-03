@@ -239,8 +239,7 @@ public class SignalServiceEnvelope {
   }
 
   public boolean isFriendRequest() {
-    // TODO: Implement this once we have envelope types
-    return false;
+    return envelope.getType().getNumber() == Envelope.Type.FRIEND_REQUEST_VALUE;
   }
 
   private byte[] getPlaintext(byte[] ciphertext, SecretKeySpec cipherKey) throws IOException {

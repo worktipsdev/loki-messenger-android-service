@@ -12,7 +12,7 @@ import java.security.MessageDigest
 object ProofOfWork {
     private val nonceSize = 8
 
-    private val nonceTrialCount = 10 // TODO: Change to 100 before release
+    private val nonceTrialCount = 10 // TODO: Implement dynamic POW from service node
 
     /**
      * Calculate a proof of work with the given configuration (based on https://bitmessage.org/wiki/Proof_of_work).
