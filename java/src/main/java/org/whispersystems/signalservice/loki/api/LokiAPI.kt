@@ -98,8 +98,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
 
     @kotlin.ExperimentalUnsignedTypes
     fun sendSignalMessage(signalMessage: Map<*, *>, timestamp: Int, onP2PSuccess: () -> Unit): Promise<Set<RawResponsePromise>, Exception> {
-        val lokiMessage = LokiMessage.from(signalMessage)
-                ?: return task { throw Error.MessageConversionFailed }
+        val lokiMessage = LokiMessage.from(signalMessage) ?: return task { throw Error.MessageConversionFailed }
         val destination = lokiMessage.destination
         fun sendLokiMessage(lokiMessage: LokiMessage, target: LokiAPITarget): RawResponsePromise {
             val parameters = lokiMessage.toJSON()
