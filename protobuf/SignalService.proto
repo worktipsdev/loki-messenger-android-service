@@ -17,7 +17,7 @@ message Envelope {
     PREKEY_BUNDLE       = 3;
     RECEIPT             = 5;
     UNIDENTIFIED_SENDER = 6;
-    FRIEND_REQUEST = 101; // contains prekeys + message and is using simple encryption
+    FRIEND_REQUEST = 101; // Loki - Contains prekeys and a message; uses simple encryption
   }
 
   optional Type   type            = 1;
@@ -202,7 +202,7 @@ message DataMessage {
   repeated Contact            contact     = 9;
   repeated Preview            preview     = 10;
   optional Sticker            sticker     = 11;
-  optional Contact            profile     = 101; // Loki: The profile of the current user
+  optional Contact            profile     = 101; // Loki - The profile of the current user
 }
 
 message NullMessage {

@@ -1078,7 +1078,7 @@ public class SignalServiceMessageSender {
   private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceId, byte[] plaintext) {
     SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceId);
     LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store);
-    return cipher.encryptWithFallbackCipher(signalProtocolAddress, plaintext);
+    return cipher.encryptUsingFallbackSessionCipher(signalProtocolAddress, plaintext);
   }
 
   private void handleMismatchedDevices(PushServiceSocket socket, SignalServiceAddress recipient,

@@ -13,7 +13,7 @@ import javax.crypto.spec.SecretKeySpec
  * @property identityKeyStore IdentityKeyStore The identity key store
  * @property remoteAddress SignalProtocolAddress The remote address
  */
-class FallBackSessionCipher(private val identityKeyStore: IdentityKeyStore, private val remoteAddress: SignalProtocolAddress) {
+class FallbackSessionCipher(private val identityKeyStore: IdentityKeyStore, private val remoteAddress: SignalProtocolAddress) {
     // The length of the iv
     private val ivLength = 16
 
