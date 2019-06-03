@@ -7,7 +7,9 @@ import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.task
 import okhttp3.*
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
+import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.loki.messaging.LokiMessageWrapper
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
@@ -80,11 +82,10 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
             LokiSwarmAPI(database).getTargetSnodes(hexEncodedPublicKey).map { targetSnodes ->
                 targetSnodes.map { targetSnode ->
                     val lastHashValue = database.getLastMessageHashValue(targetSnode) ?: ""
-                    val parameters = mapOf("pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue)
+                    val parameters = mapOf( "pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue )
                     invoke(LokiAPITarget.Method.GetMessages, targetSnode, hexEncodedPublicKey, parameters).map { rawResponse ->
-                        val json = rawResponse as? Map<*, *>
-                        val rawMessages = json?.get("messages") as? List<*>
-                        if (json != null && rawMessages != null) {
+                        val rawMessages = rawResponse["messages"] as? List<*>
+                        if (rawMessages != null) {
                             updateLastMessageHashValueIfPossible(targetSnode, rawMessages)
                             val newRawMessages = removeDuplicates(rawMessages)
                             parseEnvelopes(newRawMessages)
@@ -142,11 +143,11 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
 
     // region Parsing
     private fun updateLastMessageHashValueIfPossible(target: LokiAPITarget, rawMessages: List<*>) {
-        val lastMessage = rawMessages.last() as? Map<*, *>
-        val hashValue = lastMessage?.get("hash") as? String
+        val lastMessageAsJSON = rawMessages.last() as? Map<*, *>
+        val hashValue = lastMessageAsJSON?.get("hash") as? String
         if (hashValue != null) {
             database.setLastMessageHashValue(target, hashValue)
-        } else {
+        } else if (rawMessages.isNotEmpty()) {
             println("[Loki] Failed to update last message hash value from: $rawMessages.")
         }
     }
@@ -169,7 +170,22 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
     }
 
     private fun parseEnvelopes(rawMessages: List<*>): List<Envelope> {
-        return listOf() // TODO: Implement
+        return rawMessages.mapNotNull { rawMessage ->
+            val rawMessageAsJSON = rawMessage as? Map<*, *>
+            val base64EncodedData = rawMessageAsJSON?.get("data") as? String
+            val data = base64EncodedData?.let { Base64.decode(it) }
+            if (data != null) {
+                try {
+                    LokiMessageWrapper.unwrap(data)
+                } catch (e: Exception) {
+                    println("[Loki] Failed to unwrap data for message: $rawMessage.")
+                    null
+                }
+            } else {
+                println("[Loki] Failed to decode data for message: $rawMessage.")
+                null
+            }
+        }
     }
     // endregion
 }
