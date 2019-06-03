@@ -4,6 +4,8 @@ import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.task
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.loki.crypto.ProofOfWork
+import org.whispersystems.signalservice.loki.messaging.LokiMessageWrapper
+import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo
 
 internal data class LokiMessage(
     /**
@@ -36,15 +38,20 @@ internal data class LokiMessage(
 
     internal companion object {
 
-        internal fun from(signalMessage: Map<*, *>): LokiMessage? {
-            val wrappedMessage = ByteArray(0)
-            val data = Base64.encodeBytes(wrappedMessage)
-            val destination = signalMessage["destination"] as String
-            var ttl = LokiAPI.defaultMessageTTL
-            val messageTTL = signalMessage["ttl"] as Int?
-            if (messageTTL != null && messageTTL != 0) { ttl = messageTTL }
-            val isPing = signalMessage["isPing"] as Boolean
-            return LokiMessage(destination, data, ttl, isPing)
+        internal fun from(message: SignalMessageInfo): LokiMessage? {
+            try {
+                val wrappedMessage = LokiMessageWrapper.wrap(message)
+                val data = Base64.encodeBytes(wrappedMessage)
+                val destination = message.recipientID
+                var ttl = LokiAPI.defaultMessageTTL
+                val messageTTL = message.ttl
+                if (messageTTL != null && messageTTL != 0) { ttl = messageTTL }
+                val isPing = message.isPing
+                return LokiMessage(destination, data, ttl, isPing)
+            } catch (e: Exception) {
+                println("[Loki] Failed to convert Signal message to Loki message: $message.")
+                return null
+            }
         }
     }
 
