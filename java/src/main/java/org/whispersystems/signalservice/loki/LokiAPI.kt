@@ -8,6 +8,7 @@ import nl.komponents.kovenant.task
 import okhttp3.*
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
 
 class LokiAPI(private val hexEncodedPublicKey: String, private val database: LokiDatabaseProtocol) {
@@ -30,6 +31,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
          */
         object ProofOfWorkCalculationFailed : Error("Failed to calculate proof of work.")
         object MessageConversionFailed : Error("Failed to convert Signal message to Loki message.")
+        object SnodeMigrated : Error("The snode previously associated with the given public key has migrated to a different swarm.")
     }
     // endregion
 
@@ -57,7 +59,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
                         // The snode isn't associated with the given public key anymore
                         println("[Loki] Invalidating swarm for: $hexEncodedPublicKey.")
                         LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey)
-                        deferred.reject(Error.Generic) // TODO: Retry
+                        deferred.reject(Error.SnodeMigrated)
                     }
                     else -> deferred.reject(Error.Generic)
                 }
@@ -73,23 +75,25 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
 
     // region Public API
     fun getMessages(): Promise<Set<MessageListPromise>, Exception> {
-        return LokiSwarmAPI(database).getTargetSnodes(hexEncodedPublicKey).map { targetSnodes ->
-            targetSnodes.map { targetSnode ->
-                val lastHashValue = database.getLastMessageHashValue(targetSnode) ?: ""
-                val parameters = mapOf( "pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue )
-                invoke(LokiAPITarget.Method.GetMessages, targetSnode, hexEncodedPublicKey, parameters).map { rawResponse ->
-                    val json = rawResponse as? Map<*, *>
-                    val rawMessages = json?.get("messages") as? List<*>
-                    if (json != null && rawMessages != null) {
-                        updateLastMessageHashValueIfPossible(targetSnode, rawMessages)
-                        val newRawMessages = removeDuplicates(rawMessages)
-                        parseEnvelopes(newRawMessages)
-                    } else {
-                        listOf()
+        return retryIfNeeded(maxRetryCount) {
+            LokiSwarmAPI(database).getTargetSnodes(hexEncodedPublicKey).map { targetSnodes ->
+                targetSnodes.map { targetSnode ->
+                    val lastHashValue = database.getLastMessageHashValue(targetSnode) ?: ""
+                    val parameters = mapOf("pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue)
+                    invoke(LokiAPITarget.Method.GetMessages, targetSnode, hexEncodedPublicKey, parameters).map { rawResponse ->
+                        val json = rawResponse as? Map<*, *>
+                        val rawMessages = json?.get("messages") as? List<*>
+                        if (json != null && rawMessages != null) {
+                            updateLastMessageHashValueIfPossible(targetSnode, rawMessages)
+                            val newRawMessages = removeDuplicates(rawMessages)
+                            parseEnvelopes(newRawMessages)
+                        } else {
+                            listOf()
+                        }
                     }
                 }
-            }
-        }.map { it.toSet() }
+            }.map { it.toSet() }.get()
+        }
     }
 
     @kotlin.ExperimentalUnsignedTypes
@@ -103,10 +107,12 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
         fun sendLokiMessageUsingSwarmAPI(): Promise<Set<RawResponsePromise>, Exception> {
             val powPromise = lokiMessage.calculatePoW()
             val swarmPromise = LokiSwarmAPI(database).getTargetSnodes(destination)
-            return all(powPromise, swarmPromise).map {
-                val lokiMessageWithPoW = it[0] as LokiMessage
-                val swarm = it[1] as List<*>
-                swarm.map { sendLokiMessage(lokiMessageWithPoW, it as LokiAPITarget) }.toSet()
+            return retryIfNeeded(maxRetryCount) {
+                all(powPromise, swarmPromise).map {
+                    val lokiMessageWithPoW = it[0] as LokiMessage
+                    val swarm = it[1] as List<*>
+                    swarm.map { sendLokiMessage(lokiMessageWithPoW, it as LokiAPITarget) }.toSet()
+                }.get()
             }
         }
         val p2pAPI = LokiP2PAPI(destination)
@@ -114,7 +120,9 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
         if (peer != null && (lokiMessage.isPing || peer.isOnline)) {
             val target = LokiAPITarget(peer.address, peer.port)
             val deferred = deferred<Set<RawResponsePromise>, Exception>()
-            task { listOf( target ) }.map { it.map { sendLokiMessage(lokiMessage, it) } }.map { it.toSet() }.success {
+            retryIfNeeded(maxRetryCount) {
+                task { listOf(target) }.map { it.map { sendLokiMessage(lokiMessage, it) } }.map { it.toSet() }.get()
+            }.success {
                 p2pAPI.markAsOnline(destination)
                 onP2PSuccess()
                 deferred.resolve(it)
