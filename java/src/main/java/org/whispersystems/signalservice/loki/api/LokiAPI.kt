@@ -1,4 +1,4 @@
-package org.whispersystems.signalservice.loki
+package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.all
@@ -11,7 +11,7 @@ import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
 
-class LokiAPI(private val hexEncodedPublicKey: String, private val database: LokiDatabaseProtocol) {
+class LokiAPI(private val hexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
 
     private val connection by lazy { OkHttpClient() }
 
@@ -98,7 +98,8 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
 
     @kotlin.ExperimentalUnsignedTypes
     fun sendSignalMessage(signalMessage: Map<*, *>, timestamp: Int, onP2PSuccess: () -> Unit): Promise<Set<RawResponsePromise>, Exception> {
-        val lokiMessage = LokiMessage.from(signalMessage) ?: return task { throw Error.MessageConversionFailed }
+        val lokiMessage = LokiMessage.from(signalMessage)
+                ?: return task { throw Error.MessageConversionFailed }
         val destination = lokiMessage.destination
         fun sendLokiMessage(lokiMessage: LokiMessage, target: LokiAPITarget): RawResponsePromise {
             val parameters = lokiMessage.toJSON()

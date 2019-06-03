@@ -1,4 +1,4 @@
-package org.whispersystems.signalservice.loki
+package org.whispersystems.signalservice.loki.crypto
 
 import org.whispersystems.signalservice.internal.util.Base64
 import java.math.BigInteger

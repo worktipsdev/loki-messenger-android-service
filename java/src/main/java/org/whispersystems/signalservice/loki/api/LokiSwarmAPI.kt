@@ -1,4 +1,4 @@
-package org.whispersystems.signalservice.loki
+package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.functional.bind
@@ -7,7 +7,7 @@ import nl.komponents.kovenant.task
 import nl.komponents.kovenant.then
 import java.security.SecureRandom
 
-internal class LokiSwarmAPI(private val database: LokiDatabaseProtocol) {
+internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
 
     // region Settings
     private val minimumSnodeCount = 2 // TODO: For debugging purposes

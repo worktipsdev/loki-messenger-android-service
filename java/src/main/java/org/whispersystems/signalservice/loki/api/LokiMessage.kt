@@ -1,8 +1,9 @@
-package org.whispersystems.signalservice.loki
+package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.task
 import org.whispersystems.signalservice.internal.util.Base64
+import org.whispersystems.signalservice.loki.crypto.ProofOfWork
 
 internal data class LokiMessage(
     /**

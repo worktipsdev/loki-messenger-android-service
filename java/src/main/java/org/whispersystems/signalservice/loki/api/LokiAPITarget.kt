@@ -1,4 +1,4 @@
-package org.whispersystems.signalservice.loki
+package org.whispersystems.signalservice.loki.api
 
 class LokiAPITarget(val address: String, val port: Int) {
 

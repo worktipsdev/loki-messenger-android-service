@@ -1,4 +1,4 @@
-package org.whispersystems.signalservice.loki
+package org.whispersystems.signalservice.loki.crypto
 
 import org.signal.libsignal.metadata.certificate.CertificateValidator
 import org.whispersystems.libsignal.InvalidMessageException

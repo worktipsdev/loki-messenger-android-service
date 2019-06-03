@@ -1,6 +1,6 @@
-package org.whispersystems.signalservice.loki
+package org.whispersystems.signalservice.loki.api
 
-interface LokiDatabaseProtocol {
+interface LokiAPIDatabaseProtocol {
 
     fun getSwarmCache(): Map<String, List<LokiAPITarget>>?
     fun setSwarmCache(newValue: Map<String, List<LokiAPITarget>>)

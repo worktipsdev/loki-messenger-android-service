@@ -72,7 +72,7 @@ import org.whispersystems.signalservice.internal.push.http.AttachmentCipherOutpu
 import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
-import org.whispersystems.signalservice.loki.LokiServiceCipher;
+import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 
 import java.io.IOException;
 import java.io.InputStream;
