@@ -2,13 +2,14 @@ package org.whispersystems.signalservice.loki.utilities
 
 import org.whispersystems.libsignal.SignalProtocolAddress
 
-fun SignalProtocolAddress.publicKey(): ByteArray {
-    var address = this.name
-    if (address.count() == 66) {
-        address = address.removePrefix("05")
+val SignalProtocolAddress.publicKey: ByteArray
+    get() {
+        var address = this.name
+        if (address.count() == 66) {
+            address = address.removePrefix("05")
+        }
+        return address.convertHexStringToByteArray()
     }
-    return address.convertHexStringToByteArray()
-}
 
 private fun String.convertHexStringToByteArray(): ByteArray {
     val result = ByteArray(length / 2)
