@@ -1067,7 +1067,7 @@ public class SignalServiceMessageSender {
           SessionBuilder        sessionBuilder = new SessionBuilder(store, preKeyAddress);
           sessionBuilder.process(preKeyBundle);
         } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
-          throw new UntrustedIdentityException("Untrusted identity key!", recipient.getNumber(), preKey.getIdentityKey());
+          throw new UntrustedIdentityException("Untrusted identity key!", recipient.getNumber(), preKeyBundle.getIdentityKey());
         }
 
         if (eventListener.isPresent()) {
