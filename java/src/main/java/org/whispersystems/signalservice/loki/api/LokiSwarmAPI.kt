@@ -7,26 +7,20 @@ import nl.komponents.kovenant.task
 import nl.komponents.kovenant.then
 import java.security.SecureRandom
 
-internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
+class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
 
     // region Settings
     private val minimumSnodeCount = 2 // TODO: For debugging purposes
     private val targetSnodeCount = 3 // TODO: For debugging purposes
-    private val defaultSnodePort = 8080
+    val defaultSnodePort = 8080
     // endregion
 
     // region Caching
-    private var swarmCache: Map<String, List<LokiAPITarget>>
-        get() = database.getSwarmCache() ?: mapOf()
-        set(newValue) = database.setSwarmCache(newValue)
-
     internal fun dropIfNeeded(target: LokiAPITarget, hexEncodedPublicKey: String) {
-        val swarm = swarmCache[hexEncodedPublicKey]?.toMutableList()
+        val swarm = database.getSwarmCache(hexEncodedPublicKey)?.toMutableList()
         if (swarm != null && swarm.contains(target)) {
             swarm.remove(target)
-            val updatedSwarmCache = swarmCache.toMutableMap()
-            updatedSwarmCache[hexEncodedPublicKey] = swarm
-            swarmCache = updatedSwarmCache
+            database.setSwarmCache(hexEncodedPublicKey, swarm)
         }
     }
     // endregion
@@ -39,7 +33,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
     }
 
     private fun getSwarm(hexEncodedPublicKey: String): Promise<List<LokiAPITarget>, Exception> {
-        val cachedSwarm = swarmCache[hexEncodedPublicKey]
+        val cachedSwarm = database.getSwarmCache(hexEncodedPublicKey)
         if (cachedSwarm != null && cachedSwarm.size >= minimumSnodeCount) {
             val cachedSwarmCopy = mutableListOf<LokiAPITarget>() // Workaround for a Kotlin compiler issue
             cachedSwarmCopy.addAll(cachedSwarm)
@@ -51,9 +45,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
             }.map {
                 parseTargets(it)
             }.success {
-                val updatedSwarmCache = swarmCache.toMutableMap()
-                updatedSwarmCache[hexEncodedPublicKey] = it
-                swarmCache = updatedSwarmCache
+                database.setSwarmCache(hexEncodedPublicKey, it)
             }
         }
     }
