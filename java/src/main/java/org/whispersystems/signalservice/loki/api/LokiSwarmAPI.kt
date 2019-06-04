@@ -7,14 +7,12 @@ import nl.komponents.kovenant.task
 import nl.komponents.kovenant.then
 import java.security.SecureRandom
 
-class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
+internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
 
     // region Settings
-    companion object {
-        private val minimumSnodeCount = 2 // TODO: For debugging purposes
-        private val targetSnodeCount = 3 // TODO: For debugging purposes
-        val defaultSnodePort = 8080
-    }
+    private val minimumSnodeCount = 2 // TODO: For debugging purposes
+    private val targetSnodeCount = 3 // TODO: For debugging purposes
+    private val defaultSnodePort = 8080
     // endregion
 
     // region Caching
