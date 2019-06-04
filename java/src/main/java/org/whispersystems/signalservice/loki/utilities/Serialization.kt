@@ -1,5 +1,6 @@
 package org.whispersystems.signalservice.loki.utilities
 
+import org.whispersystems.libsignal.IdentityKeyPair
 import org.whispersystems.libsignal.SignalProtocolAddress
 
 val SignalProtocolAddress.publicKey: ByteArray
@@ -22,3 +23,6 @@ private fun String.convertHexStringToByteArray(): ByteArray {
     }
     return result
 }
+
+val IdentityKeyPair.hexEncodedPrivateKey: String
+    get() = privateKey.serialize().joinToString { String.format("%02X", it) }
