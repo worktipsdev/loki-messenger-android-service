@@ -886,9 +886,7 @@ public class SignalServiceMessageSender {
   {
     for (int i=0;i<4;i++) {
       try {
-        // TODO: Set isFriendRequest to `true` on a friend request message
-        // For now we always set it to true until we have the friend request ui and logic implemented
-        OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, true);
+        OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, true); // TODO: isFriendRequest
         Optional<SignalServiceMessagePipe> pipe             = this.pipe.get();
         Optional<SignalServiceMessagePipe> unidentifiedPipe = this.unidentifiedPipe.get();
 
@@ -1074,7 +1072,7 @@ public class SignalServiceMessageSender {
     }
   }
 
-  // Loki: Custom function to encrypt our friend request messages
+  // Loki - Custom function to encrypt friend request messages
   private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceId, byte[] plaintext) {
     SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceId);
     LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store);
