@@ -10,9 +10,11 @@ import java.security.SecureRandom
 class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
 
     // region Settings
-    private val minimumSnodeCount = 2 // TODO: For debugging purposes
-    private val targetSnodeCount = 3 // TODO: For debugging purposes
-    val defaultSnodePort = 8080
+    companion object {
+        private val minimumSnodeCount = 2 // TODO: For debugging purposes
+        private val targetSnodeCount = 3 // TODO: For debugging purposes
+        val defaultSnodePort = 8080
+    }
     // endregion
 
     // region Caching
