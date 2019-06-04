@@ -65,7 +65,7 @@ class MnemonicCodec(private val languageFileDirectory: File) {
         val wordSet = language.loadWordSet()
         val prefixLength = languageConfiguration.prefixLength
         val result = mutableListOf<String>()
-        val n = wordSet.size
+        val n = wordSet.size.toLong()
         val characterCount = string.length
         for (chunkStartIndex in 0 until (characterCount - 8) step 2) {
             val chunkEndIndex = chunkStartIndex + 8
@@ -76,11 +76,11 @@ class MnemonicCodec(private val languageFileDirectory: File) {
         }
         for (chunkStartIndex in 0 until (characterCount - 8) step 2) {
             val chunkEndIndex = chunkStartIndex + 8
-            val x = string.substring(chunkStartIndex until chunkEndIndex).toInt(16)
+            val x = string.substring(chunkStartIndex until chunkEndIndex).toLong(16)
             val w1 = x % n
             val w2 = ((x / n) + w1) % n
             val w3 = (((x / n) / n) + w2) % n
-            result += listOf ( wordSet[w1], wordSet[w2], wordSet[w3] )
+            result += listOf ( wordSet[w1.toInt()], wordSet[w2.toInt()], wordSet[w3.toInt()] )
         }
         val checksumIndex = determineChecksumIndex(result, prefixLength)
         val checksumWord = result[checksumIndex]
