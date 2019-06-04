@@ -1059,13 +1059,20 @@ public class SignalServiceMessageSender {
     if (!store.containsSession(signalProtocolAddress)) {
       try {
         if (!this.preKeyBundleStore.isPresent()) throw new IOException(TAG + ": PreKeyBundleStore not set!");
-        PreKeyBundle preKeyBundle = this.preKeyBundleStore.get().getPreKeyBundle(recipient.getNumber());
+
+        String pubKey = recipient.getNumber();
+        LokiPreKeyBundleStore preKeyBundleStore = this.preKeyBundleStore.get();
+
+        PreKeyBundle preKeyBundle = preKeyBundleStore.getPreKeyBundle(pubKey);
         if (preKeyBundle == null) throw new InvalidKeyException(TAG + ": PreKeyBundle not found for " + recipient.getNumber());
 
         try {
-          SignalProtocolAddress preKeyAddress  = new SignalProtocolAddress(recipient.getNumber(), preKeyBundle.getDeviceId());
+          SignalProtocolAddress preKeyAddress  = new SignalProtocolAddress(pubKey, preKeyBundle.getDeviceId());
           SessionBuilder        sessionBuilder = new SessionBuilder(store, preKeyAddress);
           sessionBuilder.process(preKeyBundle);
+
+          // Loki - Discard the prekey bundle here since the session is initiated
+          preKeyBundleStore.removePreKeyBundle(pubKey);
         } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
           throw new UntrustedIdentityException("Untrusted identity key!", recipient.getNumber(), preKeyBundle.getIdentityKey());
         }
