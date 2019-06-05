@@ -5,7 +5,7 @@ import org.whispersystems.libsignal.state.PreKeyBundle
 /**
  * An interface describing the local storage of `PreKeyBundle`s for Loki use.
  */
-interface LokiPreKeyBundleStore {
+interface LokiPreKeyBundleStoreProtocol {
 
     fun getPreKeyBundle(pubKey: String): PreKeyBundle?
     fun removePreKeyBundle(pubKey: String)

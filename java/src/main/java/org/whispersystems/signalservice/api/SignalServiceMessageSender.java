@@ -73,7 +73,7 @@ import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
-import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleStore;
+import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleStoreProtocol;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -103,7 +103,7 @@ public class SignalServiceMessageSender {
   private final AtomicReference<Optional<SignalServiceMessagePipe>> unidentifiedPipe;
   private final AtomicBoolean                                       isMultiDevice;
 
-  private Optional<LokiPreKeyBundleStore>                           preKeyBundleStore = Optional.absent(); // Loki
+  private Optional<LokiPreKeyBundleStoreProtocol>                           preKeyBundleStore = Optional.absent(); // Loki
 
   /**
    * Construct a SignalServiceMessageSender.
@@ -319,7 +319,7 @@ public class SignalServiceMessageSender {
     this.isMultiDevice.set(isMultiDevice);
   }
 
-  public void setPreKeyBundleStore(LokiPreKeyBundleStore preKeyBundleStore) { this.preKeyBundleStore = Optional.fromNullable(preKeyBundleStore); }
+  public void setPreKeyBundleStore(LokiPreKeyBundleStoreProtocol preKeyBundleStore) { this.preKeyBundleStore = Optional.fromNullable(preKeyBundleStore); }
 
   public SignalServiceAttachmentPointer uploadAttachment(SignalServiceAttachmentStream attachment, boolean usePadding) throws IOException {
     byte[]             attachmentKey    = Util.getSecretBytes(64);
@@ -1060,7 +1060,7 @@ public class SignalServiceMessageSender {
         if (!this.preKeyBundleStore.isPresent()) throw new IOException(TAG + ": PreKeyBundleStore not set");
 
         String pubKey = recipient.getNumber();
-        LokiPreKeyBundleStore preKeyBundleStore = this.preKeyBundleStore.get();
+        LokiPreKeyBundleStoreProtocol preKeyBundleStore = this.preKeyBundleStore.get();
 
         PreKeyBundle preKeyBundle = preKeyBundleStore.getPreKeyBundle(pubKey);
         if (preKeyBundle == null) throw new InvalidKeyException(TAG + ": PreKeyBundle not found for " + recipient.getNumber());
