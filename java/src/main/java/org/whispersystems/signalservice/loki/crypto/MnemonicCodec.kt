@@ -67,14 +67,14 @@ class MnemonicCodec(private val languageFileDirectory: File) {
         val result = mutableListOf<String>()
         val n = wordSet.size.toLong()
         val characterCount = string.length
-        for (chunkStartIndex in 0 until (characterCount - 8) step 2) {
+        for (chunkStartIndex in 0 until (characterCount - 8) step 8) {
             val chunkEndIndex = chunkStartIndex + 8
             val p1 = string.substring(0 until chunkStartIndex)
             val p2 = swap(string.substring(chunkStartIndex until chunkEndIndex))
             val p3 = string.substring(chunkEndIndex until characterCount)
             string = p1 + p2 + p3
         }
-        for (chunkStartIndex in 0 until (characterCount - 8) step 2) {
+        for (chunkStartIndex in 0 until (characterCount - 8) step 8) {
             val chunkEndIndex = chunkStartIndex + 8
             val x = string.substring(chunkStartIndex until chunkEndIndex).toLong(16)
             val w1 = x % n
