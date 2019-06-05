@@ -135,7 +135,6 @@ class MnemonicCodec(private val languageFileDirectory: File) {
         val crc32 = CRC32()
         crc32.update(bytes)
         val checksum = crc32.value
-        return checksum.toInt() % x.size
-
+        return (checksum % x.size.toLong()).toInt()
     }
 }
