@@ -80,7 +80,7 @@ class MnemonicCodec(private val languageFileDirectory: File) {
             val w1 = x % n
             val w2 = ((x / n) + w1) % n
             val w3 = (((x / n) / n) + w2) % n
-            result += listOf ( wordSet[w1.toInt()], wordSet[w2.toInt()], wordSet[w3.toInt()] )
+            result += listOf( wordSet[w1.toInt()], wordSet[w2.toInt()], wordSet[w3.toInt()] )
         }
         val checksumIndex = determineChecksumIndex(result, prefixLength)
         val checksumWord = result[checksumIndex]

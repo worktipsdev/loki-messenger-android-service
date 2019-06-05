@@ -24,5 +24,11 @@ private fun String.convertHexStringToByteArray(): ByteArray {
     return result
 }
 
+val IdentityKeyPair.hexEncodedPublicKey: String
+    get() {
+        // Prefixing with "05" is necessary for what seems to be a sort of Signal public key versioning system
+        return "05" + publicKey.serialize().joinToString("") { String.format("%02X", it) }
+    }
+
 val IdentityKeyPair.hexEncodedPrivateKey: String
     get() = privateKey.serialize().joinToString("") { String.format("%02X", it) }
