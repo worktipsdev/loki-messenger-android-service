@@ -370,6 +370,7 @@ public class SignalServiceDataMessage {
 
     public Builder withPreKeyBundle(PreKeyBundle preKeyBundle) {
       this.preKeyBundle = preKeyBundle;
+      return this;
     }
 
     public SignalServiceDataMessage build() {
