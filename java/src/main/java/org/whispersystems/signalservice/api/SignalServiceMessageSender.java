@@ -222,7 +222,7 @@ public class SignalServiceMessageSender {
   {
     byte[]            content   = createMessageContent(message);
     long              timestamp = message.getTimestamp();
-    SendMessageResult result    = sendMessage(recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false);
+    SendMessageResult result    = sendMessage(recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.isFriendRequest());
 
     if ((result.getSuccess() != null && result.getSuccess().isNeedsSync()) || (unidentifiedAccess.isPresent() && isMultiDevice.get())) {
       byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.of(recipient), timestamp, Collections.singletonList(result));
@@ -881,17 +881,26 @@ public class SignalServiceMessageSender {
 
     return results;
   }
-
   private SendMessageResult sendMessage(SignalServiceAddress         recipient,
                                         Optional<UnidentifiedAccess> unidentifiedAccess,
                                         long                         timestamp,
                                         byte[]                       content,
                                         boolean                      online)
+          throws UntrustedIdentityException, IOException {
+    return sendMessage(recipient, unidentifiedAccess, timestamp, content, online, false);
+  }
+
+  private SendMessageResult sendMessage(SignalServiceAddress         recipient,
+                                        Optional<UnidentifiedAccess> unidentifiedAccess,
+                                        long                         timestamp,
+                                        byte[]                       content,
+                                        boolean                      online,
+                                        boolean                      isFriendRequest)
       throws UntrustedIdentityException, IOException
   {
     for (int i=0;i<4;i++) {
       try {
-        OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, true); // TODO: isFriendRequest
+        OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
         Optional<SignalServiceMessagePipe> pipe             = this.pipe.get();
         Optional<SignalServiceMessagePipe> unidentifiedPipe = this.unidentifiedPipe.get();
 
