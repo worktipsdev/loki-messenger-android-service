@@ -73,7 +73,7 @@ import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
-import org.whispersystems.signalservice.loki.utilities.LokiPreKeyBundleStore;
+import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleStore;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -103,8 +103,7 @@ public class SignalServiceMessageSender {
   private final AtomicReference<Optional<SignalServiceMessagePipe>> unidentifiedPipe;
   private final AtomicBoolean                                       isMultiDevice;
 
-  // Loki
-  private Optional<LokiPreKeyBundleStore>                           preKeyBundleStore = Optional.absent();
+  private Optional<LokiPreKeyBundleStore>                           preKeyBundleStore = Optional.absent(); // Loki
 
   /**
    * Construct a SignalServiceMessageSender.
@@ -1034,13 +1033,13 @@ public class SignalServiceMessageSender {
 
     /* Loki - Original code
      * Disabled since we don't support multi-device sending
-     * ==========================
+     * ================
     for (int deviceId : store.getSubDeviceSessions(recipient.getNumber())) {
       if (store.containsSession(new SignalProtocolAddress(recipient.getNumber(), deviceId))) {
         messages.add(getEncryptedMessage(socket, recipient, unidentifiedAccess, deviceId, plaintext));
       }
     }
-    */
+     */
 
     return new OutgoingPushMessageList(recipient.getNumber(), timestamp, messages, online);
   }
@@ -1055,10 +1054,10 @@ public class SignalServiceMessageSender {
     SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceId);
     SignalServiceCipher   cipher                = new SignalServiceCipher(localAddress, store, null);
 
-    // Loki - use our Pre key bundle logic here
+    // Loki - Use custom pre key bundle logic here
     if (!store.containsSession(signalProtocolAddress)) {
       try {
-        if (!this.preKeyBundleStore.isPresent()) throw new IOException(TAG + ": PreKeyBundleStore not set!");
+        if (!this.preKeyBundleStore.isPresent()) throw new IOException(TAG + ": PreKeyBundleStore not set");
 
         String pubKey = recipient.getNumber();
         LokiPreKeyBundleStore preKeyBundleStore = this.preKeyBundleStore.get();
@@ -1074,7 +1073,7 @@ public class SignalServiceMessageSender {
           // Loki - Discard the prekey bundle here since the session is initiated
           preKeyBundleStore.removePreKeyBundle(pubKey);
         } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
-          throw new UntrustedIdentityException("Untrusted identity key!", recipient.getNumber(), preKeyBundle.getIdentityKey());
+          throw new UntrustedIdentityException("Untrusted identity key", recipient.getNumber(), preKeyBundle.getIdentityKey());
         }
 
         if (eventListener.isPresent()) {
@@ -1085,7 +1084,7 @@ public class SignalServiceMessageSender {
       }
     }
 
-    /* Loki - Original Code
+    /* Loki - Original code
     if (!store.containsSession(signalProtocolAddress)) {
       try {
         List<PreKeyBundle> preKeys = socket.getPreKeys(recipient, unidentifiedAccess, deviceId);
@@ -1107,7 +1106,7 @@ public class SignalServiceMessageSender {
         throw new IOException(e);
       }
     }
-    */
+     */
 
     try {
       return cipher.encrypt(signalProtocolAddress, unidentifiedAccess, plaintext);
