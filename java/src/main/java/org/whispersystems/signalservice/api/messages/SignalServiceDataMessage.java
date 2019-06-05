@@ -31,6 +31,7 @@ public class SignalServiceDataMessage {
   private final Optional<List<SharedContact>>           contacts;
   private final Optional<List<Preview>>                 previews;
   private final Optional<Sticker>                       sticker;
+  private final boolean                                 isFriendRequest;
 
   /**
    * Construct a SignalServiceDataMessage with a body and no attachments.
@@ -124,6 +125,26 @@ public class SignalServiceDataMessage {
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
                                   Sticker sticker)
   {
+    this(timestamp, group, attachments, body, endSession, expiresInSeconds, expirationUpdate, profileKey, profileKeyUpdate, quote, sharedContacts, previews, sticker, false);
+  }
+
+  /**
+   * Construct a SignalServiceDataMessage.
+   *
+   * @param timestamp The sent timestamp.
+   * @param group The group information (or null if none).
+   * @param attachments The attachments (or null if none).
+   * @param body The message contents.
+   * @param endSession Flag indicating whether this message should close a session.
+   * @param expiresInSeconds Number of seconds in which the message should disappear after being seen.
+   */
+  public SignalServiceDataMessage(long timestamp, SignalServiceGroup group,
+                                  List<SignalServiceAttachment> attachments,
+                                  String body, boolean endSession, int expiresInSeconds,
+                                  boolean expirationUpdate, byte[] profileKey, boolean profileKeyUpdate,
+                                  Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
+                                  Sticker sticker, boolean isFriendRequest)
+  {
     this.timestamp             = timestamp;
     this.body                  = Optional.fromNullable(body);
     this.group                 = Optional.fromNullable(group);
@@ -134,6 +155,7 @@ public class SignalServiceDataMessage {
     this.profileKeyUpdate      = profileKeyUpdate;
     this.quote                 = Optional.fromNullable(quote);
     this.sticker               = Optional.fromNullable(sticker);
+    this.isFriendRequest       = isFriendRequest;
 
     if (attachments != null && !attachments.isEmpty()) {
       this.attachments = Optional.of(attachments);
@@ -226,6 +248,11 @@ public class SignalServiceDataMessage {
     return sticker;
   }
 
+  // Loki
+  public boolean isFriendRequest() {
+    return isFriendRequest;
+  }
+
   public static class Builder {
 
     private List<SignalServiceAttachment> attachments    = new LinkedList<>();
@@ -242,6 +269,7 @@ public class SignalServiceDataMessage {
     private boolean            profileKeyUpdate;
     private Quote              quote;
     private Sticker            sticker;
+    private boolean            isFriendRequest;
 
     private Builder() {}
 
@@ -328,12 +356,17 @@ public class SignalServiceDataMessage {
       return this;
     }
 
+    public Builder asFriendRequest(boolean isFriendRequest) {
+      this.isFriendRequest = isFriendRequest;
+      return this;
+    }
+
     public SignalServiceDataMessage build() {
       if (timestamp == 0) timestamp = System.currentTimeMillis();
       return new SignalServiceDataMessage(timestamp, group, attachments, body, endSession,
                                           expiresInSeconds, expirationUpdate, profileKey,
                                           profileKeyUpdate, quote, sharedContacts, previews,
-                                          sticker);
+                                          sticker, isFriendRequest);
     }
   }
 
