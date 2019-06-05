@@ -55,12 +55,14 @@ import org.whispersystems.signalservice.internal.push.OutgoingPushMessageList;
 import org.whispersystems.signalservice.internal.push.PushAttachmentData;
 import org.whispersystems.signalservice.internal.push.PushServiceSocket;
 import org.whispersystems.signalservice.internal.push.SendMessageResponse;
+import org.whispersystems.signalservice.internal.push.SignalServiceProtos;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.AttachmentPointer;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.CallMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Content;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.DataMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.GroupContext;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.NullMessage;
+import org.whispersystems.signalservice.internal.push.SignalServiceProtos.PreKeyBundleMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.ReceiptMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.TypingMessage;
@@ -516,6 +518,23 @@ public class SignalServiceMessageSender {
     }
 
     builder.setTimestamp(message.getTimestamp());
+
+    // region Loki
+    if (message.isFriendRequest() && message.getPreKeyBundle().isPresent()) {
+      PreKeyBundle preKeyBundle = message.getPreKeyBundle().get();
+      PreKeyBundleMessage.Builder preKeyBuilder = PreKeyBundleMessage.newBuilder()
+              .setDeviceId(preKeyBundle.getDeviceId())
+              .setIdentityKey(ByteString.copyFrom(preKeyBundle.getIdentityKey().serialize()))
+              .setPreKeyId(preKeyBundle.getPreKeyId())
+              .setPreKey(ByteString.copyFrom(preKeyBundle.getPreKey().serialize()))
+              .setSignedKeyId(preKeyBundle.getSignedPreKeyId())
+              .setSignedKey(ByteString.copyFrom(preKeyBundle.getSignedPreKey().serialize()))
+              .setSignature(ByteString.copyFrom(preKeyBundle.getSignedPreKeySignature()))
+              .setIdentityKey(ByteString.copyFrom(preKeyBundle.getIdentityKey().serialize()));
+
+      container.setPreKeyBundleMessage(preKeyBuilder);
+    }
+    //endregion
 
     return container.setDataMessage(builder).build().toByteArray();
   }

@@ -6,6 +6,7 @@
 
 package org.whispersystems.signalservice.api.messages;
 
+import org.whispersystems.libsignal.state.PreKeyBundle;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.messages.shared.SharedContact;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
@@ -31,7 +32,10 @@ public class SignalServiceDataMessage {
   private final Optional<List<SharedContact>>           contacts;
   private final Optional<List<Preview>>                 previews;
   private final Optional<Sticker>                       sticker;
+
+  // Loki
   private final boolean                                 isFriendRequest;
+  private final Optional<PreKeyBundle>                  preKeyBundle;
 
   /**
    * Construct a SignalServiceDataMessage with a body and no attachments.
@@ -125,7 +129,7 @@ public class SignalServiceDataMessage {
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
                                   Sticker sticker)
   {
-    this(timestamp, group, attachments, body, endSession, expiresInSeconds, expirationUpdate, profileKey, profileKeyUpdate, quote, sharedContacts, previews, sticker, false);
+    this(timestamp, group, attachments, body, endSession, expiresInSeconds, expirationUpdate, profileKey, profileKeyUpdate, quote, sharedContacts, previews, sticker, false, null);
   }
 
   /**
@@ -143,7 +147,7 @@ public class SignalServiceDataMessage {
                                   String body, boolean endSession, int expiresInSeconds,
                                   boolean expirationUpdate, byte[] profileKey, boolean profileKeyUpdate,
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
-                                  Sticker sticker, boolean isFriendRequest)
+                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle)
   {
     this.timestamp             = timestamp;
     this.body                  = Optional.fromNullable(body);
@@ -156,6 +160,7 @@ public class SignalServiceDataMessage {
     this.quote                 = Optional.fromNullable(quote);
     this.sticker               = Optional.fromNullable(sticker);
     this.isFriendRequest       = isFriendRequest;
+    this.preKeyBundle          = Optional.fromNullable(preKeyBundle);
 
     if (attachments != null && !attachments.isEmpty()) {
       this.attachments = Optional.of(attachments);
@@ -252,6 +257,7 @@ public class SignalServiceDataMessage {
   public boolean isFriendRequest() {
     return isFriendRequest;
   }
+  public Optional<PreKeyBundle> getPreKeyBundle() { return preKeyBundle; }
 
   public static class Builder {
 
@@ -270,6 +276,7 @@ public class SignalServiceDataMessage {
     private Quote              quote;
     private Sticker            sticker;
     private boolean            isFriendRequest;
+    private PreKeyBundle       preKeyBundle;
 
     private Builder() {}
 
@@ -361,12 +368,16 @@ public class SignalServiceDataMessage {
       return this;
     }
 
+    public Builder withPreKeyBundle(PreKeyBundle preKeyBundle) {
+      this.preKeyBundle = preKeyBundle;
+    }
+
     public SignalServiceDataMessage build() {
       if (timestamp == 0) timestamp = System.currentTimeMillis();
       return new SignalServiceDataMessage(timestamp, group, attachments, body, endSession,
                                           expiresInSeconds, expirationUpdate, profileKey,
                                           profileKeyUpdate, quote, sharedContacts, previews,
-                                          sticker, isFriendRequest);
+                                          sticker, isFriendRequest, preKeyBundle);
     }
   }
 
