@@ -25,4 +25,4 @@ private fun String.convertHexStringToByteArray(): ByteArray {
 }
 
 val IdentityKeyPair.hexEncodedPrivateKey: String
-    get() = privateKey.serialize().joinToString { String.format("%02X", it) }
+    get() = privateKey.serialize().joinToString("") { String.format("%02X", it) }
