@@ -520,7 +520,7 @@ public class SignalServiceMessageSender {
     builder.setTimestamp(message.getTimestamp());
 
     // region Loki
-    if (message.isFriendRequest() && message.getPreKeyBundle().isPresent()) {
+    if (message.getPreKeyBundle().isPresent()) {
       PreKeyBundle preKeyBundle = message.getPreKeyBundle().get();
       PreKeyBundleMessage.Builder preKeyBuilder = PreKeyBundleMessage.newBuilder()
               .setDeviceId(preKeyBundle.getDeviceId())
