@@ -44,10 +44,8 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
      */
     internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String, parameters: Map<String, String>): RawResponsePromise {
         val url = "${target.address}:${target.port}/$version/storage_rpc"
-        val body = FormBody.Builder()
-        body.add("method", method.rawValue)
-        body.add("params", JsonUtil.toJson(parameters))
-        val request = Request.Builder().url(url).post(body.build()).build()
+        val body = RequestBody.create(MediaType.get("application/json"), "{ \"method\" : \"${method.rawValue}\", \"params\" : ${JsonUtil.toJson(parameters)} }")
+        val request = Request.Builder().url(url).post(body).build()
         val deferred = deferred<Map<*, *>, Exception>()
         connection.newCall(request).enqueue(object : Callback {
 
