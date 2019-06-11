@@ -55,6 +55,7 @@ object LokiMessageWrapper {
             requestBuilder.body = envelope.content
             val messageBuilder = WebSocketMessage.newBuilder()
             messageBuilder.request = requestBuilder.build()
+            messageBuilder.type = WebSocketMessage.Type.REQUEST
             return messageBuilder.build()
         } catch (e: Exception) {
             println("[Loki] Failed to wrap envelope in web socket message: ${e.message}.")

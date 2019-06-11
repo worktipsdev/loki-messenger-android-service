@@ -43,8 +43,8 @@ message Content {
 }
 
 message LokiAddressMessage {
-  optional string p2pAddress    = 1;
-  optional uint32 p2pPort       = 2;
+  optional string ptpAddress    = 1;
+  optional uint32 ptpPort       = 2;
 }
 
 message PreKeyBundleMessage {
