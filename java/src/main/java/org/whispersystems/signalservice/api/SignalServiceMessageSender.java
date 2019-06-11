@@ -114,7 +114,7 @@ public class SignalServiceMessageSender {
   private final String                                              userPublicKey;
   private final int                                                 userDeviceID;
   private final LokiAPIDatabaseProtocol                             database;
-  private Optional<LokiPreKeyBundleStoreProtocol>                   preKeyBundleStore = Optional.absent();
+  private final LokiPreKeyBundleStoreProtocol                       preKeyBundleStore;
 
   /**
    * Construct a SignalServiceMessageSender.
@@ -136,9 +136,10 @@ public class SignalServiceMessageSender {
                                     Optional<EventListener> eventListener,
                                     String userPublicKey,
                                     int userDeviceID,
-                                    LokiAPIDatabaseProtocol database)
+                                    LokiAPIDatabaseProtocol database,
+                                    LokiPreKeyBundleStoreProtocol preKeyBundleStore)
   {
-    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, userDeviceID, database);
+    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, userDeviceID, database, preKeyBundleStore);
   }
 
   public SignalServiceMessageSender(SignalServiceConfiguration urls,
@@ -151,18 +152,20 @@ public class SignalServiceMessageSender {
                                     Optional<EventListener> eventListener,
                                     String userPublicKey,
                                     int userDeviceID,
-                                    LokiAPIDatabaseProtocol database)
+                                    LokiAPIDatabaseProtocol database,
+                                    LokiPreKeyBundleStoreProtocol preKeyBundleStore)
   {
-    this.socket           = new PushServiceSocket(urls, credentialsProvider, userAgent);
-    this.store            = store;
-    this.localAddress     = new SignalServiceAddress(credentialsProvider.getUser());
-    this.pipe             = new AtomicReference<>(pipe);
-    this.unidentifiedPipe = new AtomicReference<>(unidentifiedPipe);
-    this.isMultiDevice    = new AtomicBoolean(isMultiDevice);
-    this.eventListener    = eventListener;
-    this.userPublicKey    = userPublicKey;
-    this.userDeviceID     = userDeviceID;
-    this.database         = database;
+    this.socket             = new PushServiceSocket(urls, credentialsProvider, userAgent);
+    this.store              = store;
+    this.localAddress       = new SignalServiceAddress(credentialsProvider.getUser());
+    this.pipe               = new AtomicReference<>(pipe);
+    this.unidentifiedPipe   = new AtomicReference<>(unidentifiedPipe);
+    this.isMultiDevice      = new AtomicBoolean(isMultiDevice);
+    this.eventListener      = eventListener;
+    this.userPublicKey      = userPublicKey;
+    this.userDeviceID       = userDeviceID;
+    this.database           = database;
+    this.preKeyBundleStore  = preKeyBundleStore;
   }
 
   /**
@@ -338,8 +341,6 @@ public class SignalServiceMessageSender {
   public void setIsMultiDevice(boolean isMultiDevice) {
     this.isMultiDevice.set(isMultiDevice);
   }
-
-  public void setPreKeyBundleStore(LokiPreKeyBundleStoreProtocol preKeyBundleStore) { this.preKeyBundleStore = Optional.fromNullable(preKeyBundleStore); }
 
   public SignalServiceAttachmentPointer uploadAttachment(SignalServiceAttachmentStream attachment, boolean usePadding) throws IOException {
     byte[]             attachmentKey    = Util.getSecretBytes(64);
@@ -549,7 +550,6 @@ public class SignalServiceMessageSender {
               .setSignedKey(ByteString.copyFrom(preKeyBundle.getSignedPreKey().serialize()))
               .setSignature(ByteString.copyFrom(preKeyBundle.getSignedPreKeySignature()))
               .setIdentityKey(ByteString.copyFrom(preKeyBundle.getIdentityKey().serialize()));
-
       container.setPreKeyBundleMessage(preKeyBuilder);
     }
     //endregion
@@ -1126,20 +1126,17 @@ public class SignalServiceMessageSender {
     // Loki - Use custom pre key bundle logic here
     if (!store.containsSession(signalProtocolAddress)) {
       try {
-        if (!this.preKeyBundleStore.isPresent()) throw new IOException(TAG + ": PreKeyBundleStore not set");
-
         String pubKey = recipient.getNumber();
-        LokiPreKeyBundleStoreProtocol preKeyBundleStore = this.preKeyBundleStore.get();
 
         PreKeyBundle preKeyBundle = preKeyBundleStore.getPreKeyBundle(pubKey);
-        if (preKeyBundle == null) throw new InvalidKeyException(TAG + ": PreKeyBundle not found for " + recipient.getNumber());
+        if (preKeyBundle == null) throw new InvalidKeyException(TAG + ": Pre key bundle not found for: " + recipient.getNumber() + ".");
 
         try {
-          SignalProtocolAddress preKeyAddress  = new SignalProtocolAddress(pubKey, preKeyBundle.getDeviceId());
-          SessionBuilder        sessionBuilder = new SessionBuilder(store, preKeyAddress);
+          SignalProtocolAddress preKeyAddress = new SignalProtocolAddress(pubKey, preKeyBundle.getDeviceId());
+          SessionBuilder sessionBuilder = new SessionBuilder(store, preKeyAddress);
           sessionBuilder.process(preKeyBundle);
 
-          // Loki - Discard the prekey bundle here since the session is initiated
+          // Loki - Discard the pre key bundle here since the session is initiated
           preKeyBundleStore.removePreKeyBundle(pubKey);
         } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
           throw new UntrustedIdentityException("Untrusted identity key", recipient.getNumber(), preKeyBundle.getIdentityKey());
