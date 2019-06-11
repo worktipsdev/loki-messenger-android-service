@@ -5,6 +5,7 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelo
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.websocket.WebSocketProtos.WebSocketMessage
 import org.whispersystems.signalservice.internal.websocket.WebSocketProtos.WebSocketRequestMessage
+import java.security.SecureRandom
 
 object LokiMessageWrapper {
 
@@ -51,7 +52,7 @@ object LokiMessageWrapper {
             val requestBuilder = WebSocketRequestMessage.newBuilder()
             requestBuilder.verb = "PUT"
             requestBuilder.path = "api/v1/message"
-            requestBuilder.id = (1 until Long.MAX_VALUE).random()
+            requestBuilder.id = SecureRandom.getInstance("SHA1PRNG").nextLong()
             requestBuilder.body = envelope.content
             val messageBuilder = WebSocketMessage.newBuilder()
             messageBuilder.request = requestBuilder.build()

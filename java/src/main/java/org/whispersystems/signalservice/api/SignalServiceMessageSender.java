@@ -74,8 +74,11 @@ import org.whispersystems.signalservice.internal.push.http.AttachmentCipherOutpu
 import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
+import org.whispersystems.signalservice.loki.api.LokiAPI;
+import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleStoreProtocol;
+import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -86,6 +89,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
+import kotlin.Unit;
+import kotlin.jvm.functions.Function0;
 
 /**
  * The main interface for sending Signal Service messages.
@@ -105,7 +111,10 @@ public class SignalServiceMessageSender {
   private final AtomicReference<Optional<SignalServiceMessagePipe>> unidentifiedPipe;
   private final AtomicBoolean                                       isMultiDevice;
 
-  private Optional<LokiPreKeyBundleStoreProtocol>                           preKeyBundleStore = Optional.absent(); // Loki
+  private final String                                              userPublicKey;
+  private final int                                                 userDeviceID;
+  private final LokiAPIDatabaseProtocol                             database;
+  private Optional<LokiPreKeyBundleStoreProtocol>                   preKeyBundleStore = Optional.absent();
 
   /**
    * Construct a SignalServiceMessageSender.
@@ -124,9 +133,12 @@ public class SignalServiceMessageSender {
                                     boolean isMultiDevice,
                                     Optional<SignalServiceMessagePipe> pipe,
                                     Optional<SignalServiceMessagePipe> unidentifiedPipe,
-                                    Optional<EventListener> eventListener)
+                                    Optional<EventListener> eventListener,
+                                    String userPublicKey,
+                                    int userDeviceID,
+                                    LokiAPIDatabaseProtocol database)
   {
-    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener);
+    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, userDeviceID, database);
   }
 
   public SignalServiceMessageSender(SignalServiceConfiguration urls,
@@ -136,7 +148,10 @@ public class SignalServiceMessageSender {
                                     boolean isMultiDevice,
                                     Optional<SignalServiceMessagePipe> pipe,
                                     Optional<SignalServiceMessagePipe> unidentifiedPipe,
-                                    Optional<EventListener> eventListener)
+                                    Optional<EventListener> eventListener,
+                                    String userPublicKey,
+                                    int userDeviceID,
+                                    LokiAPIDatabaseProtocol database)
   {
     this.socket           = new PushServiceSocket(urls, credentialsProvider, userAgent);
     this.store            = store;
@@ -145,6 +160,9 @@ public class SignalServiceMessageSender {
     this.unidentifiedPipe = new AtomicReference<>(unidentifiedPipe);
     this.isMultiDevice    = new AtomicBoolean(isMultiDevice);
     this.eventListener    = eventListener;
+    this.userPublicKey    = userPublicKey;
+    this.userDeviceID     = userDeviceID;
+    this.database         = database;
   }
 
   /**
@@ -917,9 +935,31 @@ public class SignalServiceMessageSender {
                                         boolean                      isFriendRequest)
       throws UntrustedIdentityException, IOException
   {
+    try {
+      OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
+      OutgoingPushMessage message = messages.getMessages().get(0);
+      SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
+      SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userPublicKey, userDeviceID, message.content, recipient.getNumber(), 4 * 24 * 60 * 60 * 1000, false);
+      LokiAPI api = new LokiAPI(userPublicKey, database);
+      api.sendSignalMessage(messageInfo, new Function0<Unit>() {
+
+          @Override
+          public Unit invoke() {
+              return null;
+          }
+      });
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+
+    return SendMessageResult.success(recipient, false, false);
+
+    /** Loki - Original code
+  }
     for (int i=0;i<4;i++) {
       try {
         OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
+
         Optional<SignalServiceMessagePipe> pipe             = this.pipe.get();
         Optional<SignalServiceMessagePipe> unidentifiedPipe = this.unidentifiedPipe.get();
 
@@ -967,6 +1007,7 @@ public class SignalServiceMessageSender {
     }
 
     throw new IOException("Failed to resolve conflicts after 3 attempts!");
+     */
   }
 
   private List<AttachmentPointer> createAttachmentPointers(Optional<List<SignalServiceAttachment>> attachments) throws IOException {
