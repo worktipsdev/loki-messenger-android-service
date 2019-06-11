@@ -43,7 +43,7 @@ class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val c
     }
 
     private fun diffieHellmanEncrypt(paddedMessage: ByteArray, symmetricKey: ByteArray): ByteArray {
-        val iv = Util.getRandomLengthBytes(ivLength)
+        val iv = Util.getSecretBytes(ivLength)
         val ivSpec = IvParameterSpec(iv)
         val secretKeySpec = SecretKeySpec(symmetricKey, "AES")
 
