@@ -11,7 +11,6 @@ import org.whispersystems.signalservice.internal.push.OutgoingPushMessage
 import org.whispersystems.signalservice.internal.push.PushTransportDetails
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope.Type
 import org.whispersystems.signalservice.internal.util.Base64
-import org.whispersystems.signalservice.loki.utilities.publicKey
 
 /**
  * The only difference between this and `SignalServiceCipher` is the custom encryption/decryption logic.
@@ -24,7 +23,7 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
     constructor(localAddress: SignalServiceAddress, signalProtocolStore: SignalProtocolStore) : this(localAddress, signalProtocolStore, null)
 
     fun encryptUsingFallbackSessionCipher(address: SignalProtocolAddress, unpaddedMessage: ByteArray): OutgoingPushMessage {
-        val fallbackCipher = FallbackSessionCipher(userPrivateKey, address.publicKey)
+        val fallbackCipher = FallbackSessionCipher(userPrivateKey, address.name)
         val transportDetails = PushTransportDetails(fallbackCipher.sessionVersion)
         val encryptedBody = fallbackCipher.encrypt(transportDetails.getPaddedMessageBody(unpaddedMessage))
         return OutgoingPushMessage(Type.FRIEND_REQUEST_VALUE, address.deviceId, 0, Base64.encodeBytes(encryptedBody))
@@ -35,8 +34,7 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
      */
     override fun decrypt(envelope: SignalServiceEnvelope, ciphertext: ByteArray): Plaintext {
         if (envelope.isFriendRequest) {
-            val contactPublicKey = SignalProtocolAddress(envelope.source, envelope.sourceDevice).publicKey
-            val fallbackCipher = FallbackSessionCipher(userPrivateKey, contactPublicKey)
+            val fallbackCipher = FallbackSessionCipher(userPrivateKey, envelope.source)
 
             // Decrypt and un-pad
             val paddedMessage = fallbackCipher.decrypt(ciphertext) ?: throw InvalidMessageException("Failed to decrypt friend request message.")

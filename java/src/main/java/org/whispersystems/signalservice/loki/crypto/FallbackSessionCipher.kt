@@ -5,20 +5,30 @@ import org.whispersystems.signalservice.internal.util.Util
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import javax.xml.bind.DatatypeConverter
 
 /**
  * A session cipher that uses the current user's private key along with a contact's public key to encrypt data.
  *
- * `contactPublicKey` is the public key of the contact with whom the session is being established.
+ * `recipientId` is the public key hex string of the recipient
  */
-class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val contactPublicKey: ByteArray) {
+class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val recipientId: String) {
+
+    // Hex Data representation of the recipient id
+    private val recipientPubKey: ByteArray
+        get() {
+            var recipientId = recipientId
+            // We need to remove the '05' prefix if the length is 66
+            if (recipientId.length == 66) { recipientId = recipientId.removePrefix("05") }
+            return DatatypeConverter.parseHexBinary(recipientId)
+        }
 
     /// Used for both encryption and decryption
     private val symmetricKey: ByteArray?
         get() {
             try {
                 val curve = Curve25519.getInstance(Curve25519.BEST)
-                return curve.calculateAgreement(contactPublicKey, userPrivateKey)
+                return curve.calculateAgreement(recipientPubKey, userPrivateKey)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
