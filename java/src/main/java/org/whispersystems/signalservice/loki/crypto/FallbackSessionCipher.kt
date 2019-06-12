@@ -26,7 +26,7 @@ class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val c
         }
 
     // region Settings
-    private val cipher = Cipher.getInstance("AES/CBC/PKCS7Padding")
+    private val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
     val sessionVersion = 3
     private val ivLength = 16
     // endregion
