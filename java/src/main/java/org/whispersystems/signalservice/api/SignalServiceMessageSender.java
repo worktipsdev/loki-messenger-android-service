@@ -939,7 +939,7 @@ public class SignalServiceMessageSender {
       OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
       OutgoingPushMessage message = messages.getMessages().get(0);
       SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
-      SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userPublicKey, userDeviceID, message.content, recipient.getNumber(), 4 * 24 * 60 * 60 * 1000, false);
+      SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), 4 * 24 * 60 * 60 * 1000, false);
       LokiAPI api = new LokiAPI(userPublicKey, database);
       api.sendSignalMessage(messageInfo, new Function0<Unit>() {
 
