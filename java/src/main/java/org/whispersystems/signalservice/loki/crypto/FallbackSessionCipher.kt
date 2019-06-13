@@ -1,11 +1,11 @@
 package org.whispersystems.signalservice.loki.crypto
 
 import org.whispersystems.curve25519.Curve25519
+import org.whispersystems.libsignal.util.Hex
 import org.whispersystems.signalservice.internal.util.Util
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
-import javax.xml.bind.DatatypeConverter
 
 /**
  * A session cipher that uses the current user's private key along with a contact's public key to encrypt data.
@@ -20,7 +20,7 @@ class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val r
             var recipientId = recipientId
             // We need to remove the '05' prefix if the length is 66
             if (recipientId.length == 66) { recipientId = recipientId.removePrefix("05") }
-            return DatatypeConverter.parseHexBinary(recipientId)
+            return Hex.fromStringCondensed(recipientId)
         }
 
     /// Used for both encryption and decryption
