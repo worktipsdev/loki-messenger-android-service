@@ -13,10 +13,12 @@ import org.whispersystems.signalservice.loki.messaging.LokiMessageWrapper
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 class LokiAPI(private val hexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
 
     private val connection by lazy { OkHttpClient() }
+    private val longPoller: LokiLongPolling = LokiLongPolling(hexEncodedPublicKey, this, database)
 
     // region Settings
     internal companion object {
@@ -43,11 +45,23 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
      * `hexEncodedPublicKey` is the hex encoded public key of the user the call is associated with. This is needed for swarm cache maintenance.
      */
     internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String, parameters: Map<String, String>): RawResponsePromise {
-        val url = "${target.address}:${target.port}/$version/storage_rpc"
-        val body = RequestBody.create(MediaType.get("application/json"), "{ \"method\" : \"${method.rawValue}\", \"params\" : ${JsonUtil.toJson(parameters)} }")
-        val request = Request.Builder().url(url).post(body).build()
+        return invoke(LokiRequest(method, target, hexEncodedPublicKey, parameters))
+    }
+
+    internal fun invoke(lokiRequest: LokiRequest): RawResponsePromise {
+        var client = connection
+
+        val url = "${lokiRequest.target.address}:${lokiRequest.target.port}/$version/storage_rpc"
+        val body = RequestBody.create(MediaType.get("application/json"), "{ \"method\" : \"${lokiRequest.method.rawValue}\", \"params\" : ${JsonUtil.toJson(lokiRequest.parameters)} }")
+        val builder = Request.Builder().url(url).post(body)
+        if (lokiRequest.headers != null) { builder.headers(lokiRequest.headers) }
+        if (lokiRequest.timeout != null) {
+            client = OkHttpClient().newBuilder().connectTimeout(lokiRequest.timeout, TimeUnit.SECONDS).build()
+        }
+
+        val request = builder.build()
         val deferred = deferred<Map<*, *>, Exception>()
-        connection.newCall(request).enqueue(object : Callback {
+        client.newCall(request).enqueue(object : Callback {
 
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
@@ -59,7 +73,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
                     421 -> {
                         // The snode isn't associated with the given public key anymore
                         println("[Loki] Invalidating swarm for: $hexEncodedPublicKey.")
-                        LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey)
+                        LokiSwarmAPI(database).dropIfNeeded(lokiRequest.target, hexEncodedPublicKey)
                         deferred.reject(Error.SnodeMigrated)
                     }
                     else -> deferred.reject(Error.Generic)
@@ -79,21 +93,36 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
         return retryIfNeeded(maxRetryCount) {
             LokiSwarmAPI(database).getTargetSnodes(hexEncodedPublicKey).map { targetSnodes ->
                 targetSnodes.map { targetSnode ->
-                    val lastHashValue = database.getLastMessageHashValue(targetSnode) ?: ""
-                    val parameters = mapOf( "pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue )
-                    invoke(LokiAPITarget.Method.GetMessages, targetSnode, hexEncodedPublicKey, parameters).map { rawResponse ->
-                        val rawMessages = rawResponse["messages"] as? List<*>
-                        if (rawMessages != null) {
-                            updateLastMessageHashValueIfPossible(targetSnode, rawMessages)
-                            val newRawMessages = removeDuplicates(rawMessages)
-                            parseEnvelopes(newRawMessages)
-                        } else {
-                            listOf()
-                        }
-                    }
+                    getRawMessages(targetSnode, false).map { parseRawMessagesResponse(it, targetSnode) }
                 }
             }.map { it.toSet() }.get()
         }
+    }
+
+    fun getRawMessages(target: LokiAPITarget, useLongPolling: Boolean): RawResponsePromise {
+        val lastHashValue = database.getLastMessageHashValue(target) ?: ""
+        val parameters = mapOf( "pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue )
+
+        var headers: Headers? = null
+        var timeout: Long? = null
+        if (useLongPolling) {
+            headers = Headers.Builder().add("X-Loki-Long-Poll", "true").build()
+            timeout = 40 // 40 second timeout
+        }
+
+        val request = LokiRequest(LokiAPITarget.Method.GetMessages, target, hexEncodedPublicKey, parameters, headers, timeout)
+        return invoke(request)
+    }
+
+    fun parseRawMessagesResponse(rawResponse: RawResponse, target: LokiAPITarget): List<Envelope> {
+        val messages = rawResponse["messages"] as? List<*>
+        if (messages != null) {
+            updateLastMessageHashValueIfPossible(target, messages)
+            val newRawMessages = removeDuplicates(messages)
+            return parseEnvelopes(newRawMessages)
+        }
+
+        return listOf()
     }
 
     @kotlin.ExperimentalUnsignedTypes
@@ -136,6 +165,14 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
         } else {
             return sendLokiMessageUsingSwarmAPI()
         }
+    }
+
+    fun startLongPollingIfNecessary() {
+        longPoller.startIfNecessary()
+    }
+
+    fun stopLongPolling() {
+        longPoller.stop()
     }
     // endregion
 
@@ -192,4 +229,15 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
 typealias RawResponse = Map<*, *>
 typealias MessageListPromise = Promise<List<Envelope>, Exception>
 typealias RawResponsePromise = Promise<RawResponse, Exception>
+
+internal data class LokiRequest(
+    val method: LokiAPITarget.Method,
+    val target: LokiAPITarget,
+    val hexEncodedPublicKey: String,
+    val parameters: Map<String, String>,
+    val headers: Headers?,
+    val timeout: Long?
+){
+    constructor(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String, parameters: Map<String, String>): this(method, target, hexEncodedPublicKey, parameters, null, null)
+}
 // endregion
