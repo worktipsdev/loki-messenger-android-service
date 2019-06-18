@@ -16,9 +16,7 @@ import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-class LokiAPI(private val hexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
-    private val longPoller = LokiLongPoller(hexEncodedPublicKey, this, database)
-
+class LokiAPI(private val hexEncodedPublicKey: String, internal val database: LokiAPIDatabaseProtocol) {
     // region Settings
     internal companion object {
         private val version = "v1"
