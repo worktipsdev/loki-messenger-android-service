@@ -14,6 +14,7 @@ import org.whispersystems.signalservice.loki.messaging.LokiMessageWrapper
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
+import java.net.ConnectException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
@@ -82,11 +83,10 @@ class LokiAPI(private val hexEncodedPublicKey: String, internal val database: Lo
 
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
-                    // TODO: Handle network errors
                     200 -> {
-                        val bodyAsString = response.body()!!.string()
-                        @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
-                        deferred.resolve(body)
+                        val jsonAsString = response.body()!!.string()
+                        @Suppress("NAME_SHADOWING") val json = JsonUtil.fromJson(jsonAsString, Map::class.java)
+                        deferred.resolve(json)
                     }
                     421 -> {
                         // The snode isn't associated with the given public key anymore
@@ -96,14 +96,39 @@ class LokiAPI(private val hexEncodedPublicKey: String, internal val database: Lo
                     }
                     432 -> {
                         // The PoW difficulty is too low
-                        // TODO: Update the PoW difficulty from the response body
+                        val jsonAsString = response.body()!!.string()
+                        @Suppress("NAME_SHADOWING") val json = JsonUtil.fromJson(jsonAsString, Map::class.java)
+                        val powDifficulty = json?.get("difficulty") as? Int
+                        if (powDifficulty != null) {
+                            Log.d("Loki", "Setting PoW difficulty to $powDifficulty.")
+                            LokiAPI.powDifficulty = powDifficulty
+                        } else {
+                            Log.d("Loki", "Failed to update PoW difficulty.")
+                        }
                         deferred.reject(Error.InsufficientProofOfWork)
                     }
-                    else -> deferred.reject(Error.Generic)
+                    else -> {
+                        Log.d("Loki", "Unhandled response code: ${response.code()}.")
+                        deferred.reject(Error.Generic)
+                    }
                 }
             }
 
             override fun onFailure(call: Call, exception: IOException) {
+                if (exception is ConnectException) {
+                    // The snode is unreachable
+                    val oldFailureCount = LokiSwarmAPI.failureCount[target] ?: 0
+                    val newFailureCount = oldFailureCount + 1
+                    LokiSwarmAPI.failureCount[target] = newFailureCount
+                    Log.d("Loki", "Couldn't reach snode at $target; setting failure count to $newFailureCount.")
+                    if (newFailureCount >= LokiSwarmAPI.failureThreshold) {
+                        Log.d("Loki", "Failure threshold reached for: $target; dropping it.")
+                        LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
+                        LokiSwarmAPI.randomSnodePool.remove(target) // Remove it from the random snode pool
+                    }
+                } else {
+                    Log.d("Loki", "Unhandled exception: $exception.")
+                }
                 deferred.reject(exception)
             }
         })

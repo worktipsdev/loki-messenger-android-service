@@ -15,7 +15,7 @@ import java.security.SecureRandom
 internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
 
     companion object {
-        internal var failureCount: Map<LokiAPITarget, Int> = mapOf()
+        internal var failureCount: MutableMap<LokiAPITarget, Int> = mutableMapOf()
 
         // region Settings
         private val minimumSnodeCount = 2
@@ -24,7 +24,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
         // endregion
 
         // region Clearnet Setup
-        internal var randomSnodePool: Set<LokiAPITarget> = setOf()
+        internal var randomSnodePool: MutableSet<LokiAPITarget> = mutableSetOf()
         // endregion
     }
 
@@ -67,7 +67,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
                                         Log.d("Loki", "Failed to update random snode pool from: $rawTarget.")
                                         null
                                     }
-                                }.toSet()
+                                }.toMutableSet()
                                 deferred.resolve(randomSnodePool.random())
                             } else {
                                 throw Exception("Failed to update random snode pool from: $rawTargets.")
