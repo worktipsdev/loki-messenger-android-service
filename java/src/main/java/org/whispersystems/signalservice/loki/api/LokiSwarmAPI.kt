@@ -16,10 +16,6 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
     // endregion
 
     // region Caching
-    internal fun getCachedSnodes(hexEncodedPublicKey: String): List<LokiAPITarget> {
-        return database.getSwarmCache(hexEncodedPublicKey) ?: listOf()
-    }
-
     internal fun dropIfNeeded(target: LokiAPITarget, hexEncodedPublicKey: String) {
         val swarm = database.getSwarmCache(hexEncodedPublicKey)?.toMutableList()
         if (swarm != null && swarm.contains(target)) {

@@ -6,14 +6,14 @@ import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 
 private class CancelledException: Exception("Cancelled")
 
-internal class LokiLongPolling(private val hexEncodedPublicKey: String, private val api: LokiAPI, private val database: LokiAPIDatabaseProtocol) {
+internal class LokiLongPoller(private val hexEncodedPublicKey: String, private val api: LokiAPI, private val database: LokiAPIDatabaseProtocol) {
+    private val swarmAPI = LokiSwarmAPI(database)
+
     // region Settings
     private var isLongPolling: Boolean = false
     private var shouldStopPolling: Boolean = false
     private val usedSnodes: MutableList<LokiAPITarget> = mutableListOf()
     private val ongoingConnections: MutableList<Promise<*, Exception>> = mutableListOf()
-
-    private val swarmAPI = LokiSwarmAPI(database)
     // endregion
 
     fun startIfNecessary() {
@@ -39,7 +39,8 @@ internal class LokiLongPolling(private val hexEncodedPublicKey: String, private 
     }
 
     private fun getUnusedSnodes(): List<LokiAPITarget> {
-        return swarmAPI.getCachedSnodes(hexEncodedPublicKey).filter { !usedSnodes.contains(it) }
+        val swarm = database.getSwarmCache(hexEncodedPublicKey) ?: listOf()
+        return swarm.filter { !usedSnodes.contains(it) }
     }
 
     private fun longPoll() {
