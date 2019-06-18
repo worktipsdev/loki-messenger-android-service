@@ -26,6 +26,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
         private val defaultTimeout: Long = 40
         private val longPollingTimeout: Long = 40
         internal val defaultMessageTTL = 1 * 24 * 60 * 60 * 1000
+        internal var powDifficulty = 100
     }
     // endregion
 
@@ -38,6 +39,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
         object ProofOfWorkCalculationFailed : Error("Failed to calculate proof of work.")
         object MessageConversionFailed : Error("Failed to convert Signal message to Loki message.")
         object SnodeMigrated : Error("The snode previously associated with the given public key has migrated to a different swarm.")
+        object InsufficientProofOfWork : Error("The proof of work is insufficient.")
     }
     // endregion
 
@@ -51,7 +53,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
         val body = RequestBody.create(MediaType.get("application/json"), "{ \"method\" : \"${method.rawValue}\", \"params\" : ${JsonUtil.toJson(parameters)} }")
         val request = Request.Builder().url(url).post(body)
         if (headers != null) { request.headers(headers) }
-        val headersDescription = if (headers != null) headers.toString() else "no custom headers specified"
+        val headersDescription = headers?.toString() ?: "no custom headers specified"
         val connection = OkHttpClient().newBuilder().connectTimeout(timeout ?: defaultTimeout, TimeUnit.SECONDS).build()
         Log.d("Loki", "Invoking ${method.rawValue} on $target with $parameters ($headersDescription).")
         val deferred = deferred<Map<*, *>, Exception>()
@@ -59,6 +61,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
 
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
+                    // TODO: Handle network errors
                     200 -> {
                         val bodyAsString = response.body()!!.string()
                         @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
@@ -69,6 +72,11 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
                         println("[Loki] Invalidating swarm for: $hexEncodedPublicKey.")
                         LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey)
                         deferred.reject(Error.SnodeMigrated)
+                    }
+                    432 -> {
+                        // The PoW difficulty is too low
+                        // TODO: Update the PoW difficulty from the response body
+                        deferred.reject(Error.InsufficientProofOfWork)
                     }
                     else -> deferred.reject(Error.Generic)
                 }
@@ -116,7 +124,19 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
                 all(powPromise, swarmPromise).map {
                     val lokiMessageWithPoW = it[0] as LokiMessage
                     val swarm = it[1] as List<*>
-                    swarm.map { sendLokiMessage(lokiMessageWithPoW, it as LokiAPITarget) }.toSet()
+                    swarm.map {
+                        sendLokiMessage(lokiMessageWithPoW, it as LokiAPITarget).map { rawResponse ->
+                            val json = rawResponse as? Map<*, *>
+                            val powDifficulty = json?.get("difficulty") as? Int
+                            if (powDifficulty != null && powDifficulty != LokiAPI.powDifficulty) {
+                                Log.d("Loki", "Setting PoW difficulty to $powDifficulty.")
+                                LokiAPI.powDifficulty = powDifficulty
+                            } else {
+                                Log.d("Loki", "Failed to update PoW difficulty from: $rawResponse.")
+                            }
+                            rawResponse
+                        }
+                    }.toSet()
                 }.get()
             }
         }
