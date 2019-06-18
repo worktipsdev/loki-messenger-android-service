@@ -6,6 +6,7 @@ import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.task
 import okhttp3.*
+import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
@@ -44,12 +45,15 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
     /**
      * `hexEncodedPublicKey` is the hex encoded public key of the user the call is associated with. This is needed for swarm cache maintenance.
      */
-    internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String, parameters: Map<String, String>, headers: Headers? = null, timeout: Long? = null): RawResponsePromise {
+    internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String,
+        parameters: Map<String, String>, headers: Headers? = null, timeout: Long? = null): RawResponsePromise {
         val url = "${target.address}:${target.port}/$version/storage_rpc"
         val body = RequestBody.create(MediaType.get("application/json"), "{ \"method\" : \"${method.rawValue}\", \"params\" : ${JsonUtil.toJson(parameters)} }")
         val request = Request.Builder().url(url).post(body)
         if (headers != null) { request.headers(headers) }
+        val headersDescription = if (headers != null) headers.toString() else "no custom headers specified"
         val connection = OkHttpClient().newBuilder().connectTimeout(timeout ?: defaultTimeout, TimeUnit.SECONDS).build()
+        Log.d("Loki", "Invoking ${method.rawValue} on $target with $parameters ($headersDescription).")
         val deferred = deferred<Map<*, *>, Exception>()
         connection.newCall(request.build()).enqueue(object : Callback {
 
