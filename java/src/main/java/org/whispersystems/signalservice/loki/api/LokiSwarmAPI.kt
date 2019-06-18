@@ -73,7 +73,10 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
                                 throw Exception("Failed to update random snode pool from: $rawTargets.")
                             }
                         }
-                        else -> deferred.reject(LokiAPI.Error.Generic)
+                        else -> {
+                            Log.d("Loki", "Couldn't reach the seed node.")
+                            deferred.reject(LokiAPI.Error.Generic)
+                        }
                     }
                 }
 
