@@ -112,7 +112,6 @@ public class SignalServiceMessageSender {
   private final AtomicBoolean                                       isMultiDevice;
 
   private final String                                              userPublicKey;
-  private final int                                                 userDeviceID;
   private final LokiAPIDatabaseProtocol                             database;
   private final LokiPreKeyBundleStoreProtocol                       preKeyBundleStore;
 
@@ -135,11 +134,10 @@ public class SignalServiceMessageSender {
                                     Optional<SignalServiceMessagePipe> unidentifiedPipe,
                                     Optional<EventListener> eventListener,
                                     String userPublicKey,
-                                    int userDeviceID,
                                     LokiAPIDatabaseProtocol database,
                                     LokiPreKeyBundleStoreProtocol preKeyBundleStore)
   {
-    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, userDeviceID, database, preKeyBundleStore);
+    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, database, preKeyBundleStore);
   }
 
   public SignalServiceMessageSender(SignalServiceConfiguration urls,
@@ -151,7 +149,6 @@ public class SignalServiceMessageSender {
                                     Optional<SignalServiceMessagePipe> unidentifiedPipe,
                                     Optional<EventListener> eventListener,
                                     String userPublicKey,
-                                    int userDeviceID,
                                     LokiAPIDatabaseProtocol database,
                                     LokiPreKeyBundleStoreProtocol preKeyBundleStore)
   {
@@ -163,7 +160,6 @@ public class SignalServiceMessageSender {
     this.isMultiDevice      = new AtomicBoolean(isMultiDevice);
     this.eventListener      = eventListener;
     this.userPublicKey      = userPublicKey;
-    this.userDeviceID       = userDeviceID;
     this.database           = database;
     this.preKeyBundleStore  = preKeyBundleStore;
   }

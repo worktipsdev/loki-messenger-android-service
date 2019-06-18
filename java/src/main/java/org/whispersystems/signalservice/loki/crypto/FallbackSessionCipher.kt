@@ -10,11 +10,11 @@ import javax.crypto.spec.SecretKeySpec
 /**
  * A session cipher that uses the current user's private key along with a contact's public key to encrypt data.
  *
- * `recipientId` is the public key hex string of the recipient
+ * `recipientId` is the hex encoded public key of the recipient.
  */
 class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val recipientId: String) {
 
-    // Hex Data representation of the recipient id
+    // Hex representation of the recipient's public key
     private val recipientPubKey: ByteArray
         get() {
             var recipientId = recipientId
