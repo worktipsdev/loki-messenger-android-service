@@ -1,6 +1,7 @@
 package org.whispersystems.signalservice.loki.crypto
 
 import org.whispersystems.signalservice.internal.util.Base64
+import org.whispersystems.signalservice.loki.api.LokiAPI
 import java.math.BigInteger
 import java.nio.ByteBuffer
 import java.security.MessageDigest
@@ -11,8 +12,6 @@ import java.security.MessageDigest
  */
 object ProofOfWork {
     private val nonceSize = 8
-
-    private val nonceTrialCount = 10 // TODO: Implement dynamic POW from service node
 
     /**
      * Calculate a proof of work with the given configuration (based on https://bitmessage.org/wiki/Proof_of_work).
@@ -29,7 +28,7 @@ object ProofOfWork {
             val sha512 = MessageDigest.getInstance("SHA-512")
 
             val payload = createPayload(hexEncodedPublicKey, data, timestamp, ttl)
-            val target = calculateTarget(ttl, payload.size, nonceTrialCount)
+            val target = calculateTarget(ttl, payload.size, LokiAPI.powDifficulty)
 
             var currentTrialValue = ULong.MAX_VALUE
             var nonce: Long = 0

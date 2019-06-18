@@ -14,9 +14,14 @@ import org.whispersystems.signalservice.loki.messaging.LokiMessageWrapper
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
+import javax.net.ssl.X509TrustManager
 
 class LokiAPI(private val hexEncodedPublicKey: String, internal val database: LokiAPIDatabaseProtocol) {
+
     // region Settings
     internal companion object {
         private val version = "v1"
@@ -41,6 +46,24 @@ class LokiAPI(private val hexEncodedPublicKey: String, internal val database: Lo
     }
     // endregion
 
+    // region Clearnet Setup
+    fun getClearnetConnection(timeout: Long): OkHttpClient {
+        val trustManager = object : X509TrustManager {
+
+            override fun checkClientTrusted(chain: Array<out X509Certificate>?, authorizationType: String?) { }
+            override fun checkServerTrusted(chain: Array<out X509Certificate>?, authorizationType: String?) { }
+            override fun getAcceptedIssuers(): Array<X509Certificate> { return arrayOf() }
+        }
+        val sslContext = SSLContext.getInstance("SSL")
+        sslContext.init(null, arrayOf( trustManager ), SecureRandom())
+        return OkHttpClient().newBuilder()
+                .sslSocketFactory(sslContext.socketFactory, trustManager)
+                .hostnameVerifier { _, _ -> true }
+                .connectTimeout(timeout, TimeUnit.SECONDS)
+                .build()
+    }
+    // endregion
+
     // region Internal API
     /**
      * `hexEncodedPublicKey` is the hex encoded public key of the user the call is associated with. This is needed for swarm cache maintenance.
@@ -52,7 +75,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, internal val database: Lo
         val request = Request.Builder().url(url).post(body)
         if (headers != null) { request.headers(headers) }
         val headersDescription = headers?.toString() ?: "no custom headers specified"
-        val connection = OkHttpClient().newBuilder().connectTimeout(timeout ?: defaultTimeout, TimeUnit.SECONDS).build()
+        val connection = getClearnetConnection(timeout ?: defaultTimeout)
         Log.d("Loki", "Invoking ${method.rawValue} on $target with $parameters ($headersDescription).")
         val deferred = deferred<Map<*, *>, Exception>()
         connection.newCall(request.build()).enqueue(object : Callback {
@@ -163,6 +186,9 @@ class LokiAPI(private val hexEncodedPublicKey: String, internal val database: Lo
     // endregion
 
     // region Parsing
+
+    // The parsing utilities below use a best attempt approach to parsing; they warn for parsing failures but don't throw exceptions.
+
     internal fun parseRawMessagesResponse(rawResponse: RawResponse, target: LokiAPITarget): List<Envelope> {
         val messages = rawResponse["messages"] as? List<*>
         if (messages != null) {
