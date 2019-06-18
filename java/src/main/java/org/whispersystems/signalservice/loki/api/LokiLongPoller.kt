@@ -54,11 +54,11 @@ class LokiLongPoller(private val hexEncodedPublicKey: String, private val api: L
                 ongoingConnections.add(promise)
             }
 
-            Log.d("LokiLongPoller", "Opened 3 connections")
+            Log.d("Loki", "Opened 3 long polling connections.")
 
             return@then all(ongoingConnections, cancelOthersOnError = false)
         }.always {
-            Log.d("LokiLongPoller", "Connections finished")
+            Log.d("Loki", "Long polling connections opened.")
 
             // Since all promises are complete, we can clear the cancels
             cancelAllPromises()
