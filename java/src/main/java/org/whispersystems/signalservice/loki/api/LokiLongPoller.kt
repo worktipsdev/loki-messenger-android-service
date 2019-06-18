@@ -6,7 +6,7 @@ import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 
 private class CancelledException: Exception("Cancelled")
 
-internal class LokiLongPoller(private val hexEncodedPublicKey: String, private val api: LokiAPI, private val database: LokiAPIDatabaseProtocol) {
+class LokiLongPoller(private val hexEncodedPublicKey: String, private val api: LokiAPI, private val database: LokiAPIDatabaseProtocol) {
     private val swarmAPI = LokiSwarmAPI(database)
 
     // region Settings
