@@ -82,12 +82,12 @@ class LokiLongPoller(private val hexEncodedPublicKey: String, private val databa
             LokiAPI(hexEncodedPublicKey, database).getRawMessages(target, true).map { rawResponse ->
                 if (deferred.promise.isDone()) {
                     // The long polling connection has been canceled; don't recurse
+                    task { Unit }
                 } else {
                     LokiAPI(hexEncodedPublicKey, database).parseRawMessagesResponse(rawResponse, target)
                     longPoll(target, deferred)
                 }
-                Unit
-            }.get()
+            }.unwrap().get()
         }
     }
     // endregion
