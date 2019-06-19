@@ -1,120 +1,93 @@
 package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.*
+import nl.komponents.kovenant.functional.map
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
+import java.security.SecureRandom
 
-private class CancelledException: Exception("Cancelled")
+private class PromiseCanceledException : Exception("Promise canceled.")
 
-class LokiLongPoller(private val hexEncodedPublicKey: String, private val api: LokiAPI) {
-    private val database = api.database
-    private val swarmAPI = LokiSwarmAPI(database)
+class LokiLongPoller(private val hexEncodedPublicKey: String, private val api: LokiAPI, private val database: LokiAPIDatabaseProtocol) {
+    private var isStarted: Boolean = false
+    private var isStopped: Boolean = false
+    private var connections: Set<Promise<*, Exception>> = setOf()
+    private val usedSnodes: MutableSet<LokiAPITarget> = mutableSetOf()
 
     // region Settings
-    private var isLongPolling: Boolean = false
-    private var shouldStopPolling: Boolean = false
-    private val usedSnodes: MutableList<LokiAPITarget> = mutableListOf()
-    private val ongoingConnections: MutableList<Promise<*, Exception>> = mutableListOf()
+    companion object {
+        private val connectionCount = 3
+    }
     // endregion
 
-    fun startIfNecessary() {
-        if (isLongPolling) { return }
-        isLongPolling = true
-        shouldStopPolling = false
-
-        Log.i("LOKI", "Started long polling")
-
-        longPoll()
+    // region Public API
+    fun startIfNeeded() {
+        if (isStarted) { return }
+        Log.d("Loki", "Started long polling.")
+        isStarted = true
+        isStopped = false
+        openConnections()
     }
 
-    fun stop() {
-        shouldStopPolling = true
-        isLongPolling = false
+    fun stopIfNeeded() {
+        if (isStopped) { return }
+        Log.d("Loki", "Stopped long polling.")
+        isStarted = false
+        isStopped = true
+        connections.forEach { Kovenant.cancel(it, PromiseCanceledException()) }
         usedSnodes.clear()
-        cancelAllPromises()
     }
+    // endregion
 
-    private fun cancelAllPromises() {
-        ongoingConnections.forEach { Kovenant.cancel(it, CancelledException()) }
-        ongoingConnections.clear()
-    }
-
-    private fun getUnusedSnodes(): List<LokiAPITarget> {
-        val swarm = database.getSwarmCache(hexEncodedPublicKey) ?: listOf()
-        return swarm.filter { !usedSnodes.contains(it) }
-    }
-
-    private fun longPoll() {
-        if (shouldStopPolling) { return }
-
-        swarmAPI.getSwarm(hexEncodedPublicKey).then {
-            val connections = 3
-            for (i in 0 until connections) {
-                val promise = openConnection()
-                ongoingConnections.add(promise)
-            }
-
-            Log.d("Loki", "Opened 3 long polling connections.")
-
-            return@then all(ongoingConnections, cancelOthersOnError = false)
+    // region Private API
+    private fun openConnections() {
+        if (isStopped) { return }
+        LokiSwarmAPI(database).getSwarm(hexEncodedPublicKey).then {
+            connections = (0 until connectionCount).map {
+                val deferred = deferred<Unit, Exception>()
+                openConnectionToNextSnode(deferred)
+                deferred.promise
+            }.toSet()
+            all(connections.toList(), cancelOthersOnError = false)
         }.always {
-            Log.d("Loki", "Long polling connections opened.")
-
-            // Since all promises are complete, we can clear the cancels
-            cancelAllPromises()
-
-            // Keep long polling until it's stopped
-            longPoll()
+            openConnections()
         }
     }
 
-    private fun openConnection(): Promise<Unit, Exception> {
-        val deferred = deferred<Unit, Exception> {
-            Log.i("LOKI", "Cancelled open connection")
-        }
-
-        connectToNextSnode(deferred)
-
-        return deferred.promise
-    }
-
-    private fun connectToNextSnode(deferred: Deferred<Unit, Exception>) {
-        if (deferred.promise.isDone()) { return }
-
-        // Get the next snode
-        val nextSnode = getUnusedSnodes().firstOrNull()
-        if (nextSnode == null) {
-            // No more snodes left, terminate connection
-            deferred.resolve()
-            return
-        }
-
-        // Add the snode to the used array
-        usedSnodes.add(nextSnode)
-
-        getMessagesInfinitely(nextSnode, deferred.promise).fail {
-            // If we got an error and we haven't cancelled, connect to the next snode
-            // We also want to remove the current snode from our cache
-            if (!deferred.promise.isDone()) {
-                swarmAPI.dropIfNeeded(nextSnode, hexEncodedPublicKey)
-                connectToNextSnode(deferred)
-            }
-        }
-    }
-
-    private fun getMessagesInfinitely(target: LokiAPITarget, deferredPromise: Promise<Unit, Exception>): Promise<Unit, Unit> {
-        return retryIfNeeded(maxRetryCount = 3) {
-            api.getRawMessages(target, true).then { rawResponse ->
-                if (deferredPromise.isDone()) {
-                    // We have cancelled, just return success
-                    return@then Any()
+    private fun openConnectionToNextSnode(deferred: Deferred<Unit, Exception>) {
+        val swarm = database.getSwarmCache(hexEncodedPublicKey)?.toSet() ?: setOf()
+        val unusedSnodes = swarm.subtract(usedSnodes)
+        if (unusedSnodes.isNotEmpty()) {
+            val index = SecureRandom().nextInt(unusedSnodes.size)
+            val nextSnode = unusedSnodes.elementAt(index)
+            usedSnodes.add(nextSnode)
+            Log.d("Loki", "Opening long polling connection to $nextSnode.")
+            longPoll(nextSnode, deferred).fail { exception ->
+                if (exception is PromiseCanceledException) {
+                    Log.d("Loki", "Long polling connection to $nextSnode canceled.")
                 } else {
-                    val messages = api.parseRawMessagesResponse(rawResponse, target)
-                    // TODO: Notify of new messages?
-
-                    return@then getMessagesInfinitely(target, deferredPromise)
+                    Log.d("Loki", "Long polling connection to $nextSnode failed; dropping it and switching to next snode.")
+                    LokiSwarmAPI(database).dropIfNeeded(nextSnode, hexEncodedPublicKey)
+                    openConnectionToNextSnode(deferred)
                 }
             }
-        }.unwrap().toVoid()
+        } else {
+            deferred.resolve()
+        }
     }
+
+    private fun longPoll(target: LokiAPITarget, deferred: Deferred<Unit, Exception>): Promise<Unit, Exception> {
+        return retryIfNeeded(LokiSwarmAPI.failureThreshold) {
+            api.getRawMessages(target, true).map { rawResponse ->
+                if (deferred.promise.isDone()) {
+                    // The long polling connection has been canceled; don't recurse
+                } else {
+                    api.parseRawMessagesResponse(rawResponse, target)
+                    longPoll(target, deferred)
+                }
+                Unit
+            }.get()
+        }
+    }
+    // endregion
 }

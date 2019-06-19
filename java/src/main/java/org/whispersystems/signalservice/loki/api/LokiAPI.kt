@@ -21,15 +21,15 @@ import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
-class LokiAPI(private val hexEncodedPublicKey: String, internal val database: LokiAPIDatabaseProtocol) {
+class LokiAPI(private val hexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
 
     // region Settings
     internal companion object {
         private val version = "v1"
-        private val maxRetryCount = 3
-        private val defaultTimeout: Long = 40
+        private val maxRetryCount = 2
+        private val defaultTimeout: Long = 20
         private val longPollingTimeout: Long = 40
-        internal val defaultMessageTTL = 1 * 24 * 60 * 60 * 1000
+        internal val defaultMessageTTL = 24 * 60 * 60 * 1000
         internal var powDifficulty = 100
     }
     // endregion
@@ -125,6 +125,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, internal val database: Lo
                         Log.d("Loki", "Failure threshold reached for: $target; dropping it.")
                         LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
                         LokiSwarmAPI.randomSnodePool.remove(target) // Remove it from the random snode pool
+                        LokiSwarmAPI.failureCount[target] = 0
                     }
                 } else {
                     Log.d("Loki", "Unhandled exception: $exception.")
