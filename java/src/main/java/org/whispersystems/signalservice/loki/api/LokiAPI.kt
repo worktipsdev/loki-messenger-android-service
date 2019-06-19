@@ -76,7 +76,9 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
         val body = RequestBody.create(MediaType.get("application/json"), "{ \"method\" : \"${method.rawValue}\", \"params\" : ${JsonUtil.toJson(parameters)} }")
         val request = Request.Builder().url(url).post(body)
         if (headers != null) { request.headers(headers) }
-        val headersDescription = headers?.toMultimap()?.prettifiedDescription() ?: "no custom headers specified"
+        val headersDescription = headers?.toMultimap()?.mapValues {
+            "[ " + it.value.joinToString(", ") { it.toString() } + " ]"
+        }?.prettifiedDescription() ?: "no custom headers specified"
         val connection = getClearnetConnection(timeout ?: defaultTimeout)
         Log.d("Loki", "Invoking ${method.rawValue} on $target with ${parameters.prettifiedDescription()} ($headersDescription).")
         val deferred = deferred<Map<*, *>, Exception>()
