@@ -9,8 +9,8 @@ import java.security.SecureRandom
 private class PromiseCanceledException : Exception("Promise canceled.")
 
 class LokiLongPoller(private val hexEncodedPublicKey: String, private val api: LokiAPI, private val database: LokiAPIDatabaseProtocol) {
-    private var isStarted: Boolean = false
-    private var isStopped: Boolean = false
+    private var hasStarted: Boolean = false
+    private var hasStopped: Boolean = false
     private var connections: Set<Promise<*, Exception>> = setOf()
     private val usedSnodes: MutableSet<LokiAPITarget> = mutableSetOf()
 
@@ -22,18 +22,18 @@ class LokiLongPoller(private val hexEncodedPublicKey: String, private val api: L
 
     // region Public API
     fun startIfNeeded() {
-        if (isStarted) { return }
+        if (hasStarted) { return }
         Log.d("Loki", "Started long polling.")
-        isStarted = true
-        isStopped = false
+        hasStarted = true
+        hasStopped = false
         openConnections()
     }
 
     fun stopIfNeeded() {
-        if (isStopped) { return }
+        if (hasStopped) { return }
         Log.d("Loki", "Stopped long polling.")
-        isStarted = false
-        isStopped = true
+        hasStarted = false
+        hasStopped = true
         connections.forEach { Kovenant.cancel(it, PromiseCanceledException()) }
         usedSnodes.clear()
     }
@@ -41,8 +41,9 @@ class LokiLongPoller(private val hexEncodedPublicKey: String, private val api: L
 
     // region Private API
     private fun openConnections() {
-        if (isStopped) { return }
+        if (hasStopped) { return }
         LokiSwarmAPI(database).getSwarm(hexEncodedPublicKey).then {
+            usedSnodes.clear()
             connections = (0 until connectionCount).map {
                 val deferred = deferred<Unit, Exception>()
                 openConnectionToNextSnode(deferred)
