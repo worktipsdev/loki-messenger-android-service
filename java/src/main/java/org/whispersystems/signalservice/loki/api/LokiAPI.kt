@@ -16,6 +16,7 @@ import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
 import java.net.ConnectException
+import java.net.SocketTimeoutException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
@@ -62,6 +63,8 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
                 .sslSocketFactory(sslContext.socketFactory, trustManager)
                 .hostnameVerifier { _, _ -> true }
                 .connectTimeout(timeout, TimeUnit.SECONDS)
+                .readTimeout(timeout, TimeUnit.SECONDS)
+                .writeTimeout(timeout, TimeUnit.SECONDS)
                 .build()
     }
     // endregion
@@ -118,7 +121,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
             }
 
             override fun onFailure(call: Call, exception: IOException) {
-                if (exception is ConnectException) {
+                if (exception is ConnectException || exception is SocketTimeoutException) {
                     // The snode is unreachable
                     val oldFailureCount = LokiSwarmAPI.failureCount[target] ?: 0
                     val newFailureCount = oldFailureCount + 1
