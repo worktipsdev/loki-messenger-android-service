@@ -79,9 +79,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
         val body = RequestBody.create(MediaType.get("application/json"), "{ \"method\" : \"${method.rawValue}\", \"params\" : ${JsonUtil.toJson(parameters)} }")
         val request = Request.Builder().url(url).post(body)
         if (headers != null) { request.headers(headers) }
-        val headersDescription = headers?.toMultimap()?.mapValues {
-            "[ " + it.value.joinToString(", ") { it.toString() } + " ]"
-        }?.prettifiedDescription() ?: "no custom headers specified"
+        val headersDescription = headers?.toMultimap()?.mapValues { it.value.prettifiedDescription() }?.prettifiedDescription() ?: "no custom headers specified"
         val connection = getClearnetConnection(timeout ?: defaultTimeout)
         Log.d("Loki", "Invoking ${method.rawValue} on $target with ${parameters.prettifiedDescription()} ($headersDescription).")
         val deferred = deferred<Map<*, *>, Exception>()
@@ -187,7 +185,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
                                     LokiAPI.powDifficulty = powDifficulty
                                 }
                             } else {
-                                Log.d("Loki", "Failed to update PoW difficulty from: $rawResponse.")
+                                Log.d("Loki", "Failed to update PoW difficulty from: ${rawResponse.prettifiedDescription()}.")
                             }
                             rawResponse
                         }
@@ -240,7 +238,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
         if (hashValue != null) {
             database.setLastMessageHashValue(target, hashValue)
         } else if (rawMessages.isNotEmpty()) {
-            println("[Loki] Failed to update last message hash value from: $rawMessages.")
+            println("[Loki] Failed to update last message hash value from: ${rawMessages.prettifiedDescription()}.")
         }
     }
 
@@ -255,7 +253,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
                 database.setReceivedMessageHashValues(receivedMessageHashValues)
                 !isDuplicate
             } else {
-                println("[Loki] Missing hash value for message: $rawMessage.")
+                println("[Loki] Missing hash value for message: ${rawMessage?.prettifiedDescription()}.")
                 false
             }
         }
@@ -270,11 +268,11 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
                 try {
                     LokiMessageWrapper.unwrap(data)
                 } catch (e: Exception) {
-                    println("[Loki] Failed to unwrap data for message: $rawMessage.")
+                    println("[Loki] Failed to unwrap data for message: ${rawMessage.prettifiedDescription()}.")
                     null
                 }
             } else {
-                println("[Loki] Failed to decode data for message: $rawMessage.")
+                println("[Loki] Failed to decode data for message: ${rawMessage?.prettifiedDescription()}.")
                 null
             }
         }

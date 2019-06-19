@@ -9,6 +9,7 @@ import nl.komponents.kovenant.then
 import okhttp3.*
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import java.io.IOException
 import java.security.SecureRandom
 
@@ -64,13 +65,13 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
                                     if (address != null && port != null && address != "0.0.0.0") {
                                         LokiAPITarget("https://$address", port)
                                     } else {
-                                        Log.d("Loki", "Failed to update random snode pool from: $rawTarget.")
+                                        Log.d("Loki", "Failed to update random snode pool from: ${rawTarget?.prettifiedDescription()}.")
                                         null
                                     }
                                 }.toMutableSet()
                                 deferred.resolve(randomSnodePool.random())
                             } else {
-                                Log.d("Loki", "Failed to update random snode pool from: $rawTargets.")
+                                Log.d("Loki", "Failed to update random snode pool from: ${(rawTargets as List<*>?)?.prettifiedDescription()}.")
                                 deferred.reject(LokiAPI.Error.Generic)
                             }
                         }
@@ -132,12 +133,12 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
                 if (address != null && port != null && address != "0.0.0.0") {
                     LokiAPITarget("https://$address", port)
                 } else {
-                    Log.d("Loki", "Failed to parse target from: $rawSnode.")
+                    Log.d("Loki", "Failed to parse target from: ${rawSnode?.prettifiedDescription()}.")
                     null
                 }
             }
         } else {
-            Log.d("Loki", "Failed to parse targets from: $rawResponse.")
+            Log.d("Loki", "Failed to parse targets from: ${rawResponse.prettifiedDescription()}.")
             return listOf()
         }
     }
