@@ -176,9 +176,11 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
                         sendLokiMessage(lokiMessageWithPoW, it as LokiAPITarget).map { rawResponse ->
                             val json = rawResponse as? Map<*, *>
                             val powDifficulty = json?.get("difficulty") as? Int
-                            if (powDifficulty != null && powDifficulty != LokiAPI.powDifficulty) {
-                                Log.d("Loki", "Setting PoW difficulty to $powDifficulty.")
-                                LokiAPI.powDifficulty = powDifficulty
+                            if (powDifficulty != null) {
+                                if (powDifficulty != LokiAPI.powDifficulty) {
+                                    Log.d("Loki", "Setting PoW difficulty to $powDifficulty.")
+                                    LokiAPI.powDifficulty = powDifficulty
+                                }
                             } else {
                                 Log.d("Loki", "Failed to update PoW difficulty from: $rawResponse.")
                             }
