@@ -8,7 +8,7 @@ import java.security.SecureRandom
 
 private class PromiseCanceledException : Exception("Promise canceled.")
 
-class LokiLongPoller(private val hexEncodedPublicKey: String, private val api: LokiAPI, private val database: LokiAPIDatabaseProtocol) {
+class LokiLongPoller(private val hexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
     private var hasStarted: Boolean = false
     private var hasStopped: Boolean = false
     private var connections: Set<Promise<*, Exception>> = setOf()
@@ -79,11 +79,11 @@ class LokiLongPoller(private val hexEncodedPublicKey: String, private val api: L
 
     private fun longPoll(target: LokiAPITarget, deferred: Deferred<Unit, Exception>): Promise<Unit, Exception> {
         return retryIfNeeded(LokiSwarmAPI.failureThreshold) {
-            api.getRawMessages(target, true).map { rawResponse ->
+            LokiAPI(hexEncodedPublicKey, database).getRawMessages(target, true).map { rawResponse ->
                 if (deferred.promise.isDone()) {
                     // The long polling connection has been canceled; don't recurse
                 } else {
-                    api.parseRawMessagesResponse(rawResponse, target)
+                    LokiAPI(hexEncodedPublicKey, database).parseRawMessagesResponse(rawResponse, target)
                     longPoll(target, deferred)
                 }
                 Unit
