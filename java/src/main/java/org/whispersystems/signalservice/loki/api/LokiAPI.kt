@@ -233,7 +233,7 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
     }
 
     private fun updateLastMessageHashValueIfPossible(target: LokiAPITarget, rawMessages: List<*>) {
-        val lastMessageAsJSON = rawMessages.last() as? Map<*, *>
+        val lastMessageAsJSON = rawMessages.lastOrNull() as? Map<*, *>
         val hashValue = lastMessageAsJSON?.get("hash") as? String
         if (hashValue != null) {
             database.setLastMessageHashValue(target, hashValue)
