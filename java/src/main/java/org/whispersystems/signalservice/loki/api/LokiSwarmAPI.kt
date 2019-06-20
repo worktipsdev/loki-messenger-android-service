@@ -5,7 +5,6 @@ import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.task
-import nl.komponents.kovenant.then
 import okhttp3.*
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.JsonUtil
@@ -116,7 +115,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
     // region Public API
     internal fun getTargetSnodes(hexEncodedPublicKey: String): Promise<List<LokiAPITarget>, Exception> {
         // SecureRandom() should be cryptographically secure
-        return getSwarm(hexEncodedPublicKey).then { it.shuffled(SecureRandom()).take(targetSnodeCount) }
+        return getSwarm(hexEncodedPublicKey).map { it.shuffled(SecureRandom()).take(targetSnodeCount) }
     }
     // endregion
 

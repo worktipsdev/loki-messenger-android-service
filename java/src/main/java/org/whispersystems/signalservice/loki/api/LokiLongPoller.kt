@@ -1,8 +1,10 @@
 package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.*
+import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
 import org.whispersystems.libsignal.logging.Log
+import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.security.SecureRandom
 
@@ -79,15 +81,16 @@ class LokiLongPoller(private val hexEncodedPublicKey: String, private val databa
 
     private fun longPoll(target: LokiAPITarget, deferred: Deferred<Unit, Exception>): Promise<Unit, Exception> {
         return retryIfNeeded(LokiSwarmAPI.failureThreshold) {
-            LokiAPI(hexEncodedPublicKey, database).getRawMessages(target, true).map { rawResponse ->
+            LokiAPI(hexEncodedPublicKey, database).getRawMessages(target, true).bind { rawResponse ->
                 if (deferred.promise.isDone()) {
                     // The long polling connection has been canceled; don't recurse
                     task { Unit }
                 } else {
-                    LokiAPI(hexEncodedPublicKey, database).parseRawMessagesResponse(rawResponse, target)
+                    val messages = LokiAPI(hexEncodedPublicKey, database).parseRawMessagesResponse(rawResponse, target)
+                    Log.d("Loki", "Retrieved messages: ${messages.prettifiedDescription()}.")
                     longPoll(target, deferred)
                 }
-            }.unwrap().get()
+            }.get()
         }
     }
     // endregion
