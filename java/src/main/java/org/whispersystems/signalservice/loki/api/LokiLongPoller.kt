@@ -44,7 +44,7 @@ class LokiLongPoller(private val hexEncodedPublicKey: String, private val databa
     // region Private API
     private fun openConnections() {
         if (hasStopped) { return }
-        LokiSwarmAPI(database).getSwarm(hexEncodedPublicKey).then {
+        LokiSwarmAPI(database).getSwarm(hexEncodedPublicKey).bind {
             usedSnodes.clear()
             connections = (0 until connectionCount).map {
                 val deferred = deferred<Unit, Exception>()
