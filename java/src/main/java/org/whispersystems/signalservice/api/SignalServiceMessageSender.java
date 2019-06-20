@@ -74,6 +74,7 @@ import org.whispersystems.signalservice.internal.push.http.AttachmentCipherOutpu
 import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
+import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture;
 import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
@@ -87,11 +88,15 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import kotlin.Unit;
 import kotlin.jvm.functions.Function0;
+import kotlin.jvm.functions.Function1;
+import nl.komponents.kovenant.Promise;
 
 /**
  * The main interface for sending Signal Service messages.
@@ -931,24 +936,75 @@ public class SignalServiceMessageSender {
                                         boolean                      isFriendRequest)
       throws UntrustedIdentityException, IOException
   {
+    final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
     try {
       OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
       OutgoingPushMessage message = messages.getMessages().get(0);
       SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
       SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), 4 * 24 * 60 * 60 * 1000, false);
+      // TODO: Update the message and thread
       LokiAPI api = new LokiAPI(userPublicKey, database);
       api.sendSignalMessage(messageInfo, new Function0<Unit>() {
 
           @Override
           public Unit invoke() {
-              return null;
+            // TODO: onP2PSuccess
+            return Unit.INSTANCE;
           }
-      });
-    } catch (Exception e) {
-        e.printStackTrace();
-    }
+      }).success(new Function1<Set<Promise<Map<?, ?>, Exception>>, Unit>() {
 
-    return SendMessageResult.success(recipient, false, false);
+        @Override
+        public Unit invoke(Set<Promise<Map<?, ?>, Exception>> promises) {
+          final boolean[] isSuccess = { false };
+          final int[] promiseCount = { promises.size() };
+          final int[] errorCount = { 0 };
+          for (Promise<Map<?, ?>, Exception> promise : promises) {
+            promise.success(new Function1<Map<?, ?>, Unit>() {
+
+              @Override
+              public Unit invoke(Map<?, ?> map) {
+                if (isSuccess[0]) { return Unit.INSTANCE; } // Succeed as soon as the first promise succeeds
+                isSuccess[0] = true;
+                // TODO: Update the message and thread
+                SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+                f.set(Unit.INSTANCE);
+                return Unit.INSTANCE;
+              }
+            }).fail(new Function1<Exception, Unit>() {
+
+              @Override
+              public Unit invoke(Exception exception) {
+                errorCount[0] += 1;
+                if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
+                SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+                f.setException(exception);
+                return Unit.INSTANCE;
+              }
+            });
+          }
+          return Unit.INSTANCE;
+        }
+      }).fail(new Function1<Exception, Unit>() {
+
+        @Override
+        public Unit invoke(Exception exception) {
+          // The snode is unreachable
+          SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+          f.setException(exception);
+          return Unit.INSTANCE;
+        }
+      });
+    } catch (Exception exception) {
+      SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+      f.setException(exception);
+    }
+    SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+    try {
+      f.get();
+      return SendMessageResult.success(recipient, false, false);
+    } catch (Exception exception) {
+      return SendMessageResult.networkFailure(recipient);
+    }
 
     /** Loki - Original code
   }
