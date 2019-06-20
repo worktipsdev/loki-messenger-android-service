@@ -7,6 +7,7 @@ fun Any.prettifiedDescription(): String {
 }
 
 fun List<*>.prettifiedDescription(): String {
+    if (isEmpty()) { return "[]" }
     return "[ " + joinToString(", ") { it.toString() } + " ]"
 }
 
