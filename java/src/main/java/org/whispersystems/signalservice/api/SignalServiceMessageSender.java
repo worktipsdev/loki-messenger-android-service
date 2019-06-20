@@ -941,6 +941,7 @@ public class SignalServiceMessageSender {
       OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
       OutgoingPushMessage message = messages.getMessages().get(0);
       SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
+      // TODO: TTL & isPing
       SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), 4 * 24 * 60 * 60 * 1000, false);
       // TODO: Update the message and thread
       LokiAPI api = new LokiAPI(userPublicKey, database);
@@ -966,7 +967,7 @@ public class SignalServiceMessageSender {
                 if (isSuccess[0]) { return Unit.INSTANCE; } // Succeed as soon as the first promise succeeds
                 isSuccess[0] = true;
                 // TODO: Update the message and thread
-                SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+                @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
                 f.set(Unit.INSTANCE);
                 return Unit.INSTANCE;
               }
@@ -976,7 +977,7 @@ public class SignalServiceMessageSender {
               public Unit invoke(Exception exception) {
                 errorCount[0] += 1;
                 if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
-                SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+                @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
                 f.setException(exception);
                 return Unit.INSTANCE;
               }
@@ -989,16 +990,16 @@ public class SignalServiceMessageSender {
         @Override
         public Unit invoke(Exception exception) {
           // The snode is unreachable
-          SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
           f.setException(exception);
           return Unit.INSTANCE;
         }
       });
     } catch (Exception exception) {
-      SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+      @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
       f.setException(exception);
     }
-    SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+    @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
     try {
       f.get();
       return SendMessageResult.success(recipient, false, false);
