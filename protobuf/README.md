@@ -1,11 +1,11 @@
-# Generating protobuf files
+# Generating Protobuf Files
 
 Android requires protobuf `2.5.0` to auto generate the files.
 To generate the files just run `make`.
 
 **Note: Protobuf `2.5.0` will have to be aliased to `protoc25`.**
 
-## Mac Installation instructions
+## Mac Installation Instructions
 
 Protobuf can be installed using brew but this will only get versions > 3.
 To install protobuf `2.5.0` follow these steps:
@@ -19,7 +19,7 @@ make install
 ```
 
 This will compile and build the binary at `PATH TO A DIRECTORY` which you specified in the `./configure` command.
-Next you need to move it to your local bin
+Next you need to move it to your local bin:
 ```
 cd <PATH WHERE YOU INSTALLED PROTOBUF 2.5>/bin
 chmod +x ./protoc

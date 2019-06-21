@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
-class LokiAPI(private val hexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
+class LokiAPI(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
 
     // region Settings
     internal companion object {
@@ -142,17 +142,17 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
 
     internal fun getRawMessages(target: LokiAPITarget, useLongPolling: Boolean): RawResponsePromise {
         val lastHashValue = database.getLastMessageHashValue(target) ?: ""
-        val parameters = mapOf( "pubKey" to hexEncodedPublicKey, "lastHash" to lastHashValue )
+        val parameters = mapOf( "pubKey" to userHexEncodedPublicKey, "lastHash" to lastHashValue )
         val headers: Headers? = if (useLongPolling) Headers.of("X-Loki-Long-Poll", "true") else null
         val timeout: Long? = if (useLongPolling) longPollingTimeout else null
-        return invoke(LokiAPITarget.Method.GetMessages, target, hexEncodedPublicKey, parameters, headers, timeout)
+        return invoke(LokiAPITarget.Method.GetMessages, target, userHexEncodedPublicKey, parameters, headers, timeout)
     }
     // endregion
 
     // region Public API
     fun getMessages(): Promise<Set<MessageListPromise>, Exception> {
         return retryIfNeeded(maxRetryCount) {
-            LokiSwarmAPI(database).getTargetSnodes(hexEncodedPublicKey).map { targetSnodes ->
+            LokiSwarmAPI(database).getTargetSnodes(userHexEncodedPublicKey).map { targetSnodes ->
                 targetSnodes.map { targetSnode ->
                     getRawMessages(targetSnode, false).map { parseRawMessagesResponse(it, targetSnode) }
                 }
@@ -200,11 +200,11 @@ class LokiAPI(private val hexEncodedPublicKey: String, private val database: Lok
             retryIfNeeded(maxRetryCount) {
                 task { listOf(target) }.map { it.map { sendLokiMessage(lokiMessage, it) } }.map { it.toSet() }.get()
             }.success {
-                LokiP2PAPI.shared.mark(isOnline = true, hexEncodedPublicKey = destination)
+                LokiP2PAPI.shared.mark(true, destination)
                 onP2PSuccess()
                 deferred.resolve(it)
             }.fail {
-                LokiP2PAPI.shared.mark(isOnline = false, hexEncodedPublicKey = destination)
+                LokiP2PAPI.shared.mark(false, destination)
                 if (lokiMessage.isPing) {
                     println("[Loki] Failed to ping $destination; marking contact as offline.")
                 }

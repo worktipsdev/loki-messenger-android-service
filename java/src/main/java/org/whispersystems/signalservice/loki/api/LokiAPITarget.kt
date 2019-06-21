@@ -14,7 +14,5 @@ class LokiAPITarget(val address: String, val port: Int) {
         SendMessage("store")
     }
 
-    override fun toString(): String {
-        return "$address:$port"
-    }
+    override fun toString(): String { return "$address:$port" }
 }

@@ -8,7 +8,7 @@ import java.security.SecureRandom
 
 private class PromiseCanceledException : Exception("Promise canceled.")
 
-class LokiLongPoller(private val hexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
+class LokiLongPoller(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
     private var hasStarted: Boolean = false
     private var hasStopped: Boolean = false
     private var connections: Set<Promise<*, Exception>> = setOf()
@@ -42,7 +42,7 @@ class LokiLongPoller(private val hexEncodedPublicKey: String, private val databa
     // region Private API
     private fun openConnections() {
         if (hasStopped) { return }
-        LokiSwarmAPI(database).getSwarm(hexEncodedPublicKey).bind {
+        LokiSwarmAPI(database).getSwarm(userHexEncodedPublicKey).bind {
             usedSnodes.clear()
             connections = (0 until connectionCount).map {
                 val deferred = deferred<Unit, Exception>()
@@ -56,7 +56,7 @@ class LokiLongPoller(private val hexEncodedPublicKey: String, private val databa
     }
 
     private fun openConnectionToNextSnode(deferred: Deferred<Unit, Exception>) {
-        val swarm = database.getSwarmCache(hexEncodedPublicKey)?.toSet() ?: setOf()
+        val swarm = database.getSwarmCache(userHexEncodedPublicKey)?.toSet() ?: setOf()
         val unusedSnodes = swarm.subtract(usedSnodes)
         if (unusedSnodes.isNotEmpty()) {
             val index = SecureRandom().nextInt(unusedSnodes.size)
@@ -68,7 +68,7 @@ class LokiLongPoller(private val hexEncodedPublicKey: String, private val databa
                     Log.d("Loki", "Long polling connection to $nextSnode canceled.")
                 } else {
                     Log.d("Loki", "Long polling connection to $nextSnode failed; dropping it and switching to next snode.")
-                    LokiSwarmAPI(database).dropIfNeeded(nextSnode, hexEncodedPublicKey)
+                    LokiSwarmAPI(database).dropIfNeeded(nextSnode, userHexEncodedPublicKey)
                     openConnectionToNextSnode(deferred)
                 }
             }
@@ -78,12 +78,12 @@ class LokiLongPoller(private val hexEncodedPublicKey: String, private val databa
     }
 
     private fun longPoll(target: LokiAPITarget, deferred: Deferred<Unit, Exception>): Promise<Unit, Exception> {
-        return LokiAPI(hexEncodedPublicKey, database).getRawMessages(target, true).bind { rawResponse ->
+        return LokiAPI(userHexEncodedPublicKey, database).getRawMessages(target, true).bind { rawResponse ->
             if (deferred.promise.isDone()) {
                 // The long polling connection has been canceled; don't recurse
                 task { Unit }
             } else {
-                val messages = LokiAPI(hexEncodedPublicKey, database).parseRawMessagesResponse(rawResponse, target)
+                val messages = LokiAPI(userHexEncodedPublicKey, database).parseRawMessagesResponse(rawResponse, target)
                 Log.d("Loki", "Retrieved messages: ${messages.prettifiedDescription()}.")
                 longPoll(target, deferred)
             }

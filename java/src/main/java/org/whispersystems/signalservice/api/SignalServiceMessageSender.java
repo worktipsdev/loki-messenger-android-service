@@ -42,7 +42,6 @@ import org.whispersystems.signalservice.api.messages.multidevice.StickerPackOper
 import org.whispersystems.signalservice.api.messages.multidevice.VerifiedMessage;
 import org.whispersystems.signalservice.api.messages.shared.SharedContact;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
-import org.whispersystems.signalservice.api.push.exceptions.AuthorizationFailedException;
 import org.whispersystems.signalservice.api.push.exceptions.PushNetworkException;
 import org.whispersystems.signalservice.api.push.exceptions.UnregisteredUserException;
 import org.whispersystems.signalservice.api.util.CredentialsProvider;
@@ -54,7 +53,6 @@ import org.whispersystems.signalservice.internal.push.OutgoingPushMessage;
 import org.whispersystems.signalservice.internal.push.OutgoingPushMessageList;
 import org.whispersystems.signalservice.internal.push.PushAttachmentData;
 import org.whispersystems.signalservice.internal.push.PushServiceSocket;
-import org.whispersystems.signalservice.internal.push.SendMessageResponse;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.AttachmentPointer;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.CallMessage;
@@ -68,8 +66,6 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMe
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.TypingMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Verified;
 import org.whispersystems.signalservice.internal.push.StaleDevices;
-import org.whispersystems.signalservice.internal.push.exceptions.MismatchedDevicesException;
-import org.whispersystems.signalservice.internal.push.exceptions.StaleDevicesException;
 import org.whispersystems.signalservice.internal.push.http.AttachmentCipherOutputStreamFactory;
 import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
@@ -539,7 +535,7 @@ public class SignalServiceMessageSender {
 
     builder.setTimestamp(message.getTimestamp());
 
-    // region Loki
+    // Loki
     if (message.getPreKeyBundle().isPresent()) {
       PreKeyBundle preKeyBundle = message.getPreKeyBundle().get();
       PreKeyBundleMessage.Builder preKeyBuilder = PreKeyBundleMessage.newBuilder()
@@ -553,7 +549,6 @@ public class SignalServiceMessageSender {
               .setIdentityKey(ByteString.copyFrom(preKeyBundle.getIdentityKey().serialize()));
       container.setPreKeyBundleMessage(preKeyBuilder);
     }
-    //endregion
 
     return container.setDataMessage(builder).build().toByteArray();
   }
@@ -1179,22 +1174,18 @@ public class SignalServiceMessageSender {
     // Loki - Use custom pre key bundle logic here
     if (!store.containsSession(signalProtocolAddress)) {
       try {
-        String pubKey = recipient.getNumber();
-
-        PreKeyBundle preKeyBundle = preKeyBundleStore.getPreKeyBundle(pubKey);
+        String contactHexEncodedPublicKey = recipient.getNumber();
+        PreKeyBundle preKeyBundle = preKeyBundleStore.getPreKeyBundle(contactHexEncodedPublicKey);
         if (preKeyBundle == null) throw new InvalidKeyException(TAG + ": Pre key bundle not found for: " + recipient.getNumber() + ".");
-
         try {
-          SignalProtocolAddress preKeyAddress = new SignalProtocolAddress(pubKey, preKeyBundle.getDeviceId());
+          SignalProtocolAddress preKeyAddress = new SignalProtocolAddress(contactHexEncodedPublicKey, preKeyBundle.getDeviceId());
           SessionBuilder sessionBuilder = new SessionBuilder(store, preKeyAddress);
           sessionBuilder.process(preKeyBundle);
-
           // Loki - Discard the pre key bundle here since the session is initiated
-          preKeyBundleStore.removePreKeyBundle(pubKey);
+          preKeyBundleStore.removePreKeyBundle(contactHexEncodedPublicKey);
         } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
           throw new UntrustedIdentityException("Untrusted identity key", recipient.getNumber(), preKeyBundle.getIdentityKey());
         }
-
         if (eventListener.isPresent()) {
           eventListener.get().onSecurityEvent(recipient);
         }
@@ -1235,10 +1226,10 @@ public class SignalServiceMessageSender {
   }
 
   // Loki - Custom function to encrypt friend request messages
-  private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceId, byte[] plaintext) {
-    SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceId);
+  private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceID, byte[] unpaddedMessageBody) {
+    SignalProtocolAddress address = new SignalProtocolAddress(recipient.getNumber(), deviceID);
     LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store);
-    return cipher.encryptUsingFallbackSessionCipher(signalProtocolAddress, plaintext);
+    return cipher.encrypt(address, unpaddedMessageBody); // The message body is still plain text at this point
   }
 
   private void handleMismatchedDevices(PushServiceSocket socket, SignalServiceAddress recipient,

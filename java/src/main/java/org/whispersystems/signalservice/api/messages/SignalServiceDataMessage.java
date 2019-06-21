@@ -32,7 +32,6 @@ public class SignalServiceDataMessage {
   private final Optional<List<SharedContact>>           contacts;
   private final Optional<List<Preview>>                 previews;
   private final Optional<Sticker>                       sticker;
-
   // Loki
   private final boolean                                 isFriendRequest;
   private final Optional<PreKeyBundle>                  preKeyBundle;
@@ -141,6 +140,8 @@ public class SignalServiceDataMessage {
    * @param body The message contents.
    * @param endSession Flag indicating whether this message should close a session.
    * @param expiresInSeconds Number of seconds in which the message should disappear after being seen.
+   * @param isFriendRequest Whether this is a friend request message.
+   * @param preKeyBundle The pre key bundle to attach to this message (or null if none).
    */
   public SignalServiceDataMessage(long timestamp, SignalServiceGroup group,
                                   List<SignalServiceAttachment> attachments,

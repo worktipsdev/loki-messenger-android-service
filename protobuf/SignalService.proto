@@ -43,18 +43,18 @@ message Content {
 }
 
 message LokiAddressMessage {
-  optional string ptpAddress    = 1;
-  optional uint32 ptpPort       = 2;
+  optional string ptpAddress = 1;
+  optional uint32 ptpPort = 2;
 }
 
 message PreKeyBundleMessage {
-  optional bytes identityKey      = 1;
-  optional uint32 deviceId        = 2;
-  optional uint32 preKeyId        = 3;
-  optional uint32 signedKeyId     = 4;
-  optional bytes preKey           = 5;
-  optional bytes signedKey        = 6;
-  optional bytes signature        = 7;
+  optional bytes identityKey = 1;
+  optional uint32 deviceId = 2;
+  optional uint32 preKeyId = 3;
+  optional uint32 signedKeyId = 4;
+  optional bytes preKey = 5;
+  optional bytes signedKey = 6;
+  optional bytes signature = 7;
 }
 
 message CallMessage {
@@ -202,7 +202,7 @@ message DataMessage {
   repeated Contact            contact     = 9;
   repeated Preview            preview     = 10;
   optional Sticker            sticker     = 11;
-  optional Contact            profile     = 101; // Loki - The profile of the current user
+  optional Contact            profile = 101; // Loki - The profile of the current user
 }
 
 message NullMessage {

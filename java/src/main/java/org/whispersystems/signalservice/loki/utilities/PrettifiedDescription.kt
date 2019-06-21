@@ -8,13 +8,13 @@ fun Any.prettifiedDescription(): String {
 
 fun List<*>.prettifiedDescription(): String {
     if (isEmpty()) { return "[]" }
-    return "[ " + joinToString(", ") { it.toString() } + " ]"
+    return "[ " + joinToString(", ") { it?.prettifiedDescription() ?: "null" } + " ]"
 }
 
 fun Map<*, *>.prettifiedDescription(): String {
     return "[ " + map { entry ->
-        val keyDescription = entry.key.toString()
-        var valueDescription = entry.value.toString()
+        val keyDescription = entry.key?.prettifiedDescription() ?: "null"
+        var valueDescription = entry.value?.prettifiedDescription() ?: "null"
         if (valueDescription.isEmpty()) { valueDescription = "\"\"" }
         val maxLength = 20
         val truncatedValueDescription = if (valueDescription.length > maxLength) {
