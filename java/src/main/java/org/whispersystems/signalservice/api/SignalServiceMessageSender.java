@@ -185,14 +185,15 @@ public class SignalServiceMessageSender {
    * @throws IOException
    * @throws UntrustedIdentityException
    */
-  public void sendReceipt(SignalServiceAddress recipient,
+  public void sendReceipt(long messageID,
+                          SignalServiceAddress recipient,
                           Optional<UnidentifiedAccessPair> unidentifiedAccess,
                           SignalServiceReceiptMessage message)
       throws IOException, UntrustedIdentityException
   {
     byte[] content = createReceiptContent(message);
 
-    sendMessage(recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getWhen(), content, false);
+    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getWhen(), content, false);
   }
 
   /**
@@ -203,23 +204,25 @@ public class SignalServiceMessageSender {
    * @throws IOException
    * @throws UntrustedIdentityException
    */
-  public void sendTyping(SignalServiceAddress recipient,
+  public void sendTyping(long messageID,
+                         SignalServiceAddress recipient,
                          Optional<UnidentifiedAccessPair> unidentifiedAccess,
                          SignalServiceTypingMessage message)
       throws IOException, UntrustedIdentityException
   {
     byte[] content = createTypingContent(message);
 
-    sendMessage(recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true);
+    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true);
   }
 
-  public void sendTyping(List<SignalServiceAddress>             recipients,
+  public void sendTyping(long                                   messageID,
+                         List<SignalServiceAddress>             recipients,
                          List<Optional<UnidentifiedAccessPair>> unidentifiedAccess,
                          SignalServiceTypingMessage             message)
       throws IOException
   {
     byte[] content = createTypingContent(message);
-    sendMessage(recipients, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true);
+    sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true);
   }
 
 
@@ -230,13 +233,14 @@ public class SignalServiceMessageSender {
    * @param message The call message.
    * @throws IOException
    */
-  public void sendCallMessage(SignalServiceAddress recipient,
+  public void sendCallMessage(long messageID,
+                              SignalServiceAddress recipient,
                               Optional<UnidentifiedAccessPair> unidentifiedAccess,
                               SignalServiceCallMessage message)
       throws IOException, UntrustedIdentityException
   {
     byte[] content = createCallContent(message);
-    sendMessage(recipient, getTargetUnidentifiedAccess(unidentifiedAccess), System.currentTimeMillis(), content, false);
+    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), System.currentTimeMillis(), content, false);
   }
 
   /**
@@ -247,18 +251,19 @@ public class SignalServiceMessageSender {
    * @throws UntrustedIdentityException
    * @throws IOException
    */
-  public SendMessageResult sendMessage(SignalServiceAddress             recipient,
+  public SendMessageResult sendMessage(long                             messageID,
+                                       SignalServiceAddress             recipient,
                                        Optional<UnidentifiedAccessPair> unidentifiedAccess,
                                        SignalServiceDataMessage         message)
       throws UntrustedIdentityException, IOException
   {
     byte[]            content   = createMessageContent(message);
     long              timestamp = message.getTimestamp();
-    SendMessageResult result    = sendMessage(recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.isFriendRequest());
+    SendMessageResult result    = sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.isFriendRequest());
 
     if ((result.getSuccess() != null && result.getSuccess().isNeedsSync()) || (unidentifiedAccess.isPresent() && isMultiDevice.get())) {
       byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.of(recipient), timestamp, Collections.singletonList(result));
-      sendMessage(localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false);
+      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false);
     }
 
     if (message.isEndSession()) {
@@ -279,14 +284,15 @@ public class SignalServiceMessageSender {
    * @param message The group message.
    * @throws IOException
    */
-  public List<SendMessageResult> sendMessage(List<SignalServiceAddress>             recipients,
+  public List<SendMessageResult> sendMessage(long                                   messageID,
+                                             List<SignalServiceAddress>             recipients,
                                              List<Optional<UnidentifiedAccessPair>> unidentifiedAccess,
                                              SignalServiceDataMessage               message)
       throws IOException, UntrustedIdentityException
   {
     byte[]                  content            = createMessageContent(message);
     long                    timestamp          = message.getTimestamp();
-    List<SendMessageResult> results            = sendMessage(recipients, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false);
+    List<SendMessageResult> results            = sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false);
     boolean                 needsSyncInResults = false;
 
     for (SendMessageResult result : results) {
@@ -298,13 +304,13 @@ public class SignalServiceMessageSender {
 
     if (needsSyncInResults || (isMultiDevice.get())) {
       byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.<SignalServiceAddress>absent(), timestamp, results);
-      sendMessage(localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false);
+      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false);
     }
 
     return results;
   }
 
-  public void sendMessage(SignalServiceSyncMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess)
+  public void sendMessage(long messageID, SignalServiceSyncMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess)
       throws IOException, UntrustedIdentityException
   {
     byte[] content;
@@ -325,13 +331,13 @@ public class SignalServiceMessageSender {
     } else if (message.getStickerPackOperations().isPresent()) {
       content = createMultiDeviceStickerPackOperationContent(message.getStickerPackOperations().get());
     } else if (message.getVerified().isPresent()) {
-      sendMessage(message.getVerified().get(), unidentifiedAccess);
+      sendMessage(messageID, message.getVerified().get(), unidentifiedAccess);
       return;
     } else {
       throw new IOException("Unsupported sync message!");
     }
 
-    sendMessage(localAddress, Optional.<UnidentifiedAccess>absent(), System.currentTimeMillis(), content, false);
+    sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), System.currentTimeMillis(), content, false);
   }
 
   public void setSoTimeoutMillis(long soTimeoutMillis) {
@@ -389,7 +395,7 @@ public class SignalServiceMessageSender {
   }
 
 
-  private void sendMessage(VerifiedMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess)
+  private void sendMessage(long messageID, VerifiedMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess)
       throws IOException, UntrustedIdentityException
   {
     byte[] nullMessageBody = DataMessage.newBuilder()
@@ -406,11 +412,11 @@ public class SignalServiceMessageSender {
                                      .build()
                                      .toByteArray();
 
-    SendMessageResult result = sendMessage(new SignalServiceAddress(message.getDestination()), getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, false);
+    SendMessageResult result = sendMessage(messageID, new SignalServiceAddress(message.getDestination()), getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, false);
 
     if (result.getSuccess().isNeedsSync()) {
       byte[] syncMessage = createMultiDeviceVerifiedContent(message, nullMessage.toByteArray());
-      sendMessage(localAddress, Optional.<UnidentifiedAccess>absent(), message.getTimestamp(), syncMessage, false);
+      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), message.getTimestamp(), syncMessage, false);
     }
   }
 
@@ -895,7 +901,8 @@ public class SignalServiceMessageSender {
     return results;
   }
 
-  private List<SendMessageResult> sendMessage(List<SignalServiceAddress>         recipients,
+  private List<SendMessageResult> sendMessage(long                               messageID,
+                                              List<SignalServiceAddress>         recipients,
                                               List<Optional<UnidentifiedAccess>> unidentifiedAccess,
                                               long                               timestamp,
                                               byte[]                             content,
@@ -910,7 +917,7 @@ public class SignalServiceMessageSender {
       SignalServiceAddress recipient = recipientIterator.next();
 
       try {
-        SendMessageResult result = sendMessage(recipient, unidentifiedAccessIterator.next(), timestamp, content, online);
+        SendMessageResult result = sendMessage(messageID, recipient, unidentifiedAccessIterator.next(), timestamp, content, online);
         results.add(result);
       } catch (UntrustedIdentityException e) {
         Log.w(TAG, e);
@@ -926,16 +933,18 @@ public class SignalServiceMessageSender {
 
     return results;
   }
-  private SendMessageResult sendMessage(SignalServiceAddress         recipient,
+  private SendMessageResult sendMessage(long                         messageID,
+                                        SignalServiceAddress         recipient,
                                         Optional<UnidentifiedAccess> unidentifiedAccess,
                                         long                         timestamp,
                                         byte[]                       content,
                                         boolean                      online)
           throws UntrustedIdentityException, IOException {
-    return sendMessage(recipient, unidentifiedAccess, timestamp, content, online, false);
+    return sendMessage(messageID, recipient, unidentifiedAccess, timestamp, content, online, false);
   }
 
-  private SendMessageResult sendMessage(SignalServiceAddress         recipient,
+  private SendMessageResult sendMessage(final long                   messageID,
+                                        SignalServiceAddress         recipient,
                                         Optional<UnidentifiedAccess> unidentifiedAccess,
                                         long                         timestamp,
                                         byte[]                       content,
@@ -953,7 +962,6 @@ public class SignalServiceMessageSender {
       // TODO: PoW
       // Update the message and thread if needed
       if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-        long messageID = 0; // TODO: Message ID
         messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
         long threadID = threadDatabase.getThreadID(messageID);
         threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENDING);
@@ -982,7 +990,6 @@ public class SignalServiceMessageSender {
                 isSuccess[0] = true;
                 // Update the message and thread if needed
                 if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-                  long messageID = 0; // TODO: Message ID
                   messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_PENDING);
                   // TODO: Expiration
                   long threadID = threadDatabase.getThreadID(messageID);
@@ -1000,7 +1007,6 @@ public class SignalServiceMessageSender {
                 if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
                 // Update the message and thread if needed
                 if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-                  long messageID = 0; // TODO: Message ID
                   messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
                   long threadID = threadDatabase.getThreadID(messageID);
                   threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
@@ -1019,7 +1025,6 @@ public class SignalServiceMessageSender {
         public Unit invoke(Exception exception) { // The snode is unreachable
           // Update the message and thread if needed
           if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-            long messageID = 0; // TODO: Message ID
             messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
             long threadID = threadDatabase.getThreadID(messageID);
             threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
