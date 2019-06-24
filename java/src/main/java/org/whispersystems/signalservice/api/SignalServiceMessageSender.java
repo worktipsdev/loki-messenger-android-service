@@ -74,7 +74,11 @@ import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture;
 import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
+import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
+import org.whispersystems.signalservice.loki.messaging.LokiMessageFriendRequestStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleStoreProtocol;
+import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtocol;
+import org.whispersystems.signalservice.loki.messaging.LokiThreadFriendRequestStatus;
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
 
 import java.io.IOException;
@@ -113,7 +117,9 @@ public class SignalServiceMessageSender {
   private final AtomicBoolean                                       isMultiDevice;
 
   private final String                                              userPublicKey;
-  private final LokiAPIDatabaseProtocol                             database;
+  private final LokiAPIDatabaseProtocol                             apiDatabase;
+  private final LokiThreadDatabaseProtocol                          threadDatabase;
+  private final LokiMessageDatabaseProtocol                         messageDatabase;
   private final LokiPreKeyBundleStoreProtocol                       preKeyBundleStore;
 
   /**
@@ -135,10 +141,12 @@ public class SignalServiceMessageSender {
                                     Optional<SignalServiceMessagePipe> unidentifiedPipe,
                                     Optional<EventListener> eventListener,
                                     String userPublicKey,
-                                    LokiAPIDatabaseProtocol database,
+                                    LokiAPIDatabaseProtocol apiDatabase,
+                                    LokiThreadDatabaseProtocol threadDatabase,
+                                    LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleStoreProtocol preKeyBundleStore)
   {
-    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, database, preKeyBundleStore);
+    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleStore);
   }
 
   public SignalServiceMessageSender(SignalServiceConfiguration urls,
@@ -150,7 +158,9 @@ public class SignalServiceMessageSender {
                                     Optional<SignalServiceMessagePipe> unidentifiedPipe,
                                     Optional<EventListener> eventListener,
                                     String userPublicKey,
-                                    LokiAPIDatabaseProtocol database,
+                                    LokiAPIDatabaseProtocol apiDatabase,
+                                    LokiThreadDatabaseProtocol threadDatabase,
+                                    LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleStoreProtocol preKeyBundleStore)
   {
     this.socket             = new PushServiceSocket(urls, credentialsProvider, userAgent);
@@ -161,7 +171,9 @@ public class SignalServiceMessageSender {
     this.isMultiDevice      = new AtomicBoolean(isMultiDevice);
     this.eventListener      = eventListener;
     this.userPublicKey      = userPublicKey;
-    this.database           = database;
+    this.apiDatabase        = apiDatabase;
+    this.threadDatabase     = threadDatabase;
+    this.messageDatabase    = messageDatabase;
     this.preKeyBundleStore  = preKeyBundleStore;
   }
 
@@ -935,11 +947,18 @@ public class SignalServiceMessageSender {
     try {
       OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
       OutgoingPushMessage message = messages.getMessages().get(0);
-      SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
+      final SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
       // TODO: TTL & isPing
       SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), 4 * 24 * 60 * 60 * 1000, false);
-      // TODO: Update the message and thread
-      LokiAPI api = new LokiAPI(userPublicKey, database);
+      // TODO: PoW
+      // Update the message and thread if needed
+      if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
+        long messageID = 0; // TODO: Message ID
+        messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
+        long threadID = threadDatabase.getThreadID(messageID);
+        threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENDING);
+      }
+      LokiAPI api = new LokiAPI(userPublicKey, apiDatabase);
       api.sendSignalMessage(messageInfo, new Function0<Unit>() {
 
           @Override
@@ -961,7 +980,14 @@ public class SignalServiceMessageSender {
               public Unit invoke(Map<?, ?> map) {
                 if (isSuccess[0]) { return Unit.INSTANCE; } // Succeed as soon as the first promise succeeds
                 isSuccess[0] = true;
-                // TODO: Update the message and thread
+                // Update the message and thread if needed
+                if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
+                  long messageID = 0; // TODO: Message ID
+                  messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_PENDING);
+                  // TODO: Expiration
+                  long threadID = threadDatabase.getThreadID(messageID);
+                  threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENT);
+                }
                 @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
                 f.set(Unit.INSTANCE);
                 return Unit.INSTANCE;
@@ -972,6 +998,13 @@ public class SignalServiceMessageSender {
               public Unit invoke(Exception exception) {
                 errorCount[0] += 1;
                 if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
+                // Update the message and thread if needed
+                if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
+                  long messageID = 0; // TODO: Message ID
+                  messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
+                  long threadID = threadDatabase.getThreadID(messageID);
+                  threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
+                }
                 @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
                 f.setException(exception);
                 return Unit.INSTANCE;
@@ -983,8 +1016,14 @@ public class SignalServiceMessageSender {
       }).fail(new Function1<Exception, Unit>() {
 
         @Override
-        public Unit invoke(Exception exception) {
-          // The snode is unreachable
+        public Unit invoke(Exception exception) { // The snode is unreachable
+          // Update the message and thread if needed
+          if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
+            long messageID = 0; // TODO: Message ID
+            messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
+            long threadID = threadDatabase.getThreadID(messageID);
+            threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
+          }
           @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
           f.setException(exception);
           return Unit.INSTANCE;
