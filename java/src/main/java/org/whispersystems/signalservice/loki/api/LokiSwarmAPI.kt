@@ -20,7 +20,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
         // region Settings
         private val minimumSnodeCount = 2
         private val targetSnodeCount = 3
-        internal val failureThreshold = 3
+        internal val failureThreshold = 2
         // endregion
 
         // region Clearnet Setup
