@@ -76,7 +76,7 @@ import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageFriendRequestStatus;
-import org.whispersystems.signalservice.loki.messaging.LokiPreKeyDatabaseProtocol;
+import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadFriendRequestStatus;
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
@@ -120,7 +120,7 @@ public class SignalServiceMessageSender {
   private final LokiAPIDatabaseProtocol                             apiDatabase;
   private final LokiThreadDatabaseProtocol                          threadDatabase;
   private final LokiMessageDatabaseProtocol                         messageDatabase;
-  private final LokiPreKeyDatabaseProtocol preKeyBundleStore;
+  private final LokiPreKeyBundleDatabaseProtocol preKeyBundleStore;
 
   /**
    * Construct a SignalServiceMessageSender.
@@ -144,9 +144,9 @@ public class SignalServiceMessageSender {
                                     LokiAPIDatabaseProtocol apiDatabase,
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
-                                    LokiPreKeyDatabaseProtocol preKeyBundleStore)
+                                    LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase)
   {
-    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleStore);
+    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase);
   }
 
   public SignalServiceMessageSender(SignalServiceConfiguration urls,
@@ -161,7 +161,7 @@ public class SignalServiceMessageSender {
                                     LokiAPIDatabaseProtocol apiDatabase,
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
-                                    LokiPreKeyDatabaseProtocol preKeyBundleStore)
+                                    LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase)
   {
     this.socket             = new PushServiceSocket(urls, credentialsProvider, userAgent);
     this.store              = store;
@@ -174,7 +174,7 @@ public class SignalServiceMessageSender {
     this.apiDatabase        = apiDatabase;
     this.threadDatabase     = threadDatabase;
     this.messageDatabase    = messageDatabase;
-    this.preKeyBundleStore  = preKeyBundleStore;
+    this.preKeyBundleStore  = preKeyBundleDatabase;
   }
 
   /**

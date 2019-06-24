@@ -21,7 +21,6 @@ class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val h
         Hex.fromStringCondensed(hexEncodedContactPublicKey)
     }
 
-    // Used for both encryption and decryption
     private val symmetricKey: ByteArray?
         get() {
             try {
