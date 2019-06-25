@@ -3,12 +3,12 @@ package org.whispersystems.signalservice.loki.api
 import nl.komponents.kovenant.*
 import nl.komponents.kovenant.functional.bind
 import org.whispersystems.libsignal.logging.Log
-import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
+import org.whispersystems.signalservice.internal.push.SignalServiceProtos
 import java.security.SecureRandom
 
 private class PromiseCanceledException : Exception("Promise canceled.")
 
-class LokiLongPoller(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
+class LokiLongPoller(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol, private val onMessagesReceived: (List<SignalServiceProtos.Envelope>) -> Unit) {
     private var hasStarted: Boolean = false
     private var hasStopped: Boolean = false
     private var connections: Set<Promise<*, Exception>> = setOf()
@@ -84,7 +84,7 @@ class LokiLongPoller(private val userHexEncodedPublicKey: String, private val da
                 task { Unit }
             } else {
                 val messages = LokiAPI(userHexEncodedPublicKey, database).parseRawMessagesResponse(rawResponse, target)
-                Log.d("Loki", "Retrieved messages: ${messages.prettifiedDescription()}.")
+                onMessagesReceived(messages)
                 longPoll(target, deferred)
             }
         }
