@@ -37,16 +37,16 @@ class LokiServiceCipher(address: SignalServiceAddress, private val signalProtoco
     /**
      * Decrypt the given `SignalServiceEnvelope` using a `FallbackSessionCipher` if it's a friend request and default Signal decryption otherwise.
      */
-    override fun decrypt(envelope: SignalServiceEnvelope, bytes: ByteArray): Plaintext {
+    override fun decrypt(envelope: SignalServiceEnvelope, ciphertext: ByteArray): Plaintext {
         if (envelope.isFriendRequest) {
             val cipher = FallbackSessionCipher(userPrivateKey, envelope.source)
-            val paddedMessageBody = cipher.decrypt(bytes) ?: throw InvalidMessageException("Failed to decrypt friend request message.")
+            val paddedMessageBody = cipher.decrypt(ciphertext) ?: throw InvalidMessageException("Failed to decrypt friend request message.")
             val transportDetails = PushTransportDetails(FallbackSessionCipher.sessionVersion)
             val unpaddedMessage = transportDetails.getStrippedPaddingMessageBody(paddedMessageBody)
             val metadata = Metadata(envelope.source, envelope.sourceDevice, envelope.timestamp, false)
             return Plaintext(metadata, unpaddedMessage)
         } else {
-            return super.decrypt(envelope, bytes)
+            return super.decrypt(envelope, ciphertext)
         }
     }
     // endregion
