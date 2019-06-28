@@ -9,6 +9,7 @@ To generate the files just run `make`.
 
 Protobuf can be installed using brew but this will only get versions > 3.
 To install protobuf `2.5.0` follow these steps:
+
 ```sh
 wget https://github.com/google/protobuf/releases/download/v2.5.0/protobuf-2.5.0.tar.bz2
 tar xvf protobuf-2.5.0.tar.bz2
@@ -20,6 +21,7 @@ make install
 
 This will compile and build the binary at `PATH TO A DIRECTORY` which you specified in the `./configure` command.
 Next you need to move it to your local bin:
+
 ```
 cd <PATH WHERE YOU INSTALLED PROTOBUF 2.5>/bin
 chmod +x ./protoc

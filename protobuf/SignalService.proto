@@ -202,7 +202,7 @@ message DataMessage {
   repeated Contact            contact     = 9;
   repeated Preview            preview     = 10;
   optional Sticker            sticker     = 11;
-  optional Contact            profile = 101; // Loki - The profile of the current user
+  optional Contact profile = 101; // Loki - The profile of the current user
 }
 
 message NullMessage {

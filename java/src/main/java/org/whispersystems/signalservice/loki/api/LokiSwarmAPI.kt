@@ -62,8 +62,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
                                     val address = rawTargetAsJSON?.get("public_ip") as? String
                                     val port = rawTargetAsJSON?.get("storage_port") as? Int
                                     if (address != null && port != null && address != "0.0.0.0") {
-                                        LokiAPITarget("https://13.236.173.190", 8080)
-//                                        LokiAPITarget("https://$address", port)
+                                        LokiAPITarget("https://$address", port)
                                     } else {
                                         Log.d("Loki", "Failed to update random snode pool from: ${rawTarget?.prettifiedDescription()}.")
                                         null
@@ -131,8 +130,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
                 val portAsString = rawSnodeAsJSON?.get("port") as? String
                 val port = portAsString?.toInt()
                 if (address != null && port != null && address != "0.0.0.0") {
-                    LokiAPITarget("https://13.236.173.190", 8080)
-//                    LokiAPITarget("https://$address", port)
+                    LokiAPITarget("https://$address", port)
                 } else {
                     Log.d("Loki", "Failed to parse target from: ${rawSnode?.prettifiedDescription()}.")
                     null
