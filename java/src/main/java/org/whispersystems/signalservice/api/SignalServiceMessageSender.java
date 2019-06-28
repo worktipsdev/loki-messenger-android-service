@@ -958,7 +958,9 @@ public class SignalServiceMessageSender {
       OutgoingPushMessage message = messages.getMessages().get(0);
       final SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
       // TODO: TTL & isPing
-      SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), 4 * 24 * 60 * 60 * 1000, false);
+      int day = 24 * 60 * 60 * 1000;
+      int ttl = isFriendRequest ? 4 * day : day;
+      SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
       // TODO: PoW
       // Update the message and thread if needed
       if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
