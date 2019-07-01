@@ -15,23 +15,23 @@ import org.whispersystems.signalservice.internal.util.Base64
 /**
  * The only difference between this and `SignalServiceCipher` is the custom encryption/decryption logic.
  */
-class LokiServiceCipher(address: SignalServiceAddress, private val signalProtocolStore: SignalProtocolStore, certificateValidator: CertificateValidator?)
-    : SignalServiceCipher(address, signalProtocolStore, certificateValidator) {
+class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalProtocolStore: SignalProtocolStore, certificateValidator: CertificateValidator?)
+    : SignalServiceCipher(localAddress, signalProtocolStore, certificateValidator) {
 
     // region Convenience
     private val userPrivateKey get() = signalProtocolStore.identityKeyPair.privateKey.serialize()
     // endregion
 
     // region Initialization
-    constructor(address: SignalServiceAddress, signalProtocolStore: SignalProtocolStore) : this(address, signalProtocolStore, null)
+    constructor(localAddress: SignalServiceAddress, signalProtocolStore: SignalProtocolStore) : this(localAddress, signalProtocolStore, null)
     // endregion
 
     // region Implementation
-    fun encrypt(address: SignalProtocolAddress, unpaddedMessageBody: ByteArray): OutgoingPushMessage {
-        val cipher = FallbackSessionCipher(userPrivateKey, address.name)
+    fun encrypt(destination: SignalProtocolAddress, unpaddedMessageBody: ByteArray): OutgoingPushMessage {
+        val cipher = FallbackSessionCipher(userPrivateKey, destination.name)
         val transportDetails = PushTransportDetails(FallbackSessionCipher.sessionVersion)
         val bytes = cipher.encrypt(transportDetails.getPaddedMessageBody(unpaddedMessageBody))
-        return OutgoingPushMessage(Type.FRIEND_REQUEST_VALUE, address.deviceId, 0, Base64.encodeBytes(bytes))
+        return OutgoingPushMessage(Type.FRIEND_REQUEST_VALUE, destination.deviceId, 0, Base64.encodeBytes(bytes))
     }
 
     /**
@@ -42,9 +42,9 @@ class LokiServiceCipher(address: SignalServiceAddress, private val signalProtoco
             val cipher = FallbackSessionCipher(userPrivateKey, envelope.source)
             val paddedMessageBody = cipher.decrypt(ciphertext) ?: throw InvalidMessageException("Failed to decrypt friend request message.")
             val transportDetails = PushTransportDetails(FallbackSessionCipher.sessionVersion)
-            val unpaddedMessage = transportDetails.getStrippedPaddingMessageBody(paddedMessageBody)
+            val unpaddedMessageBody = transportDetails.getStrippedPaddingMessageBody(paddedMessageBody)
             val metadata = Metadata(envelope.source, envelope.sourceDevice, envelope.timestamp, false)
-            return Plaintext(metadata, unpaddedMessage)
+            return Plaintext(metadata, unpaddedMessageBody)
         } else {
             return super.decrypt(envelope, ciphertext)
         }

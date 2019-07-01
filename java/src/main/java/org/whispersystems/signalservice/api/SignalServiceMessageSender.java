@@ -120,7 +120,7 @@ public class SignalServiceMessageSender {
   private final LokiAPIDatabaseProtocol                             apiDatabase;
   private final LokiThreadDatabaseProtocol                          threadDatabase;
   private final LokiMessageDatabaseProtocol                         messageDatabase;
-  private final LokiPreKeyBundleDatabaseProtocol preKeyBundleStore;
+  private final LokiPreKeyBundleDatabaseProtocol                    preKeyBundleStore;
 
   /**
    * Construct a SignalServiceMessageSender.
@@ -957,7 +957,7 @@ public class SignalServiceMessageSender {
       OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
       OutgoingPushMessage message = messages.getMessages().get(0);
       final SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
-      // TODO: TTL & isPing
+      // TODO: isPing
       int day = 24 * 60 * 60 * 1000;
       int ttl = isFriendRequest ? 4 * day : day;
       SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
@@ -1052,7 +1052,7 @@ public class SignalServiceMessageSender {
   }
     for (int i=0;i<4;i++) {
       try {
-        OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
+        OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online);
 
         Optional<SignalServiceMessagePipe> pipe             = this.pipe.get();
         Optional<SignalServiceMessagePipe> unidentifiedPipe = this.unidentifiedPipe.get();
@@ -1186,7 +1186,6 @@ public class SignalServiceMessageSender {
     List<OutgoingPushMessage> messages = new LinkedList<>();
 
     if (!recipient.equals(localAddress) || unidentifiedAccess.isPresent()) {
-      // Loki - Check if we need to encrypt using our own cipher
       if (isFriendRequest) {
         messages.add(getEncryptedFriendRequestMessage(recipient, SignalServiceAddress.DEFAULT_DEVICE_ID, plaintext));
       } else {
@@ -1194,9 +1193,7 @@ public class SignalServiceMessageSender {
       }
     }
 
-    /* Loki - Original code
-     * Disabled since we don't support multi-device sending
-     * ================
+    /* Loki - Disable this as we don't support multi-device sending yet
     for (int deviceId : store.getSubDeviceSessions(recipient.getNumber())) {
       if (store.containsSession(new SignalProtocolAddress(recipient.getNumber(), deviceId))) {
         messages.add(getEncryptedMessage(socket, recipient, unidentifiedAccess, deviceId, plaintext));
@@ -1215,19 +1212,21 @@ public class SignalServiceMessageSender {
       throws IOException, InvalidKeyException, UntrustedIdentityException
   {
     SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceId);
-    SignalServiceCipher   cipher                = new SignalServiceCipher(localAddress, store, null);
+    SignalServiceCipher cipher = new SignalServiceCipher(localAddress, store, null);
 
-    // Loki - Use custom pre key bundle logic here
+    // Loki - Use custom pre key bundle handling
     if (!store.containsSession(signalProtocolAddress)) {
       try {
         String contactHexEncodedPublicKey = recipient.getNumber();
         PreKeyBundle preKeyBundle = preKeyBundleStore.getPreKeyBundle(contactHexEncodedPublicKey);
-        if (preKeyBundle == null) throw new InvalidKeyException(TAG + ": Pre key bundle not found for: " + recipient.getNumber() + ".");
+        if (preKeyBundle == null) {
+          throw new InvalidKeyException("Pre key bundle not found for: " + recipient.getNumber() + ".");
+        }
         try {
-          SignalProtocolAddress preKeyAddress = new SignalProtocolAddress(contactHexEncodedPublicKey, preKeyBundle.getDeviceId());
-          SessionBuilder sessionBuilder = new SessionBuilder(store, preKeyAddress);
+          SignalProtocolAddress address = new SignalProtocolAddress(contactHexEncodedPublicKey, preKeyBundle.getDeviceId());
+          SessionBuilder sessionBuilder = new SessionBuilder(store, address);
           sessionBuilder.process(preKeyBundle);
-          // Loki - Discard the pre key bundle here since the session is initiated
+          // Loki - Discard the pre key bundle once the session has been initiated
           preKeyBundleStore.removePreKeyBundle(contactHexEncodedPublicKey);
         } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
           throw new UntrustedIdentityException("Untrusted identity key", recipient.getNumber(), preKeyBundle.getIdentityKey());
@@ -1240,30 +1239,6 @@ public class SignalServiceMessageSender {
       }
     }
 
-    /* Loki - Original code
-    if (!store.containsSession(signalProtocolAddress)) {
-      try {
-        List<PreKeyBundle> preKeys = socket.getPreKeys(recipient, unidentifiedAccess, deviceId);
-
-        for (PreKeyBundle preKey : preKeys) {
-          try {
-            SignalProtocolAddress preKeyAddress  = new SignalProtocolAddress(recipient.getNumber(), preKey.getDeviceId());
-            SessionBuilder        sessionBuilder = new SessionBuilder(store, preKeyAddress);
-            sessionBuilder.process(preKey);
-          } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
-            throw new UntrustedIdentityException("Untrusted identity key!", recipient.getNumber(), preKey.getIdentityKey());
-          }
-        }
-
-        if (eventListener.isPresent()) {
-          eventListener.get().onSecurityEvent(recipient);
-        }
-      } catch (InvalidKeyException e) {
-        throw new IOException(e);
-      }
-    }
-     */
-
     try {
       return cipher.encrypt(signalProtocolAddress, unidentifiedAccess, plaintext);
     } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
@@ -1271,11 +1246,10 @@ public class SignalServiceMessageSender {
     }
   }
 
-  // Loki - Custom function to encrypt friend request messages
-  private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceID, byte[] unpaddedMessageBody) {
-    SignalProtocolAddress address = new SignalProtocolAddress(recipient.getNumber(), deviceID);
-    LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store);
-    return cipher.encrypt(address, unpaddedMessageBody); // The message body is still plain text at this point
+  private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceID, byte[] plaintext) {
+      SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceID);
+      LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store);
+      return cipher.encrypt(signalProtocolAddress, plaintext);
   }
 
   private void handleMismatchedDevices(PushServiceSocket socket, SignalServiceAddress recipient,

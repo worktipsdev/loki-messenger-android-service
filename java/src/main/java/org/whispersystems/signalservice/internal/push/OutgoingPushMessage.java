@@ -14,9 +14,9 @@ public class OutgoingPushMessage {
   @JsonProperty
   public int    type;
   @JsonProperty
-  public int    destinationDeviceId;
+  private int    destinationDeviceId;
   @JsonProperty
-  public int    destinationRegistrationId;
+  private int    destinationRegistrationId;
   @JsonProperty
   public String content;
 

@@ -172,7 +172,6 @@ public class SignalServiceCipher {
         Plaintext plaintext = decrypt(envelope, envelope.getContent());
         Content   message   = Content.parseFrom(plaintext.getData());
 
-        // Loki
         LokiServicePreKeyBundleMessage lokiPreKeyBundleMessage = null;
         if (message.hasPreKeyBundleMessage()) {
           PreKeyBundleMessage preKeyBundleMessage = message.getPreKeyBundleMessage();
@@ -187,10 +186,10 @@ public class SignalServiceCipher {
           );
 //        }
 
-        LokiServiceAddressMessage lokiServiceAddressMessage = null;
+        LokiServiceAddressMessage lokiAddressMessage = null;
         if (message.hasLokiAddressMessage()) {
           LokiAddressMessage addressMessage = message.getLokiAddressMessage();
-          lokiServiceAddressMessage = new LokiServiceAddressMessage(addressMessage.getP2PAddress(), addressMessage.getP2PPort());
+          lokiAddressMessage = new LokiServiceAddressMessage(addressMessage.getP2PAddress(), addressMessage.getP2PPort());
         }
 
         if (message.hasDataMessage()) {
@@ -200,11 +199,10 @@ public class SignalServiceCipher {
                   plaintext.getMetadata().getTimestamp(),
                   plaintext.getMetadata().isNeedsReceipt());
 
-          LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiServiceAddressMessage);
+          LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiAddressMessage);
           content.setLokiMessage(lokiServiceMessage);
           return content;
           /* Loki - Original code
-           * ================
           return new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), message.getDataMessage()),
                                           plaintext.getMetadata().getSender(),
                                           plaintext.getMetadata().getSenderDevice(),
