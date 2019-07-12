@@ -125,6 +125,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                         deferred.reject(Error.InsufficientProofOfWork)
                     }
                     500 -> dropSnodeIfNeeded()
+                    503 -> dropSnodeIfNeeded()
                     else -> {
                         Log.d("Loki", "Unhandled response code: ${response.code()}.")
                         deferred.reject(Error.Generic)
