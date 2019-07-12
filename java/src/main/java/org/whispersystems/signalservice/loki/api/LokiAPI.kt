@@ -82,6 +82,18 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         val headersDescription = headers?.toMultimap()?.mapValues { it.value.prettifiedDescription() }?.prettifiedDescription() ?: "no custom headers specified"
         val connection = getClearnetConnection(timeout ?: defaultTimeout)
         Log.d("Loki", "Invoking ${method.rawValue} on $target with ${parameters.prettifiedDescription()} ($headersDescription).")
+        fun dropSnodeIfNeeded() {
+            val oldFailureCount = LokiSwarmAPI.failureCount[target] ?: 0
+            val newFailureCount = oldFailureCount + 1
+            LokiSwarmAPI.failureCount[target] = newFailureCount
+            Log.d("Loki", "Couldn't reach snode at $target; setting failure count to $newFailureCount.")
+            if (newFailureCount >= LokiSwarmAPI.failureThreshold) {
+                Log.d("Loki", "Failure threshold reached for: $target; dropping it.")
+                LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
+                LokiSwarmAPI.randomSnodePool.remove(target) // Remove it from the random snode pool
+                LokiSwarmAPI.failureCount[target] = 0
+            }
+        }
         val deferred = deferred<Map<*, *>, Exception>()
         connection.newCall(request.build()).enqueue(object : Callback {
 
@@ -92,6 +104,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                         @Suppress("NAME_SHADOWING") val json = JsonUtil.fromJson(jsonAsString, Map::class.java)
                         deferred.resolve(json)
                     }
+                    400 -> dropSnodeIfNeeded()
                     421 -> {
                         // The snode isn't associated with the given public key anymore
                         println("[Loki] Invalidating swarm for: $hexEncodedPublicKey.")
@@ -111,6 +124,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                         }
                         deferred.reject(Error.InsufficientProofOfWork)
                     }
+                    500 -> dropSnodeIfNeeded()
                     else -> {
                         Log.d("Loki", "Unhandled response code: ${response.code()}.")
                         deferred.reject(Error.Generic)
@@ -120,17 +134,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
 
             override fun onFailure(call: Call, exception: IOException) {
                 if (exception is ConnectException || exception is SocketTimeoutException) {
-                    // The snode is unreachable
-                    val oldFailureCount = LokiSwarmAPI.failureCount[target] ?: 0
-                    val newFailureCount = oldFailureCount + 1
-                    LokiSwarmAPI.failureCount[target] = newFailureCount
-                    Log.d("Loki", "Couldn't reach snode at $target; setting failure count to $newFailureCount.")
-                    if (newFailureCount >= LokiSwarmAPI.failureThreshold) {
-                        Log.d("Loki", "Failure threshold reached for: $target; dropping it.")
-                        LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
-                        LokiSwarmAPI.randomSnodePool.remove(target) // Remove it from the random snode pool
-                        LokiSwarmAPI.failureCount[target] = 0
-                    }
+                    dropSnodeIfNeeded()
                 } else {
                     Log.d("Loki", "Unhandled exception: $exception.")
                 }
