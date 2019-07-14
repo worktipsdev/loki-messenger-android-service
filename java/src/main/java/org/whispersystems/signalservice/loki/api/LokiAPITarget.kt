@@ -14,5 +14,17 @@ class LokiAPITarget(val address: String, val port: Int) {
         SendMessage("store")
     }
 
+    override fun equals(other: Any?): Boolean {
+        return if (other is LokiAPITarget) {
+            address == other.address && port == other.port
+        } else {
+            false
+        }
+    }
+
+    override fun hashCode(): Int {
+        return address.hashCode() xor port.hashCode()
+    }
+
     override fun toString(): String { return "$address:$port" }
 }

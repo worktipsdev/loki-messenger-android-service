@@ -56,7 +56,7 @@ class LokiLongPoller(private val userHexEncodedPublicKey: String, private val da
     }
 
     private fun openConnectionToNextSnode(deferred: Deferred<Unit, Exception>) {
-        val swarm = database.getSwarmCache(userHexEncodedPublicKey)?.toSet() ?: setOf()
+        val swarm = database.getSwarmCache(userHexEncodedPublicKey) ?: setOf()
         val unusedSnodes = swarm.subtract(usedSnodes)
         if (unusedSnodes.isNotEmpty()) {
             val index = SecureRandom().nextInt(unusedSnodes.size)

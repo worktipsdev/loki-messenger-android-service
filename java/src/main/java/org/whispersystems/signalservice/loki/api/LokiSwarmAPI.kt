@@ -30,7 +30,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
 
     // region Caching
     internal fun dropIfNeeded(target: LokiAPITarget, hexEncodedPublicKey: String) {
-        val swarm = database.getSwarmCache(hexEncodedPublicKey)?.toMutableList()
+        val swarm = database.getSwarmCache(hexEncodedPublicKey)?.toMutableSet()
         if (swarm != null && swarm.contains(target)) {
             swarm.remove(target)
             database.setSwarmCache(hexEncodedPublicKey, swarm)
@@ -93,10 +93,10 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
         }
     }
 
-    internal fun getSwarm(hexEncodedPublicKey: String): Promise<List<LokiAPITarget>, Exception> {
+    internal fun getSwarm(hexEncodedPublicKey: String): Promise<Set<LokiAPITarget>, Exception> {
         val cachedSwarm = database.getSwarmCache(hexEncodedPublicKey)
         if (cachedSwarm != null && cachedSwarm.size >= minimumSnodeCount) {
-            val cachedSwarmCopy = mutableListOf<LokiAPITarget>() // Workaround for a Kotlin compiler issue
+            val cachedSwarmCopy = mutableSetOf<LokiAPITarget>() // Workaround for a Kotlin compiler issue
             cachedSwarmCopy.addAll(cachedSwarm)
             return task { cachedSwarmCopy }
         } else {
@@ -104,7 +104,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
             return getRandomSnode().bind {
                 LokiAPI(hexEncodedPublicKey, database).invoke(LokiAPITarget.Method.GetSwarm, it, hexEncodedPublicKey, parameters)
             }.map {
-                parseTargets(it)
+                parseTargets(it).toSet()
             }.success {
                 database.setSwarmCache(hexEncodedPublicKey, it)
             }
