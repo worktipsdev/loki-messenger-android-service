@@ -184,7 +184,7 @@ public class SignalServiceCipher {
                   preKeyBundleMessage.getSignedKey().toByteArray(),
                   preKeyBundleMessage.getSignature().toByteArray()
           );
-//        }
+        }
 
         LokiServiceAddressMessage lokiAddressMessage = null;
         if (message.hasLokiAddressMessage()) {
@@ -234,7 +234,7 @@ public class SignalServiceCipher {
                                           plaintext.getMetadata().getTimestamp(),
                                           false);
         }
-      }
+//      }
 
       return null;
     } catch (InvalidProtocolBufferException e) {
