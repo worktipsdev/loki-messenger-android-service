@@ -189,7 +189,7 @@ public class SignalServiceCipher {
         LokiServiceAddressMessage lokiAddressMessage = null;
         if (message.hasLokiAddressMessage()) {
           LokiAddressMessage addressMessage = message.getLokiAddressMessage();
-          lokiAddressMessage = new LokiServiceAddressMessage(addressMessage.getP2PAddress(), addressMessage.getP2PPort());
+          lokiAddressMessage = new LokiServiceAddressMessage(addressMessage.getPtpAddress(), addressMessage.getPtpPort());
         }
 
         if (message.hasDataMessage()) {
