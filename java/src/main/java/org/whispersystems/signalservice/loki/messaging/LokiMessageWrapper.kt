@@ -1,6 +1,7 @@
 package org.whispersystems.signalservice.loki.messaging
 
 import com.google.protobuf.ByteString
+import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.websocket.WebSocketProtos.WebSocketMessage
@@ -42,7 +43,7 @@ object LokiMessageWrapper {
             builder.content = ByteString.copyFrom(Base64.decode(message.content))
             return builder.build()
         } catch (e: Exception) {
-            println("[Loki] Failed to wrap message in envelope: ${e.message}.")
+            Log.d("Loki", "Failed to wrap message in envelope: ${e.message}.")
             throw Error.FailedToWrapMessageInEnvelope
         }
     }
@@ -59,7 +60,7 @@ object LokiMessageWrapper {
             messageBuilder.type = WebSocketMessage.Type.REQUEST
             return messageBuilder.build()
         } catch (e: Exception) {
-            println("[Loki] Failed to wrap envelope in web socket message: ${e.message}.")
+            Log.d("Loki", "Failed to wrap envelope in web socket message: ${e.message}.")
             throw Error.FailedToWrapEnvelopeInWebSocketMessage
         }
     }
@@ -75,7 +76,7 @@ object LokiMessageWrapper {
             val envelopeAsData = webSocketMessage.request.body
             return Envelope.parseFrom(envelopeAsData)
         } catch (e: Exception) {
-            println("[Loki] Failed to unwrap data: ${e.message}.")
+            Log.d("Loki", "Failed to unwrap data: ${e.message}.")
             throw Error.FailedToUnwrapData
         }
     }

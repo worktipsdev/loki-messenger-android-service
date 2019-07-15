@@ -107,7 +107,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                     400 -> dropSnodeIfNeeded()
                     421 -> {
                         // The snode isn't associated with the given public key anymore
-                        println("[Loki] Invalidating swarm for: $hexEncodedPublicKey.")
+                        Log.d("Loki", "Invalidating swarm for: $hexEncodedPublicKey.")
                         LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey)
                         deferred.reject(Error.SnodeMigrated)
                     }
@@ -211,7 +211,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             }.fail {
                 LokiP2PAPI.shared.mark(false, destination)
                 if (lokiMessage.isPing) {
-                    println("[Loki] Failed to ping $destination; marking contact as offline.")
+                    Log.d("Loki", "Failed to ping $destination; marking contact as offline.")
                 }
                 sendLokiMessageUsingSwarmAPI().success { deferred.resolve(it) }.fail { deferred.reject(it) }
             }
@@ -232,7 +232,12 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             updateLastMessageHashValueIfPossible(target, messages)
             val newRawMessages = removeDuplicates(messages)
             val newMessages = parseEnvelopes(newRawMessages)
-            Log.d("Loki", "Retrieved ${newMessages.count()} new messages.")
+            val newMessageCount = newMessages.count()
+            if (newMessageCount != 1) {
+                Log.d("Loki", "Retrieved ${newMessages.count()} new messages.")
+            } else {
+                Log.d("Loki", "Retrieved 1 new message.")
+            }
             return newMessages
         } else {
             return listOf()
@@ -245,7 +250,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         if (hashValue != null) {
             database.setLastMessageHashValue(target, hashValue)
         } else if (rawMessages.isNotEmpty()) {
-            println("[Loki] Failed to update last message hash value from: ${rawMessages.prettifiedDescription()}.")
+            Log.d("Loki", "Failed to update last message hash value from: ${rawMessages.prettifiedDescription()}.")
         }
     }
 
@@ -260,7 +265,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                 database.setReceivedMessageHashValues(receivedMessageHashValues)
                 !isDuplicate
             } else {
-                println("[Loki] Missing hash value for message: ${rawMessage?.prettifiedDescription()}.")
+                Log.d("Loki", "Missing hash value for message: ${rawMessage?.prettifiedDescription()}.")
                 false
             }
         }
@@ -275,11 +280,11 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                 try {
                     LokiMessageWrapper.unwrap(data)
                 } catch (e: Exception) {
-                    println("[Loki] Failed to unwrap data for message: ${rawMessage.prettifiedDescription()}.")
+                    Log.d("Loki", "Failed to unwrap data for message: ${rawMessage.prettifiedDescription()}.")
                     null
                 }
             } else {
-                println("[Loki] Failed to decode data for message: ${rawMessage?.prettifiedDescription()}.")
+                Log.d("Loki", "Failed to decode data for message: ${rawMessage?.prettifiedDescription()}.")
                 null
             }
         }

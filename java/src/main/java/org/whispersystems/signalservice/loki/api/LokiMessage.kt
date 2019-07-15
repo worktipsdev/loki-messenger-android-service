@@ -2,6 +2,7 @@ package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.task
+import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.loki.crypto.ProofOfWork
 import org.whispersystems.signalservice.loki.messaging.LokiMessageWrapper
@@ -50,7 +51,7 @@ internal data class LokiMessage(
                 val isPing = message.isPing
                 return LokiMessage(destination, data, ttl, isPing)
             } catch (e: Exception) {
-                println("[Loki] Failed to convert Signal message to Loki message: ${message.prettifiedDescription()}.")
+                Log.d("Loki", "Failed to convert Signal message to Loki message: ${message.prettifiedDescription()}.")
                 return null
             }
         }
