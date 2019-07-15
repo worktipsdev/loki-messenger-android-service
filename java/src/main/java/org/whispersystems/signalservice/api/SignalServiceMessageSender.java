@@ -1249,7 +1249,7 @@ public class SignalServiceMessageSender {
   private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceID, byte[] plaintext) {
       SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceID);
       LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store);
-      return cipher.encrypt(signalProtocolAddress, plaintext);
+      return cipher.encryptFriendRequest(signalProtocolAddress, plaintext);
   }
 
   private void handleMismatchedDevices(PushServiceSocket socket, SignalServiceAddress recipient,

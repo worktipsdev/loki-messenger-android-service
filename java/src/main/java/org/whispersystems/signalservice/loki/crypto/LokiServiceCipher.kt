@@ -27,7 +27,7 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
     // endregion
 
     // region Implementation
-    fun encrypt(destination: SignalProtocolAddress, unpaddedMessageBody: ByteArray): OutgoingPushMessage {
+    fun encryptFriendRequest(destination: SignalProtocolAddress, unpaddedMessageBody: ByteArray): OutgoingPushMessage {
         val cipher = FallbackSessionCipher(userPrivateKey, destination.name)
         val transportDetails = PushTransportDetails(FallbackSessionCipher.sessionVersion)
         val bytes = cipher.encrypt(transportDetails.getPaddedMessageBody(unpaddedMessageBody))

@@ -21,7 +21,8 @@ object ProofOfWork {
     fun calculate(data: String, hexEncodedPublicKey: String, timestamp: Long, ttl: Int): String? {
         try {
             val sha512 = MessageDigest.getInstance("SHA-512")
-            val payload = createPayload(hexEncodedPublicKey, data, timestamp, ttl)
+            val payloadAsString = timestamp.toString() + ttl.toString() + hexEncodedPublicKey + data
+            val payload = payloadAsString.toByteArray()
             val target = determineTarget(ttl, payload.size)
             var currentTrialValue = ULong.MAX_VALUE
             var nonce: Long = 0
@@ -31,17 +32,13 @@ object ProofOfWork {
                 // This is different from bitmessage's PoW implementation
                 // newHash = hash(nonce + hash(data)) → hash(nonce + initialHash)
                 val newHash = sha512.digest(nonce.toByteArray() + initialHash)
-                currentTrialValue = newHash.sliceArray(0 until 8).toULong()
+                currentTrialValue = newHash.sliceArray(0 until nonceSize).toULong()
             }
             return Base64.encodeBytes(nonce.toByteArray())
         } catch (e: Exception) {
             Log.d("Loki", "Couldn't calculate proof of work due to error: $e.")
             return null
         }
-    }
-
-    private fun createPayload(hexEncodedPublicKey: String, data: String, timestamp: Long, ttl: Int): ByteArray  {
-        return (timestamp.toString() + ttl.toString() + hexEncodedPublicKey + data).toByteArray()
     }
 
     @kotlin.ExperimentalUnsignedTypes
