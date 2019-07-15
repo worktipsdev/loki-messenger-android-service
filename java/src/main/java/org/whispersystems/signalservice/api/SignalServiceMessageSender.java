@@ -565,7 +565,7 @@ public class SignalServiceMessageSender {
               .setSignedKey(ByteString.copyFrom(preKeyBundle.getSignedPreKey().serialize()))
               .setSignature(ByteString.copyFrom(preKeyBundle.getSignedPreKeySignature()))
               .setIdentityKey(ByteString.copyFrom(preKeyBundle.getIdentityKey().serialize()));
-//      container.setPreKeyBundleMessage(preKeyBuilder);
+      container.setPreKeyBundleMessage(preKeyBuilder);
     }
 
     return container.setDataMessage(builder).build().toByteArray();
