@@ -174,9 +174,9 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             return invoke(LokiAPITarget.Method.SendMessage, target, destination, parameters)
         }
         fun sendLokiMessageUsingSwarmAPI(): Promise<Set<RawResponsePromise>, Exception> {
-            val powPromise = lokiMessage.calculatePoW()
-            val swarmPromise = LokiSwarmAPI(database).getTargetSnodes(destination)
             return retryIfNeeded(maxRetryCount) {
+                val powPromise = lokiMessage.calculatePoW()
+                val swarmPromise = LokiSwarmAPI(database).getTargetSnodes(destination)
                 all(powPromise, swarmPromise).map {
                     val lokiMessageWithPoW = it[0] as LokiMessage
                     val swarm = it[1] as List<*>
