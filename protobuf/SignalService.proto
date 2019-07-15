@@ -42,8 +42,6 @@ message Content {
   optional NullMessage    nullMessage    = 4;
   optional ReceiptMessage receiptMessage = 5;
   optional TypingMessage  typingMessage  = 6;
-  optional PreKeyBundleMessage preKeyBundleMessage = 101;
-  optional LokiAddressMessage lokiAddressMessage = 102;
 }
 
 message LokiAddressMessage {

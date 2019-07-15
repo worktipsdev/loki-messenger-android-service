@@ -69,8 +69,6 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Attach
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Content;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.DataMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope.Type;
-import org.whispersystems.signalservice.internal.push.SignalServiceProtos.LokiAddressMessage;
-import org.whispersystems.signalservice.internal.push.SignalServiceProtos.PreKeyBundleMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.ReceiptMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.TypingMessage;
@@ -173,24 +171,24 @@ public class SignalServiceCipher {
         Content   message   = Content.parseFrom(plaintext.getData());
 
         LokiServicePreKeyBundleMessage lokiPreKeyBundleMessage = null;
-        if (message.hasPreKeyBundleMessage()) {
-          PreKeyBundleMessage preKeyBundleMessage = message.getPreKeyBundleMessage();
-          lokiPreKeyBundleMessage = new LokiServicePreKeyBundleMessage(
-                  preKeyBundleMessage.getIdentityKey().toByteArray(),
-                  preKeyBundleMessage.getDeviceId(),
-                  preKeyBundleMessage.getPreKeyId(),
-                  preKeyBundleMessage.getSignedKeyId(),
-                  preKeyBundleMessage.getPreKey().toByteArray(),
-                  preKeyBundleMessage.getSignedKey().toByteArray(),
-                  preKeyBundleMessage.getSignature().toByteArray()
-          );
-        }
+//        if (message.hasPreKeyBundleMessage()) {
+//          PreKeyBundleMessage preKeyBundleMessage = message.getPreKeyBundleMessage();
+//          lokiPreKeyBundleMessage = new LokiServicePreKeyBundleMessage(
+//                  preKeyBundleMessage.getIdentityKey().toByteArray(),
+//                  preKeyBundleMessage.getDeviceId(),
+//                  preKeyBundleMessage.getPreKeyId(),
+//                  preKeyBundleMessage.getSignedKeyId(),
+//                  preKeyBundleMessage.getPreKey().toByteArray(),
+//                  preKeyBundleMessage.getSignedKey().toByteArray(),
+//                  preKeyBundleMessage.getSignature().toByteArray()
+//          );
+//        }
 
         LokiServiceAddressMessage lokiAddressMessage = null;
-        if (message.hasLokiAddressMessage()) {
-          LokiAddressMessage addressMessage = message.getLokiAddressMessage();
-          lokiAddressMessage = new LokiServiceAddressMessage(addressMessage.getPtpAddress(), addressMessage.getPtpPort());
-        }
+//        if (message.hasLokiAddressMessage()) {
+//          LokiAddressMessage addressMessage = message.getLokiAddressMessage();
+//          lokiAddressMessage = new LokiServiceAddressMessage(addressMessage.getPtpAddress(), addressMessage.getPtpPort());
+//        }
 
         if (message.hasDataMessage()) {
           SignalServiceContent content = new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), message.getDataMessage()),
