@@ -1,5 +1,6 @@
 package org.whispersystems.signalservice.loki.crypto
 
+import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.loki.api.LokiAPI
 import java.math.BigInteger
@@ -21,7 +22,7 @@ object ProofOfWork {
         try {
             val sha512 = MessageDigest.getInstance("SHA-512")
             val payload = createPayload(hexEncodedPublicKey, data, timestamp, ttl)
-            val target = calculateTarget(ttl, payload.size)
+            val target = determineTarget(ttl, payload.size)
             var currentTrialValue = ULong.MAX_VALUE
             var nonce: Long = 0
             val initialHash = sha512.digest(payload)
@@ -34,7 +35,7 @@ object ProofOfWork {
             }
             return Base64.encodeBytes(nonce.toByteArray())
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.d("Loki", "Couldn't calculate proof of work due to error: $e.")
             return null
         }
     }
@@ -44,7 +45,7 @@ object ProofOfWork {
     }
 
     @kotlin.ExperimentalUnsignedTypes
-    private fun calculateTarget(ttl: Int, payloadSize: Int): ULong {
+    private fun determineTarget(ttl: Int, payloadSize: Int): ULong {
         val x1 = BigInteger.valueOf(2).pow(16) - 1.toBigInteger()
         val x2 = BigInteger.valueOf(2).pow(64) - 1.toBigInteger()
         val size = (payloadSize + nonceSize).toBigInteger()

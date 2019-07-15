@@ -117,10 +117,10 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                         @Suppress("NAME_SHADOWING") val json = JsonUtil.fromJson(jsonAsString, Map::class.java)
                         val powDifficulty = json?.get("difficulty") as? Int
                         if (powDifficulty != null) {
-                            Log.d("Loki", "Setting PoW difficulty to $powDifficulty.")
+                            Log.d("Loki", "Setting proof of work difficulty to $powDifficulty.")
                             LokiAPI.powDifficulty = powDifficulty
                         } else {
-                            Log.d("Loki", "Failed to update PoW difficulty.")
+                            Log.d("Loki", "Failed to update proof of work difficulty.")
                         }
                         deferred.reject(Error.InsufficientProofOfWork)
                     }
@@ -186,11 +186,11 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                             val powDifficulty = json?.get("difficulty") as? Int
                             if (powDifficulty != null) {
                                 if (powDifficulty != LokiAPI.powDifficulty) {
-                                    Log.d("Loki", "Setting PoW difficulty to $powDifficulty.")
+                                    Log.d("Loki", "Setting proof of work difficulty to $powDifficulty.")
                                     LokiAPI.powDifficulty = powDifficulty
                                 }
                             } else {
-                                Log.d("Loki", "Failed to update PoW difficulty from: ${rawResponse.prettifiedDescription()}.")
+                                Log.d("Loki", "Failed to update proof of work difficulty from: ${rawResponse.prettifiedDescription()}.")
                             }
                             rawResponse
                         }

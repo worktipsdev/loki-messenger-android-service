@@ -4,6 +4,8 @@
  * Licensed according to the LICENSE file in this repository.
  */
 
+ syntax = "proto2";
+
 package signalservice;
 
 option java_package = "org.whispersystems.signalservice.internal.push";
@@ -29,6 +31,10 @@ message Envelope {
   optional bytes  content         = 8; // Contains an encrypted Content
   optional string serverGuid      = 9;
   optional uint64 serverTimestamp = 10;
+
+  // Loki: This field is only here as a helper
+  // It shouldn't be set when sending a message
+  optional bool isPtpMessage = 999;
 }
 
 message Content {
@@ -82,7 +88,6 @@ message CallMessage {
   message Hangup {
     optional uint64 id = 1;
   }
-
 
   optional Offer     offer     = 1;
   optional Answer    answer    = 2;
@@ -305,7 +310,6 @@ message SyncMessage {
     optional bytes packKey = 2;
     optional Type  type    = 3;
   }
-
 
   optional Sent                 sent                 = 1;
   optional Contacts             contacts             = 2;
