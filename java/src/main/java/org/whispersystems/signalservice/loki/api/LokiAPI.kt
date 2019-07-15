@@ -231,7 +231,9 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         if (messages != null) {
             updateLastMessageHashValueIfPossible(target, messages)
             val newRawMessages = removeDuplicates(messages)
-            return parseEnvelopes(newRawMessages)
+            val newMessages = parseEnvelopes(newRawMessages)
+            Log.d("Loki", "Retrieved ${newMessages.count()} new messages.")
+            return newMessages
         } else {
             return listOf()
         }
