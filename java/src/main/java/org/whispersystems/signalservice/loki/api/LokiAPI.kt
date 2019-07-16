@@ -233,10 +233,10 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             val newRawMessages = removeDuplicates(messages)
             val newMessages = parseEnvelopes(newRawMessages)
             val newMessageCount = newMessages.count()
-            if (newMessageCount != 1) {
-                Log.d("Loki", "Retrieved ${newMessages.count()} new messages.")
-            } else {
+            if (newMessageCount == 1) {
                 Log.d("Loki", "Retrieved 1 new message.")
+            } else if (newMessageCount != 0) {
+                Log.d("Loki", "Retrieved ${newMessages.count()} new messages.")
             }
             return newMessages
         } else {
