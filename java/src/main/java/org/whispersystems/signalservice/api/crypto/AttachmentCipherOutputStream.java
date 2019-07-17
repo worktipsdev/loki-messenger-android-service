@@ -75,7 +75,9 @@ public class AttachmentCipherOutputStream extends DigestingOutputStream {
       super.write(auth);
 
       super.flush();
-    } catch (IllegalBlockSizeException | BadPaddingException e) {
+    } catch (IllegalBlockSizeException e) {
+      throw new AssertionError(e);
+    } catch (BadPaddingException e) {
       throw new AssertionError(e);
     }
   }
@@ -95,7 +97,9 @@ public class AttachmentCipherOutputStream extends DigestingOutputStream {
   private Cipher initializeCipher() {
     try {
       return Cipher.getInstance("AES/CBC/PKCS5Padding");
-    } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchPaddingException e) {
       throw new AssertionError(e);
     }
   }

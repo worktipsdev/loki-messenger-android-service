@@ -32,7 +32,7 @@ public class SigningCertificate {
     try {
       CertificateFactory          certificateFactory     = CertificateFactory.getInstance("X.509");
       Collection<X509Certificate> certificatesCollection = (Collection<X509Certificate>) certificateFactory.generateCertificates(new ByteArrayInputStream(URLDecoder.decode(certificateChain).getBytes()));
-      List<X509Certificate>       certificates           = new LinkedList<>(certificatesCollection);
+      List<X509Certificate>       certificates           = new LinkedList<X509Certificate>(certificatesCollection);
       PKIXParameters              pkixParameters         = new PKIXParameters(trustStore);
       CertPathValidator           validator              = CertPathValidator.getInstance("PKIX");
 
@@ -41,7 +41,11 @@ public class SigningCertificate {
       pkixParameters.setRevocationEnabled(false);
       validator.validate(path, pkixParameters);
       verifyDistinguishedName(path);
-    } catch (KeyStoreException | InvalidAlgorithmParameterException | NoSuchAlgorithmException e) {
+    } catch (KeyStoreException e) {
+      throw new AssertionError(e);
+    } catch (InvalidAlgorithmParameterException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchAlgorithmException e) {
       throw new AssertionError(e);
     }
   }
@@ -56,7 +60,9 @@ public class SigningCertificate {
       if (!signature.verify(Base64.decode(encodedSignature.getBytes()))) {
         throw new SignatureException("Signature verification failed.");
       }
-    } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
       throw new AssertionError(e);
     }
   }

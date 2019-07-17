@@ -146,14 +146,18 @@ public class SignalServiceMessagePipe {
       else                                 return JsonUtil.fromJson(response.second(), SendMessageResponse.class);
     } catch (NoSuchAlgorithmException e) {
       throw new AssertionError(e);
-    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    } catch (ExecutionException e) {
+      throw new IOException(e);
+    } catch (TimeoutException e) {
       throw new IOException(e);
     }
   }
 
   public SignalServiceProfile getProfile(SignalServiceAddress address, Optional<UnidentifiedAccess> unidentifiedAccess) throws IOException {
     try {
-      List<String> headers = new LinkedList<>();
+      List<String> headers = new LinkedList<String>();
 
       if (unidentifiedAccess.isPresent()) {
         headers.add("Unidentified-Access-Key:" + Base64.encodeBytes(unidentifiedAccess.get().getUnidentifiedAccessKey()));
@@ -175,7 +179,11 @@ public class SignalServiceMessagePipe {
       return JsonUtil.fromJson(response.second(), SignalServiceProfile.class);
     } catch (NoSuchAlgorithmException nsae) {
       throw new AssertionError(nsae);
-    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    } catch (ExecutionException e) {
+      throw new IOException(e);
+    } catch (TimeoutException e) {
       throw new IOException(e);
     }
   }
@@ -195,7 +203,11 @@ public class SignalServiceMessagePipe {
       }
 
       return JsonUtil.fromJson(response.second(), AttachmentUploadAttributes.class);
-    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    } catch (ExecutionException e) {
+      throw new IOException(e);
+    } catch (TimeoutException e) {
       throw new IOException(e);
     }
   }

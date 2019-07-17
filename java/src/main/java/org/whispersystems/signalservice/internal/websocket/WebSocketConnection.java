@@ -48,8 +48,8 @@ public class WebSocketConnection extends WebSocketListener {
   private static final String TAG                       = WebSocketConnection.class.getSimpleName();
   private static final int    KEEPALIVE_TIMEOUT_SECONDS = 55;
 
-  private final LinkedList<WebSocketRequestMessage>              incomingRequests = new LinkedList<>();
-  private final Map<Long, SettableFuture<Pair<Integer, String>>> outgoingRequests = new HashMap<>();
+  private final LinkedList<WebSocketRequestMessage>              incomingRequests = new LinkedList<WebSocketRequestMessage>();
+  private final Map<Long, SettableFuture<Pair<Integer, String>>> outgoingRequests = new HashMap<Long, SettableFuture<Pair<Integer, String>>>();
 
   private final String                        wsUri;
   private final TrustStore                    trustStore;
@@ -161,7 +161,7 @@ public class WebSocketConnection extends WebSocketListener {
                                                .setRequest(request)
                                                .build();
 
-    SettableFuture<Pair<Integer, String>> future = new SettableFuture<>();
+    SettableFuture<Pair<Integer, String>> future = new SettableFuture<Pair<Integer, String>>();
     outgoingRequests.put(request.getId(), future);
 
     if (!client.send(ByteString.of(message.toByteArray()))) {
@@ -228,7 +228,7 @@ public class WebSocketConnection extends WebSocketListener {
         incomingRequests.add(message.getRequest());
       } else if (message.getType().getNumber() == WebSocketMessage.Type.RESPONSE_VALUE) {
         SettableFuture<Pair<Integer, String>> listener = outgoingRequests.get(message.getResponse().getId());
-        if (listener != null) listener.set(new Pair<>(message.getResponse().getStatus(),
+        if (listener != null) listener.set(new Pair<Integer, String>(message.getResponse().getStatus(),
                                                       new String(message.getResponse().getBody().toByteArray())));
       }
 
@@ -307,8 +307,10 @@ public class WebSocketConnection extends WebSocketListener {
       TrustManager[] trustManagers = BlacklistingTrustManager.createFor(trustStore);
       context.init(null, trustManagers, null);
 
-      return new Pair<>(context.getSocketFactory(), (X509TrustManager)trustManagers[0]);
-    } catch (NoSuchAlgorithmException | KeyManagementException e) {
+      return new Pair<SSLSocketFactory, X509TrustManager>(context.getSocketFactory(), (X509TrustManager)trustManagers[0]);
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (KeyManagementException e) {
       throw new AssertionError(e);
     }
   }

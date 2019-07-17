@@ -24,7 +24,6 @@ import org.whispersystems.signalservice.api.websocket.ConnectivityListener;
 import org.whispersystems.signalservice.internal.configuration.SignalServiceConfiguration;
 import org.whispersystems.signalservice.internal.push.PushServiceSocket;
 import org.whispersystems.signalservice.internal.push.SignalServiceEnvelopeEntity;
-import org.whispersystems.signalservice.internal.push.SignalServiceProtos;
 import org.whispersystems.signalservice.internal.sticker.StickerProtos;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
@@ -169,7 +168,7 @@ public class SignalServiceMessageReceiver {
     Util.copy(cipherStream, outputStream);
 
     StickerProtos.Pack                             pack     = StickerProtos.Pack.parseFrom(outputStream.toByteArray());
-    List<SignalServiceStickerManifest.StickerInfo> stickers = new ArrayList<>(pack.getStickersCount());
+    List<SignalServiceStickerManifest.StickerInfo> stickers = new ArrayList<SignalServiceStickerManifest.StickerInfo>(pack.getStickersCount());
     SignalServiceStickerManifest.StickerInfo       cover    = pack.hasCover() ? new SignalServiceStickerManifest.StickerInfo(pack.getCover().getId(), pack.getCover().getEmoji())
                                                                           : null;
 
@@ -212,7 +211,7 @@ public class SignalServiceMessageReceiver {
   public List<SignalServiceEnvelope> retrieveMessages(MessageReceivedCallback callback)
       throws IOException
   {
-    List<SignalServiceEnvelope>       results  = new LinkedList<>();
+    List<SignalServiceEnvelope>       results  = new LinkedList<SignalServiceEnvelope>();
     List<SignalServiceEnvelopeEntity> entities = socket.getMessages();
 
     for (SignalServiceEnvelopeEntity entity : entities) {

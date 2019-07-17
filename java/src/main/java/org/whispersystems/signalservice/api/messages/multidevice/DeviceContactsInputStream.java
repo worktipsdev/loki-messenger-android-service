@@ -64,7 +64,10 @@ public class DeviceContactsInputStream extends ChunkedInputStream {
         }
 
         verified = Optional.of(new VerifiedMessage(destination, identityKey, state, System.currentTimeMillis()));
-      } catch (InvalidKeyException | InvalidMessageException e) {
+      } catch (InvalidKeyException e) {
+        Log.w(TAG, e);
+        verified = Optional.absent();
+      } catch (InvalidMessageException e) {
         Log.w(TAG, e);
         verified = Optional.absent();
       }

@@ -453,9 +453,9 @@ public class SharedContact {
     private Avatar avatar;
     private String organization;
 
-    private List<Phone>         phone   = new LinkedList<>();
-    private List<Email>         email   = new LinkedList<>();
-    private List<PostalAddress> address = new LinkedList<>();
+    private List<Phone>         phone   = new LinkedList<Phone>();
+    private List<Email>         email   = new LinkedList<Email>();
+    private List<PostalAddress> address = new LinkedList<PostalAddress>();
 
     public Builder setName(Name name) {
       this.name = name;

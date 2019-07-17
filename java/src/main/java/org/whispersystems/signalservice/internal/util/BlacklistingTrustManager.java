@@ -34,7 +34,7 @@ import javax.net.ssl.X509TrustManager;
 public class BlacklistingTrustManager implements X509TrustManager {
 
   private static final List<Pair<String, BigInteger>> BLACKLIST = new LinkedList<Pair<String, BigInteger>>() {{
-    add(new Pair<>("Open Whisper Systems", new BigInteger("4098")));
+    add(new Pair<String, BigInteger>("Open Whisper Systems", new BigInteger("4098")));
   }};
 
   public static TrustManager[] createFor(TrustManager[] trustManagers) {
@@ -61,7 +61,13 @@ public class BlacklistingTrustManager implements X509TrustManager {
       trustManagerFactory.init(keyStore);
 
       return BlacklistingTrustManager.createFor(trustManagerFactory.getTrustManagers());
-    } catch (KeyStoreException | CertificateException | IOException | NoSuchAlgorithmException e) {
+    } catch (KeyStoreException e) {
+      throw new AssertionError(e);
+    } catch (CertificateException e) {
+      throw new AssertionError(e);
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchAlgorithmException e) {
       throw new AssertionError(e);
     }
   }

@@ -62,7 +62,15 @@ public class ProvisioningCipher {
       cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"));
 
       return Util.join(cipher.getIV(), cipher.doFinal(message));
-    } catch (NoSuchAlgorithmException | NoSuchPaddingException | java.security.InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchPaddingException e) {
+      throw new AssertionError(e);
+    } catch (java.security.InvalidKeyException e) {
+      throw new AssertionError(e);
+    } catch (IllegalBlockSizeException e) {
+      throw new AssertionError(e);
+    } catch (BadPaddingException e) {
       throw new AssertionError(e);
     }
   }
@@ -73,7 +81,9 @@ public class ProvisioningCipher {
       mac.init(new SecretKeySpec(key, "HmacSHA256"));
 
       return mac.doFinal(message);
-    } catch (NoSuchAlgorithmException | java.security.InvalidKeyException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (java.security.InvalidKeyException e) {
       throw new AssertionError(e);
     }
   }

@@ -67,9 +67,8 @@ public class AttachmentCipherInputStream extends FilterInputStream {
         throw new InvalidMacException("Missing digest!");
       }
 
-      try (FileInputStream fin = new FileInputStream(file)) {
-        verifyMac(fin, file.length(), mac, digest);
-      }
+      FileInputStream fin = new FileInputStream(file);
+      verifyMac(fin, file.length(), mac, digest);
 
       InputStream inputStream = new AttachmentCipherInputStream(new FileInputStream(file), parts[0], file.length() - BLOCK_SIZE - mac.getMacLength());
 
@@ -78,7 +77,9 @@ public class AttachmentCipherInputStream extends FilterInputStream {
       }
 
       return inputStream;
-    } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
       throw new AssertionError(e);
     } catch (InvalidMacException e) {
       throw new InvalidMessageException(e);
@@ -98,12 +99,13 @@ public class AttachmentCipherInputStream extends FilterInputStream {
         throw new InvalidMessageException("Message shorter than crypto overhead!");
       }
 
-      try (InputStream inputStream = new ByteArrayInputStream(data)) {
-        verifyMac(inputStream, data.length, mac, null);
-      }
+      InputStream inputStream = new ByteArrayInputStream(data);
+      verifyMac(inputStream, data.length, mac, null);
 
       return new AttachmentCipherInputStream(new ByteArrayInputStream(data), parts[0], data.length - BLOCK_SIZE - mac.getMacLength());
-    } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
       throw new AssertionError(e);
     } catch (InvalidMacException e) {
       throw new InvalidMessageException(e);
@@ -125,7 +127,13 @@ public class AttachmentCipherInputStream extends FilterInputStream {
       this.done          = false;
       this.totalRead     = 0;
       this.totalDataSize = totalDataSize;
-    } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | InvalidAlgorithmParameterException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchPaddingException e) {
+      throw new AssertionError(e);
+    } catch (InvalidAlgorithmParameterException e) {
       throw new AssertionError(e);
     }
   }
@@ -166,7 +174,11 @@ public class AttachmentCipherInputStream extends FilterInputStream {
 
       done = true;
       return flourish;
-    } catch (IllegalBlockSizeException | BadPaddingException | ShortBufferException e) {
+    } catch (IllegalBlockSizeException e) {
+      throw new IOException(e);
+    } catch (BadPaddingException e) {
+      throw new IOException(e);
+    } catch (ShortBufferException e) {
       throw new IOException(e);
     }
   }
@@ -251,8 +263,10 @@ public class AttachmentCipherInputStream extends FilterInputStream {
         throw new InvalidMacException("Digest doesn't match!");
       }
 
-    } catch (IOException | ArithmeticException e1) {
-      throw new InvalidMacException(e1);
+    } catch (IOException e) {
+      throw new InvalidMacException(e);
+    } catch (ArithmeticException e) {
+      throw new InvalidMacException(e);
     } catch (NoSuchAlgorithmException e) {
       throw new AssertionError(e);
     }

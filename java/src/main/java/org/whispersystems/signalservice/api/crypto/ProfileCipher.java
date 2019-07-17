@@ -43,7 +43,17 @@ public class ProfileCipher {
       cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(128, nonce));
 
       return ByteUtil.combine(nonce, cipher.doFinal(inputPadded));
-    } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | BadPaddingException | NoSuchPaddingException | IllegalBlockSizeException | InvalidKeyException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (InvalidAlgorithmParameterException e) {
+      throw new AssertionError(e);
+    } catch (BadPaddingException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchPaddingException e) {
+      throw new AssertionError(e);
+    } catch (IllegalBlockSizeException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
       throw new AssertionError(e);
     }
   }
@@ -74,9 +84,17 @@ public class ProfileCipher {
       System.arraycopy(paddedPlaintext, 0, plaintext, 0, plaintextLength);
 
       return plaintext;
-    } catch (NoSuchAlgorithmException | InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException e) {
+    } catch (NoSuchAlgorithmException e) {
       throw new AssertionError(e);
-    } catch (InvalidKeyException | BadPaddingException e) {
+    } catch (InvalidAlgorithmParameterException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchPaddingException e) {
+      throw new AssertionError(e);
+    } catch (IllegalBlockSizeException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
+      throw new InvalidCiphertextException(e);
+    } catch (BadPaddingException e) {
       throw new InvalidCiphertextException(e);
     }
   }
@@ -93,7 +111,9 @@ public class ProfileCipher {
       byte[] ourUnidentifiedAccessVerifier = mac.doFinal(new byte[32]);
 
       return MessageDigest.isEqual(theirUnidentifiedAccessVerifier, ourUnidentifiedAccessVerifier);
-    } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
       throw new AssertionError(e);
     }
   }

@@ -166,8 +166,8 @@ public class SignalServiceMessageSender {
     this.socket             = new PushServiceSocket(urls, credentialsProvider, userAgent);
     this.store              = store;
     this.localAddress       = new SignalServiceAddress(credentialsProvider.getUser());
-    this.pipe               = new AtomicReference<>(pipe);
-    this.unidentifiedPipe   = new AtomicReference<>(unidentifiedPipe);
+    this.pipe               = new AtomicReference<Optional<SignalServiceMessagePipe>>(pipe);
+    this.unidentifiedPipe   = new AtomicReference<Optional<SignalServiceMessagePipe>>(unidentifiedPipe);
     this.isMultiDevice      = new AtomicBoolean(isMultiDevice);
     this.eventListener      = eventListener;
     this.userPublicKey      = userPublicKey;
@@ -806,7 +806,7 @@ public class SignalServiceMessageSender {
   }
 
   private List<DataMessage.Contact> createSharedContactContent(List<SharedContact> contacts) throws IOException {
-    List<DataMessage.Contact> results = new LinkedList<>();
+    List<DataMessage.Contact> results = new LinkedList<DataMessage.Contact>();
 
     for (SharedContact contact : contacts) {
       DataMessage.Contact.Name.Builder nameBuilder    = DataMessage.Contact.Name.newBuilder();
@@ -909,7 +909,7 @@ public class SignalServiceMessageSender {
                                               boolean                            online)
       throws IOException
   {
-    List<SendMessageResult>                results                    = new LinkedList<>();
+    List<SendMessageResult>                results                    = new LinkedList<SendMessageResult>();
     Iterator<SignalServiceAddress>         recipientIterator          = recipients.iterator();
     Iterator<Optional<UnidentifiedAccess>> unidentifiedAccessIterator = unidentifiedAccess.iterator();
 
@@ -1105,7 +1105,7 @@ public class SignalServiceMessageSender {
   }
 
   private List<AttachmentPointer> createAttachmentPointers(Optional<List<SignalServiceAttachment>> attachments) throws IOException {
-    List<AttachmentPointer> pointers = new LinkedList<>();
+    List<AttachmentPointer> pointers = new LinkedList<AttachmentPointer>();
 
     if (!attachments.isPresent() || attachments.get().isEmpty()) {
       Log.w(TAG, "No attachments present...");
@@ -1183,7 +1183,7 @@ public class SignalServiceMessageSender {
                                                        boolean                      isFriendRequest)
       throws IOException, InvalidKeyException, UntrustedIdentityException
   {
-    List<OutgoingPushMessage> messages = new LinkedList<>();
+    List<OutgoingPushMessage> messages = new LinkedList<OutgoingPushMessage>();
 
     if (!recipient.equals(localAddress) || unidentifiedAccess.isPresent()) {
       if (isFriendRequest) {
@@ -1291,7 +1291,7 @@ public class SignalServiceMessageSender {
   }
 
   private List<Optional<UnidentifiedAccess>> getTargetUnidentifiedAccess(List<Optional<UnidentifiedAccessPair>> unidentifiedAccess) {
-    List<Optional<UnidentifiedAccess>> results = new LinkedList<>();
+    List<Optional<UnidentifiedAccess>> results = new LinkedList<Optional<UnidentifiedAccess>>();
 
     for (Optional<UnidentifiedAccessPair> item : unidentifiedAccess) {
       if (item.isPresent()) results.add(item.get().getTargetUnidentifiedAccess());

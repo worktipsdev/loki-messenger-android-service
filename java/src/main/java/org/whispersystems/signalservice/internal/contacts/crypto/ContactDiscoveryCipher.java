@@ -60,7 +60,19 @@ public class ContactDiscoveryCipher {
       byte[][] parts      = ByteUtil.split(cipherText, cipherText.length - TAG_LENGTH_BYTES, TAG_LENGTH_BYTES);
 
       return new DiscoveryRequest(addressBook.size(), remoteAttestation.getRequestId(), nonce, parts[0], parts[1]);
-    } catch (IOException | NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException e) {
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchPaddingException e) {
+      throw new AssertionError(e);
+    } catch (InvalidAlgorithmParameterException e) {
+      throw new AssertionError(e);
+    } catch (IllegalBlockSizeException e) {
+      throw new AssertionError(e);
+    } catch (BadPaddingException e) {
       throw new AssertionError(e);
     }
   }
@@ -128,7 +140,11 @@ public class ContactDiscoveryCipher {
         throw new SignatureException("Signature is expired");
       }
 
-    } catch (CertificateException | CertPathValidatorException | IOException e) {
+    } catch (CertificateException e) {
+      throw new SignatureException(e);
+    } catch (CertPathValidatorException e) {
+      throw new SignatureException(e);
+    } catch (IOException e) {
       throw new SignatureException(e);
     }
   }
@@ -139,9 +155,17 @@ public class ContactDiscoveryCipher {
       cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(128, iv));
 
       return cipher.doFinal(ByteUtil.combine(ciphertext, tag));
-    } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException | IllegalBlockSizeException e) {
+    } catch (NoSuchAlgorithmException e) {
       throw new AssertionError(e);
-    } catch (InvalidKeyException | BadPaddingException e) {
+    } catch (NoSuchPaddingException e) {
+      throw new AssertionError(e);
+    } catch(InvalidAlgorithmParameterException e) {
+      throw new AssertionError(e);
+    } catch (IllegalBlockSizeException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
+      throw new InvalidCiphertextException(e);
+    } catch (BadPaddingException e) {
       throw new InvalidCiphertextException(e);
     }
   }

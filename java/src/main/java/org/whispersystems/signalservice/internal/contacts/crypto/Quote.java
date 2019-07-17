@@ -5,15 +5,15 @@ import java.nio.ByteOrder;
 
 public class Quote {
 
-  private static final long SGX_FLAGS_INITTED        = 0x0000_0000_0000_0001L;
-  private static final long SGX_FLAGS_DEBUG          = 0x0000_0000_0000_0002L;
-  private static final long SGX_FLAGS_MODE64BIT      = 0x0000_0000_0000_0004L;
-  private static final long SGX_FLAGS_PROVISION_KEY  = 0x0000_0000_0000_0004L;
-  private static final long SGX_FLAGS_EINITTOKEN_KEY = 0x0000_0000_0000_0004L;
-  private static final long SGX_FLAGS_RESERVED       = 0xFFFF_FFFF_FFFF_FFC8L;
-  private static final long SGX_XFRM_LEGACY          = 0x0000_0000_0000_0003L;
-  private static final long SGX_XFRM_AVX             = 0x0000_0000_0000_0006L;
-  private static final long SGX_XFRM_RESERVED        = 0xFFFF_FFFF_FFFF_FFF8L;
+  private static final long SGX_FLAGS_INITTED        = 0x0000000000000001L;
+  private static final long SGX_FLAGS_DEBUG          = 0x0000000000000002L;
+  private static final long SGX_FLAGS_MODE64BIT      = 0x0000000000000004L;
+  private static final long SGX_FLAGS_PROVISION_KEY  = 0x0000000000000004L;
+  private static final long SGX_FLAGS_EINITTOKEN_KEY = 0x0000000000000004L;
+  private static final long SGX_FLAGS_RESERVED       = 0xFFFFFFFFFFFFFFC8L;
+  private static final long SGX_XFRM_LEGACY          = 0x0000000000000003L;
+  private static final long SGX_XFRM_AVX             = 0x0000000000000006L;
+  private static final long SGX_XFRM_RESERVED        = 0xFFFFFFFFFFFFFFF8L;
 
   private final int     version;
   private final boolean isSigLinkable;
@@ -49,7 +49,7 @@ public class Quote {
     }
 
     this.isSigLinkable = sign_type == 1;
-    this.gid           = quoteBuf.getInt(4)   & 0xFFFF_FFFF;
+    this.gid           = quoteBuf.getInt(4)   & 0xFFFFFFFF;
     this.qeSvn         = quoteBuf.getShort(8) &      0xFFFF;
 
     if (version > 1) {
@@ -89,7 +89,7 @@ public class Quote {
     read(quoteBuf, 368, reportData);
 
     // quote signature
-    int sig_len = quoteBuf.getInt(432) & 0xFFFF_FFFF;
+    int sig_len = quoteBuf.getInt(432) & 0xFFFFFFFF;
     if (sig_len != quoteBytes.length - 436) {
       throw new InvalidQuoteFormatException("bad_quote_sig_len "+sig_len);
     }

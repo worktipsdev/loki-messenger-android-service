@@ -134,8 +134,10 @@ public class PhoneNumberFormatter {
                                             util.getRegionCodeForCountryCode(parsedCountryCode));
 
       return util.format(parsedNumber, PhoneNumberUtil.PhoneNumberFormat.E164);
-    } catch (NumberParseException | NumberFormatException npe) {
-      Log.w(TAG, npe);
+    } catch (NumberParseException e) {
+      Log.w(TAG, e);
+    } catch (NumberFormatException e) {
+      Log.w(TAG, e);
     }
 
     return "+"                                                     +

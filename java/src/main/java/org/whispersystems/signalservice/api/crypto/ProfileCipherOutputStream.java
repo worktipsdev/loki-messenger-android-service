@@ -27,7 +27,11 @@ public class ProfileCipherOutputStream extends DigestingOutputStream {
       this.cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), new IvParameterSpec(nonce));
 
       super.write(nonce, 0, nonce.length);
-    } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchPaddingException e) {
+      throw new AssertionError(e);
+    } catch (InvalidAlgorithmParameterException e) {
       throw new AssertionError(e);
     } catch (InvalidKeyException e) {
       throw new IOException(e);
@@ -61,7 +65,9 @@ public class ProfileCipherOutputStream extends DigestingOutputStream {
 
       super.write(output);
       super.flush();
-    } catch (BadPaddingException | IllegalBlockSizeException e) {
+    } catch (BadPaddingException  e) {
+      throw new AssertionError(e);
+    } catch (IllegalBlockSizeException e) {
       throw new AssertionError(e);
     }
   }

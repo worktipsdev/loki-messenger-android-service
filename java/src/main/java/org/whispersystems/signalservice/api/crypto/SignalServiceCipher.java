@@ -300,7 +300,7 @@ public class SignalServiceCipher {
 
   private SignalServiceDataMessage createSignalServiceMessage(Metadata metadata, DataMessage content) throws ProtocolInvalidMessageException {
     SignalServiceGroup             groupInfo        = createGroupInfo(content);
-    List<SignalServiceAttachment>  attachments      = new LinkedList<>();
+    List<SignalServiceAttachment>  attachments      = new LinkedList<SignalServiceAttachment>();
     boolean                        endSession       = ((content.getFlags() & DataMessage.Flags.END_SESSION_VALUE            ) != 0);
     boolean                        expirationUpdate = ((content.getFlags() & DataMessage.Flags.EXPIRATION_TIMER_UPDATE_VALUE) != 0);
     boolean                        profileKeyUpdate = ((content.getFlags() & DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE     ) != 0);
@@ -339,7 +339,7 @@ public class SignalServiceCipher {
   {
     if (content.hasSent()) {
       SyncMessage.Sent     sentContent          = content.getSent();
-      Map<String, Boolean> unidentifiedStatuses = new HashMap<>();
+      Map<String, Boolean> unidentifiedStatuses = new HashMap<String, Boolean>();
 
       for (SyncMessage.Sent.UnidentifiedDeliveryStatus status : sentContent.getUnidentifiedStatusList()) {
         unidentifiedStatuses.put(status.getDestination(), status.getUnidentified());
@@ -357,7 +357,7 @@ public class SignalServiceCipher {
     }
 
     if (content.getReadList().size() > 0) {
-      List<ReadMessage> readMessages = new LinkedList<>();
+      List<ReadMessage> readMessages = new LinkedList<ReadMessage>();
 
       for (SyncMessage.Read read : content.getReadList()) {
         readMessages.add(new ReadMessage(read.getSender(), read.getTimestamp()));
@@ -392,7 +392,7 @@ public class SignalServiceCipher {
     }
 
     if (content.getStickerPackOperationList().size() > 0) {
-      List<StickerPackOperationMessage> operations = new LinkedList<>();
+      List<StickerPackOperationMessage> operations = new LinkedList<StickerPackOperationMessage>();
 
       for (SyncMessage.StickerPackOperation operation : content.getStickerPackOperationList()) {
         byte[]                           packId  = operation.hasPackId() ? operation.getPackId().toByteArray() : null;
@@ -422,7 +422,7 @@ public class SignalServiceCipher {
       CallMessage.Answer answerContent = content.getAnswer();
       return SignalServiceCallMessage.forAnswer(new AnswerMessage(answerContent.getId(), answerContent.getDescription()));
     } else if (content.getIceUpdateCount() > 0) {
-      List<IceUpdateMessage> iceUpdates = new LinkedList<>();
+      List<IceUpdateMessage> iceUpdates = new LinkedList<IceUpdateMessage>();
 
       for (CallMessage.IceUpdate iceUpdate : content.getIceUpdateList()) {
         iceUpdates.add(new IceUpdateMessage(iceUpdate.getId(), iceUpdate.getSdpMid(), iceUpdate.getSdpMLineIndex(), iceUpdate.getSdp()));
@@ -471,7 +471,7 @@ public class SignalServiceCipher {
   private SignalServiceDataMessage.Quote createQuote(DataMessage content) {
     if (!content.hasQuote()) return null;
 
-    List<SignalServiceDataMessage.Quote.QuotedAttachment> attachments = new LinkedList<>();
+    List<SignalServiceDataMessage.Quote.QuotedAttachment> attachments = new LinkedList<SignalServiceDataMessage.Quote.QuotedAttachment>();
 
     for (DataMessage.Quote.QuotedAttachment attachment : content.getQuote().getAttachmentsList()) {
       attachments.add(new SignalServiceDataMessage.Quote.QuotedAttachment(attachment.getContentType(),
@@ -488,7 +488,7 @@ public class SignalServiceCipher {
   private List<Preview> createPreviews(DataMessage content) {
     if (content.getPreviewCount() <= 0) return null;
 
-    List<Preview> results = new LinkedList<>();
+    List<Preview> results = new LinkedList<Preview>();
 
     for (DataMessage.Preview preview : content.getPreviewList()) {
       SignalServiceAttachment attachment = null;
@@ -526,7 +526,7 @@ public class SignalServiceCipher {
   private List<SharedContact> createSharedContacts(DataMessage content) {
     if (content.getContactCount() <= 0) return null;
 
-    List<SharedContact> results = new LinkedList<>();
+    List<SharedContact> results = new LinkedList<SharedContact>();
 
     for (DataMessage.Contact contact : content.getContactList()) {
       SharedContact.Builder builder = SharedContact.newBuilder()

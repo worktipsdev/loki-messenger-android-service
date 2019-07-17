@@ -9,8 +9,6 @@ package org.whispersystems.signalservice.api.messages.multidevice;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.messages.SignalServiceAttachment;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -108,7 +106,7 @@ public class SignalServiceSyncMessage {
   }
 
   public static SignalServiceSyncMessage forRead(ReadMessage read) {
-    List<ReadMessage> reads = new LinkedList<>();
+    List<ReadMessage> reads = new LinkedList<ReadMessage>();
     reads.add(read);
 
     return new SignalServiceSyncMessage(Optional.<SentTranscriptMessage>absent(),

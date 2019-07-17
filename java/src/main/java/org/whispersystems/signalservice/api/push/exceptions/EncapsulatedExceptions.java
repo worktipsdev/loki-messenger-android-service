@@ -26,9 +26,9 @@ public class EncapsulatedExceptions extends Throwable {
   }
 
   public EncapsulatedExceptions(UntrustedIdentityException e) {
-    this.untrustedIdentityExceptions = new LinkedList<>();
-    this.unregisteredUserExceptions  = new LinkedList<>();
-    this.networkExceptions           = new LinkedList<>();
+    this.untrustedIdentityExceptions = new LinkedList<UntrustedIdentityException>();
+    this.unregisteredUserExceptions  = new LinkedList<UnregisteredUserException>();
+    this.networkExceptions           = new LinkedList<NetworkFailureException>();
 
     this.untrustedIdentityExceptions.add(e);
   }

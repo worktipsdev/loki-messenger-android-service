@@ -8,7 +8,7 @@ import java.util.concurrent.TimeoutException;
 
 public class SettableFuture<T> implements ListenableFuture<T> {
 
-  private final List<Listener<T>> listeners = new LinkedList<>();
+  private final List<Listener<T>> listeners = new LinkedList<Listener<T>>();
 
   private          boolean   completed;
   private          boolean   canceled;
@@ -100,7 +100,7 @@ public class SettableFuture<T> implements ListenableFuture<T> {
     List<Listener<T>> localListeners;
 
     synchronized (this) {
-      localListeners = new LinkedList<>(listeners);
+      localListeners = new LinkedList<Listener<T>>(listeners);
     }
 
     for (Listener<T> listener : localListeners) {

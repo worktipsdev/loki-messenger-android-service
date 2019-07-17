@@ -54,7 +54,6 @@ import org.whispersystems.signalservice.internal.util.Util;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -75,9 +74,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
@@ -92,10 +89,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import okio.Buffer;
-import okio.BufferedSink;
-import okio.BufferedSource;
-import okio.Okio;
 
 /**
  * @author Moxie Marlinspike
@@ -144,7 +137,7 @@ public class PushServiceSocket {
   private static final ResponseCodeHandler NO_HANDLER = new EmptyResponseCodeHandler();
 
   private       long      soTimeoutMillis = TimeUnit.SECONDS.toMillis(30);
-  private final Set<Call> connections     = new HashSet<>();
+  private final Set<Call> connections     = new HashSet<Call>();
 
   private final ServiceConnectionHolder[]  serviceClients;
   private final ConnectionHolder[]         cdnClients;
@@ -292,7 +285,7 @@ public class PushServiceSocket {
                               List<PreKeyRecord> records)
       throws IOException
   {
-    List<PreKeyEntity> entities = new LinkedList<>();
+    List<PreKeyEntity> entities = new LinkedList<PreKeyEntity>();
 
     for (PreKeyRecord record : records) {
       PreKeyEntity entity = new PreKeyEntity(record.getId(),
@@ -335,7 +328,7 @@ public class PushServiceSocket {
 
       String             responseText = makeServiceRequest(path, "GET", null, NO_HEADERS, unidentifiedAccess);
       PreKeyResponse     response     = JsonUtil.fromJson(responseText, PreKeyResponse.class);
-      List<PreKeyBundle> bundles      = new LinkedList<>();
+      List<PreKeyBundle> bundles      = new LinkedList<PreKeyBundle>();
 
       for (PreKeyResponseItem device : response.getDevices()) {
         ECPublicKey preKey                = null;
@@ -507,7 +500,7 @@ public class PushServiceSocket {
       throws NonSuccessfulResponseCodeException, PushNetworkException
   {
     try {
-      ContactTokenList        contactTokenList = new ContactTokenList(new LinkedList<>(contactTokens));
+      ContactTokenList        contactTokenList = new ContactTokenList(new LinkedList<String>(contactTokens));
       String                  response         = makeServiceRequest(DIRECTORY_TOKENS_PATH, "PUT", JsonUtil.toJson(contactTokenList));
       ContactTokenDetailsList activeTokens     = JsonUtil.fromJson(response, ContactTokenDetailsList.class);
 
@@ -539,14 +532,14 @@ public class PushServiceSocket {
     Response     response   = makeContactDiscoveryRequest(authorization, new LinkedList<String>(), "/v1/attestation/" + mrenclave, "PUT", JsonUtil.toJson(request));
     ResponseBody body       = response.body();
     List<String> rawCookies = response.headers("Set-Cookie");
-    List<String> cookies    = new LinkedList<>();
+    List<String> cookies    = new LinkedList<String>();
 
     for (String cookie : rawCookies) {
       cookies.add(cookie.split(";")[0]);
     }
 
     if (body != null) {
-      return new Pair<>(JsonUtil.fromJson(body.string(), RemoteAttestationResponse.class), cookies);
+      return new Pair<RemoteAttestationResponse, List<String>>(JsonUtil.fromJson(body.string(), RemoteAttestationResponse.class), cookies);
     } else {
       throw new NonSuccessfulResponseCodeException("Empty response!");
     }
@@ -622,13 +615,14 @@ public class PushServiceSocket {
                                 "application/octet-stream", attachment.getDataSize(),
                                 attachment.getOutputStreamFactory(), attachment.getListener());
 
-    return new Pair<>(id, digest);
+    return new Pair<Long, byte[]>(id, digest);
   }
 
   private void downloadFromCdn(File destination, String path, int maxSizeBytes, ProgressListener listener)
       throws PushNetworkException, NonSuccessfulResponseCodeException
   {
-    try (FileOutputStream outputStream = new FileOutputStream(destination)) {
+    try {
+      FileOutputStream outputStream = new FileOutputStream(destination);
       downloadFromCdn(outputStream, path, maxSizeBytes, listener);
     } catch (IOException e) {
       throw new PushNetworkException(e);
@@ -993,7 +987,7 @@ public class PushServiceSocket {
   }
 
   private ServiceConnectionHolder[] createServiceConnectionHolders(SignalUrl[] urls) {
-    List<ServiceConnectionHolder> serviceConnectionHolders = new LinkedList<>();
+    List<ServiceConnectionHolder> serviceConnectionHolders = new LinkedList<ServiceConnectionHolder>();
 
     for (SignalUrl url : urls) {
       serviceConnectionHolders.add(new ServiceConnectionHolder(createConnectionClient(url),
@@ -1005,7 +999,7 @@ public class PushServiceSocket {
   }
 
   private ConnectionHolder[] createConnectionHolders(SignalUrl[] urls) {
-    List<ConnectionHolder> connectionHolders = new LinkedList<>();
+    List<ConnectionHolder> connectionHolders = new LinkedList<ConnectionHolder>();
 
     for (SignalUrl url : urls) {
       connectionHolders.add(new ConnectionHolder(createConnectionClient(url), url.getUrl(), url.getHostHeader()));
@@ -1025,7 +1019,9 @@ public class PushServiceSocket {
                              .sslSocketFactory(new Tls12SocketFactory(context.getSocketFactory()), (X509TrustManager)trustManagers[0])
                              .connectionSpecs(url.getConnectionSpecs().or(Util.immutableList(ConnectionSpec.RESTRICTED_TLS)))
                              .build();
-    } catch (NoSuchAlgorithmException | KeyManagementException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (KeyManagementException e) {
       throw new AssertionError(e);
     }
   }
@@ -1043,7 +1039,11 @@ public class PushServiceSocket {
                                                (X509TrustManager)trustManagerFactory.getTrustManagers()[0])
                              .connectionSpecs(Util.immutableList(ConnectionSpec.RESTRICTED_TLS))
                              .build();
-    } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (KeyManagementException e) {
+      throw new AssertionError(e);
+    } catch (KeyStoreException e) {
       throw new AssertionError(e);
     }
   }

@@ -293,7 +293,7 @@ public class SignalServiceAccountManager {
       cipher.verifyIasSignature(iasKeyStore, attestationResponse.first().getCertificates(), attestationResponse.first().getSignatureBody(), attestationResponse.first().getSignature(), quote);
 
       RemoteAttestation remoteAttestation = new RemoteAttestation(requestId, keys);
-      List<String>      addressBook       = new LinkedList<>();
+      List<String>      addressBook       = new LinkedList<String>();
 
       for (String e164number : e164numbers) {
         addressBook.add(e164number.substring(1));
@@ -304,7 +304,7 @@ public class SignalServiceAccountManager {
       byte[]            data     = cipher.getDiscoveryResponseData(response, remoteAttestation);
 
       Iterator<String> addressBookIterator = addressBook.iterator();
-      List<String>     results             = new LinkedList<>();
+      List<String>     results             = new LinkedList<String>();
 
       for (byte aData : data) {
         String candidate = addressBookIterator.next();
@@ -435,7 +435,7 @@ public class SignalServiceAccountManager {
   }
 
   private Map<String, String> createDirectoryServerTokenMap(Collection<String> e164numbers) {
-    Map<String,String> tokenMap = new HashMap<>(e164numbers.size());
+    Map<String, String> tokenMap = new HashMap<String, String>(e164numbers.size());
 
     for (String number : e164numbers) {
       tokenMap.put(createDirectoryServerToken(number, false), number);

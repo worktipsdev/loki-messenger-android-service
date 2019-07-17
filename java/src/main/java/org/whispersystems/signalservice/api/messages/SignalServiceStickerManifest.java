@@ -17,7 +17,7 @@ public class SignalServiceStickerManifest {
     this.title    = Optional.of(title);
     this.author   = Optional.of(author);
     this.cover    = Optional.of(cover);
-    this.stickers = (stickers == null) ? Collections.<StickerInfo>emptyList() : new ArrayList<>(stickers);
+    this.stickers = (stickers == null) ? Collections.<StickerInfo>emptyList() : new ArrayList<StickerInfo>(stickers);
   }
 
   public Optional<String> getTitle() {

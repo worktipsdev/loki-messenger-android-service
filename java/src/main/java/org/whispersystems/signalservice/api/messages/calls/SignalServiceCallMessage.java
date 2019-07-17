@@ -51,7 +51,7 @@ public class SignalServiceCallMessage {
   }
 
   public static SignalServiceCallMessage forIceUpdate(final IceUpdateMessage iceUpdateMessage) {
-    List<IceUpdateMessage> iceUpdateMessages = new LinkedList<>();
+    List<IceUpdateMessage> iceUpdateMessages = new LinkedList<IceUpdateMessage>();
     iceUpdateMessages.add(iceUpdateMessage);
 
     return new SignalServiceCallMessage(Optional.<OfferMessage>absent(),

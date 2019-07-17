@@ -1,9 +1,9 @@
 buildscript {
     repositories {
-        mavenCentral()
-        mavenLocal()
-        jcenter()
         google()
+        jcenter()
+        mavenLocal()
+        mavenCentral()
     }
 
     dependencies {
@@ -20,10 +20,14 @@ version          = version_number
 group            = group_info
 
 repositories {
-    mavenCentral()
-    mavenLocal()
-    jcenter()
     google()
+    jcenter()
+    mavenLocal()
+    mavenCentral()
+}
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
 dependencies {
@@ -42,15 +46,15 @@ android {
         targetCompatibility JavaVersion.VERSION_1_7
     }
 
-//    libraryVariants.all { variant ->
-//        variant.outputs.each { output ->
-//            def outputFile = output.outputFile
-//            if (outputFile != null && outputFile.name.endsWith('.aar')) {
-//                def fileName = "${archivesBaseName}-${version}.aar"
-//                output.outputFile = new File(outputFile.parent, fileName)
-//            }
-//        }
-//    }
+    libraryVariants.all { variant ->
+        variant.outputs.each { output ->
+            def outputFile = output.outputFile
+            if (outputFile != null && outputFile.name.endsWith('.aar')) {
+                def fileName = "${archivesBaseName}-${version}.aar"
+                output.outputFileName = fileName
+            }
+        }
+    }
 }
 
 tasks.whenTaskAdded { task ->
@@ -64,18 +68,16 @@ def isReleaseBuild() {
 }
 
 def getReleaseRepositoryUrl() {
-    return hasProperty('sonatypeRepo') ? sonatypeRepo
-            : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+    return ""
 }
 
 def getRepositoryUsername() {
-    return hasProperty('whisperSonatypeUsername') ? whisperSonatypeUsername : ""
+    return ""
 }
 
 def getRepositoryPassword() {
-    return hasProperty('whisperSonatypePassword') ? whisperSonatypePassword : ""
+    return ""
 }
-
 
 signing {
     required { isReleaseBuild() && gradle.taskGraph.hasTask("uploadArchives") }
@@ -94,13 +96,13 @@ uploadArchives {
         pom.project {
             name 'signal-service-android'
             packaging 'aar'
-            description 'Signal Service communication library for Android'
-            url 'https://github.com/WhisperSystems/libsignal-service-java'
+            description 'Signal service communication library for Android'
+            url 'https://github.com/loki-project/loki-messenger-android-core'
 
             scm {
-                url 'scm:git@github.com:WhisperSystems/libsignal-service-java.git'
-                connection 'scm:git@github.com:WhisperSystems/libsignal-service-java.git'
-                developerConnection 'scm:git@github.com:WhisperSystems/libsignal-service-java.git'
+                url 'scm:git@github.com:loki-project/loki-messenger-android-core.git'
+                connection 'scm:git@github.com:loki-project/loki-messenger-android-core.git'
+                developerConnection 'scm:git@github.com:loki-project/loki-messenger-android-core.git'
             }
 
             licenses {
@@ -113,7 +115,7 @@ uploadArchives {
 
             developers {
                 developer {
-                    name 'Moxie Marlinspike'
+                    name 'Niels Andriesse'
                 }
             }
         }

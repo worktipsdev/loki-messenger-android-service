@@ -262,9 +262,9 @@ public class SignalServiceDataMessage {
 
   public static class Builder {
 
-    private List<SignalServiceAttachment> attachments    = new LinkedList<>();
-    private List<SharedContact>           sharedContacts = new LinkedList<>();
-    private List<Preview>                 previews       = new LinkedList<>();
+    private List<SignalServiceAttachment> attachments    = new LinkedList<SignalServiceAttachment>();
+    private List<SharedContact>           sharedContacts = new LinkedList<SharedContact>();
+    private List<Preview>                 previews       = new LinkedList<Preview>();
 
     private long               timestamp;
     private SignalServiceGroup group;

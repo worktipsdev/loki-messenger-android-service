@@ -28,7 +28,7 @@ public class SentTranscriptMessage {
     this.timestamp                = timestamp;
     this.message                  = message;
     this.expirationStartTimestamp = expirationStartTimestamp;
-    this.unidentifiedStatus       = new HashMap<>(unidentifiedStatus);
+    this.unidentifiedStatus       = new HashMap<String, Boolean>(unidentifiedStatus);
   }
 
   public SentTranscriptMessage(long timestamp, SignalServiceDataMessage message) {

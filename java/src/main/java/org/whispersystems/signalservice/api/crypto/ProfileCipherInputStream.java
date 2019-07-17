@@ -34,7 +34,11 @@ public class ProfileCipherInputStream extends FilterInputStream {
       Util.readFully(in, nonce);
 
       this.cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(128, nonce));
-    } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchPaddingException e) {
+      throw new AssertionError(e);
+    } catch (InvalidAlgorithmParameterException e) {
       throw new AssertionError(e);
     } catch (InvalidKeyException e) {
       throw new IOException(e);
@@ -73,7 +77,9 @@ public class ProfileCipherInputStream extends FilterInputStream {
 
         return cipher.update(ciphertext, 0, read, output, outputOffset);
       }
-    } catch (IllegalBlockSizeException | ShortBufferException e) {
+    } catch (IllegalBlockSizeException e) {
+      throw new AssertionError(e);
+    } catch(ShortBufferException e) {
       throw new AssertionError(e);
     } catch (BadPaddingException e) {
       throw new IOException(e);

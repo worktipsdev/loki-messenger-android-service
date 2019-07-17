@@ -253,7 +253,15 @@ public class SignalServiceEnvelope {
 
       return cipher.doFinal(ciphertext, CIPHERTEXT_OFFSET,
                             ciphertext.length - VERSION_LENGTH - IV_LENGTH - MAC_SIZE);
-    } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchPaddingException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
+      throw new AssertionError(e);
+    } catch (InvalidAlgorithmParameterException e) {
+      throw new AssertionError(e);
+    } catch (IllegalBlockSizeException e) {
       throw new AssertionError(e);
     } catch (BadPaddingException e) {
       Log.w(TAG, e);
@@ -284,7 +292,9 @@ public class SignalServiceEnvelope {
       if (!Arrays.equals(ourMacBytes, theirMacBytes)) {
         throw new IOException("Invalid MAC compare!");
       }
-    } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
       throw new AssertionError(e);
     }
   }

@@ -47,7 +47,17 @@ public class UnidentifiedAccess {
       byte[] ciphertext = cipher.doFinal(input);
 
       return ByteUtil.trim(ciphertext, 16);
-    } catch (NoSuchAlgorithmException | InvalidKeyException | NoSuchPaddingException | InvalidAlgorithmParameterException | BadPaddingException | IllegalBlockSizeException e) {
+    } catch (NoSuchAlgorithmException e) {
+      throw new AssertionError(e);
+    } catch (InvalidKeyException e) {
+      throw new AssertionError(e);
+    } catch (NoSuchPaddingException e) {
+      throw new AssertionError(e);
+    } catch (InvalidAlgorithmParameterException e) {
+      throw new AssertionError(e);
+    } catch (BadPaddingException e) {
+      throw new AssertionError(e);
+    } catch (IllegalBlockSizeException e) {
       throw new AssertionError(e);
     }
   }
