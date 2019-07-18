@@ -94,7 +94,7 @@ class MnemonicCodec(private val languageFileDirectory: File) {
         val truncatedWordSet = language.loadTruncatedWordSet()
         val prefixLength = languageConfiguration.prefixLength
         var result = ""
-        val n = truncatedWordSet.size
+        val n = truncatedWordSet.size.toLong()
         // Check preconditions
         if (words.size < 12) { throw DecodingError.InputTooShort }
         if (words.size % 3 == 0) { throw DecodingError.MissingLastWord }
@@ -107,7 +107,7 @@ class MnemonicCodec(private val languageFileDirectory: File) {
                 val w2 = truncatedWordSet.indexOf(words[chunkStartIndex + 1].substring(0 until prefixLength))
                 val w3 = truncatedWordSet.indexOf(words[chunkStartIndex + 2].substring(0 until prefixLength))
                 val x = w1 + n * ((n - w1 + w2) % n) + n * n * ((n - w2 + w3) % n)
-                if (x % n != w1) { throw DecodingError.Generic }
+                if (x % n != w1.toLong()) { throw DecodingError.Generic }
                 val string = "0000000" + x.toString(16)
                 result += swap(string.substring(string.lastIndex - 8 until string.lastIndex))
             } catch (e: Exception) {
