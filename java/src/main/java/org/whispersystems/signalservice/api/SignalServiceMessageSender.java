@@ -60,7 +60,7 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Conten
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.DataMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.GroupContext;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.NullMessage;
-import org.whispersystems.signalservice.internal.push.SignalServiceProtos.PreKeyBundleMessage;
+import org.whispersystems.signalservice.internal.push.SignalServiceProtos.PrekeyBundleMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.ReceiptMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.TypingMessage;
@@ -556,7 +556,7 @@ public class SignalServiceMessageSender {
     // Loki
     if (message.getPreKeyBundle().isPresent()) {
       PreKeyBundle preKeyBundle = message.getPreKeyBundle().get();
-      PreKeyBundleMessage.Builder preKeyBuilder = PreKeyBundleMessage.newBuilder()
+      PrekeyBundleMessage.Builder preKeyBuilder = PrekeyBundleMessage.newBuilder()
               .setDeviceId(preKeyBundle.getDeviceId())
               .setIdentityKey(ByteString.copyFrom(preKeyBundle.getIdentityKey().serialize()))
               .setPreKeyId(preKeyBundle.getPreKeyId())

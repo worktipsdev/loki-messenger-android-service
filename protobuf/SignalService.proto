@@ -44,7 +44,7 @@ message Content {
   optional NullMessage    nullMessage    = 4;
   optional ReceiptMessage receiptMessage = 5;
   optional TypingMessage  typingMessage  = 6;
-  optional PreKeyBundleMessage preKeyBundleMessage = 101;
+  optional PrekeyBundleMessage preKeyBundleMessage = 101;
   optional LokiAddressMessage lokiAddressMessage = 102;
 }
 
@@ -53,7 +53,7 @@ message LokiAddressMessage {
   optional uint32 ptpPort = 2;
 }
 
-message PreKeyBundleMessage {
+message PrekeyBundleMessage {
   optional bytes identityKey = 1;
   optional uint32 deviceId = 2;
   optional uint32 preKeyId = 3;
@@ -207,7 +207,11 @@ message DataMessage {
   repeated Contact            contact     = 9;
   repeated Preview            preview     = 10;
   optional Sticker            sticker     = 11;
-  optional Contact profile = 101; // Loki - The profile of the current user
+  optional LokiProfile profile = 101; // Loki - The profile of the current user
+}
+
+message LokiProfile {
+  optional string displayName = 1;
 }
 
 message NullMessage {

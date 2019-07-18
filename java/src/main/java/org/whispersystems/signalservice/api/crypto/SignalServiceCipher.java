@@ -173,7 +173,7 @@ public class SignalServiceCipher {
 
         LokiServicePreKeyBundleMessage lokiPreKeyBundleMessage = null;
         if (message.hasPreKeyBundleMessage()) {
-          SignalServiceProtos.PreKeyBundleMessage preKeyBundleMessage = message.getPreKeyBundleMessage();
+          SignalServiceProtos.PrekeyBundleMessage preKeyBundleMessage = message.getPreKeyBundleMessage();
           lokiPreKeyBundleMessage = new LokiServicePreKeyBundleMessage(
                   preKeyBundleMessage.getIdentityKey().toByteArray(),
                   preKeyBundleMessage.getDeviceId(),
