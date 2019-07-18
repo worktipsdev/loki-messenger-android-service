@@ -97,7 +97,7 @@ class MnemonicCodec(private val languageFileDirectory: File) {
         val n = truncatedWordSet.size
         // Check preconditions
         if (words.size < 12) { throw DecodingError.InputTooShort }
-        if (words.size % 3 != 0) { throw DecodingError.MissingLastWord }
+        if (words.size % 3 == 0) { throw DecodingError.MissingLastWord }
         // Get checksum word
         val checksumWord = words.removeAt(words.lastIndex)
         // Decode
