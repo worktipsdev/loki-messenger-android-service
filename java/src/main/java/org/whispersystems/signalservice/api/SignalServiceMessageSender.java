@@ -59,6 +59,7 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.CallMe
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Content;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.DataMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.GroupContext;
+import org.whispersystems.signalservice.internal.push.SignalServiceProtos.LokiProfile;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.NullMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.PrekeyBundleMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.ReceiptMessage;
@@ -566,6 +567,12 @@ public class SignalServiceMessageSender {
               .setSignature(ByteString.copyFrom(preKeyBundle.getSignedPreKeySignature()))
               .setIdentityKey(ByteString.copyFrom(preKeyBundle.getIdentityKey().serialize()));
       container.setPreKeyBundleMessage(preKeyBuilder);
+    }
+
+    String displayName = apiDatabase.getUserDisplayName();
+    if (displayName != null) {
+      LokiProfile profile = LokiProfile.newBuilder().setDisplayName(displayName).build();
+      builder.setProfile(profile);
     }
 
     return container.setDataMessage(builder).build().toByteArray();
