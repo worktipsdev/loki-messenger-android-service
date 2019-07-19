@@ -113,6 +113,11 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
     // endregion
 
     // region Public API
+    internal fun getSingleTargetSnode(hexEncodedPublicKey: String): Promise<LokiAPITarget, Exception> {
+        // SecureRandom() should be cryptographically secure
+        return getSwarm(hexEncodedPublicKey).map { it.shuffled(SecureRandom()).random() }
+    }
+
     internal fun getTargetSnodes(hexEncodedPublicKey: String): Promise<List<LokiAPITarget>, Exception> {
         // SecureRandom() should be cryptographically secure
         return getSwarm(hexEncodedPublicKey).map { it.shuffled(SecureRandom()).take(targetSnodeCount) }

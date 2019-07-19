@@ -3,6 +3,7 @@ package org.whispersystems.signalservice.loki.api
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.all
 import nl.komponents.kovenant.deferred
+import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.task
 import okhttp3.*
@@ -155,13 +156,11 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
     // endregion
 
     // region Public API
-    fun getMessages(): Promise<Set<MessageListPromise>, Exception> {
+    fun getMessages(): MessageListPromise {
         return retryIfNeeded(maxRetryCount) {
-            LokiSwarmAPI(database).getTargetSnodes(userHexEncodedPublicKey).map { targetSnodes ->
-                targetSnodes.map { targetSnode ->
-                    getRawMessages(targetSnode, false).map { parseRawMessagesResponse(it, targetSnode) }
-                }
-            }.map { it.toSet() }.get()
+            LokiSwarmAPI(database).getSingleTargetSnode(userHexEncodedPublicKey).bind { targetSnode ->
+                getRawMessages(targetSnode, false).map { parseRawMessagesResponse(it, targetSnode) }
+            }.get()
         }
     }
 
