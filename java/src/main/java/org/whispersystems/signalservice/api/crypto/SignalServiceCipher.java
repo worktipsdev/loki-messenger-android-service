@@ -192,7 +192,9 @@ public class SignalServiceCipher {
         }
 
         if (message.hasDataMessage()) {
-          SignalServiceContent content = new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), message.getDataMessage()),
+          DataMessage dataMessage = message.getDataMessage();
+
+          SignalServiceContent content = new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), dataMessage),
                   plaintext.getMetadata().getSender(),
                   plaintext.getMetadata().getSenderDevice(),
                   plaintext.getMetadata().getTimestamp(),
@@ -200,6 +202,11 @@ public class SignalServiceCipher {
 
           LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiAddressMessage);
           content.setLokiMessage(lokiServiceMessage);
+
+          if (dataMessage.hasProfile()) {
+            content.setSenderDisplayName(dataMessage.getProfile().getDisplayName());
+          }
+
           return content;
           /* Loki - Original code
           return new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), message.getDataMessage()),

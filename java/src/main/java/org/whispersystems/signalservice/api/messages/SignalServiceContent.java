@@ -26,6 +26,7 @@ public class SignalServiceContent {
 
   // Loki
   public Optional<LokiServiceMessage> lokiMessage = Optional.absent();
+  public Optional<String> senderDisplayName = Optional.absent();
 
   public SignalServiceContent(SignalServiceDataMessage message, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
     this.sender       = sender;
@@ -130,4 +131,5 @@ public class SignalServiceContent {
 
   // Loki
   public void setLokiMessage(LokiServiceMessage message) { lokiMessage = Optional.fromNullable(message); }
+  public void setSenderDisplayName(String displayName) { senderDisplayName = Optional.fromNullable(displayName); }
 }
