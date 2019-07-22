@@ -78,8 +78,10 @@ import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageFriendRequestStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleDatabaseProtocol;
+import org.whispersystems.signalservice.loki.messaging.LokiSessionProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadFriendRequestStatus;
+import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetState;
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
 
 import java.io.IOException;
@@ -122,6 +124,7 @@ public class SignalServiceMessageSender {
   private final LokiThreadDatabaseProtocol                          threadDatabase;
   private final LokiMessageDatabaseProtocol                         messageDatabase;
   private final LokiPreKeyBundleDatabaseProtocol                    preKeyBundleStore;
+  private final LokiSessionProtocol                                 sessionStore;
 
   /**
    * Construct a SignalServiceMessageSender.
@@ -145,9 +148,10 @@ public class SignalServiceMessageSender {
                                     LokiAPIDatabaseProtocol apiDatabase,
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
-                                    LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase)
+                                    LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
+                                    LokiSessionProtocol sessionStore)
   {
-    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase);
+    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase, sessionStore);
   }
 
   public SignalServiceMessageSender(SignalServiceConfiguration urls,
@@ -162,7 +166,8 @@ public class SignalServiceMessageSender {
                                     LokiAPIDatabaseProtocol apiDatabase,
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
-                                    LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase)
+                                    LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
+                                    LokiSessionProtocol sessionStore)
   {
     this.socket             = new PushServiceSocket(urls, credentialsProvider, userAgent);
     this.store              = store;
@@ -176,6 +181,7 @@ public class SignalServiceMessageSender {
     this.threadDatabase     = threadDatabase;
     this.messageDatabase    = messageDatabase;
     this.preKeyBundleStore  = preKeyBundleDatabase;
+    this.sessionStore = sessionStore;
   }
 
   /**
@@ -268,8 +274,18 @@ public class SignalServiceMessageSender {
     }
 
     if (message.isEndSession()) {
-      store.deleteAllSessions(recipient.getNumber());
+      sessionStore.archiveAllSessions(recipient.getNumber());
 
+      long threadID = threadDatabase.getThreadID(messageID);
+      LokiThreadSessionResetState sessionResetState = threadDatabase.getSessionResetState(threadID);
+
+      if (sessionResetState != LokiThreadSessionResetState.REQUEST_RECEIVED) {
+        // TODO: Show session reset in progress
+
+        Log.d("LOKI", "Session reset initiated");
+        threadDatabase.setSessionResetState(threadID, LokiThreadSessionResetState.INITIATED);
+      }
+      
       if (eventListener.isPresent()) {
         eventListener.get().onSecurityEvent(recipient);
       }
