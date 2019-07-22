@@ -87,7 +87,7 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
         val isSessionResetRequest = (sessionResetStatus == LokiThreadSessionResetStatus.REQUEST_RECEIVED)
         val currentSessionStatus = getSessionStatus(envelope)
         val address = SignalProtocolAddress(envelope.source, envelope.sourceDevice)
-        if (currentSessionStatus == null || currentSessionStatus.aliceBaseKey?.contentEquals(oldSessionStatus.aliceBaseKey) ?: false) {
+        if (currentSessionStatus == null || currentSessionStatus.aliceBaseKey?.contentEquals(oldSessionStatus.aliceBaseKey) != true) {
             if (isSessionResetRequest) {
                 // The other user used an old session to contact us; wait for them to switch to a new one.
                 resetSession(oldSessionStatus, address)
