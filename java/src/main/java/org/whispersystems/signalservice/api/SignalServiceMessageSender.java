@@ -1271,7 +1271,7 @@ public class SignalServiceMessageSender {
 
   private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceID, byte[] plaintext) {
       SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceID);
-      LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store);
+      LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store, null, null, null);
       return cipher.encryptFriendRequest(signalProtocolAddress, plaintext);
   }
 

@@ -4,5 +4,5 @@ import org.whispersystems.libsignal.state.PreKeyRecord
 
 interface LokiPreKeyRecordDatabaseProtocol {
 
-    fun getPreKey(hexEncodedPublicKey: String): PreKeyRecord?
+    fun getPreKeyRecord(hexEncodedPublicKey: String): PreKeyRecord?
 }
