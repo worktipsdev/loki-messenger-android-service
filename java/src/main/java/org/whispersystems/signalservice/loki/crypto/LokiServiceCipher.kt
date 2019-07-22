@@ -23,8 +23,8 @@ import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetSta
 class LokiServiceCipher(
         localAddress: SignalServiceAddress,
         private val signalProtocolStore: SignalProtocolStore,
-        private val threadDatabase: LokiThreadDatabaseProtocol,
-        private val preKeyRecordDatabase: LokiPreKeyRecordDatabaseProtocol,
+        private val threadDatabase: LokiThreadDatabaseProtocol?,
+        private val preKeyRecordDatabase: LokiPreKeyRecordDatabaseProtocol?,
         certificateValidator: CertificateValidator?)
     : SignalServiceCipher(localAddress, signalProtocolStore, certificateValidator) {
 
@@ -36,9 +36,14 @@ class LokiServiceCipher(
     constructor(
             localAddress: SignalServiceAddress,
             signalProtocolStore: SignalProtocolStore,
-            threadDatabase: LokiThreadDatabaseProtocol,
-            preKeyRecordDatabase: LokiPreKeyRecordDatabaseProtocol
+            threadDatabase: LokiThreadDatabaseProtocol?,
+            preKeyRecordDatabase: LokiPreKeyRecordDatabaseProtocol?
     ) : this(localAddress, signalProtocolStore, threadDatabase, preKeyRecordDatabase,null)
+
+    constructor(
+            localAddress: SignalServiceAddress,
+            signalProtocolStore: SignalProtocolStore
+    ) : this(localAddress, signalProtocolStore, null, null,null)
     // endregion
 
     // region Implementation
@@ -101,6 +106,8 @@ class LokiServiceCipher(
         // Don't bother doing anything if we didn't have a session before
         if (previousState == null) return
 
+        require(threadDatabase != null) { "Thread Database must be set!" }
+
         val threadId = threadDatabase.getThreadID(envelope.source)
         val resetState = threadDatabase.getSessionResetState(threadId)
 
@@ -153,6 +160,7 @@ class LokiServiceCipher(
 
     private fun verifyFriendRequestAcceptPreKeyMessage(envelope: SignalServiceEnvelope, ciphertext: ByteArray) {
         if (!envelope.isPreKeySignalMessage()) return
+        require(preKeyRecordDatabase != null) { "Pre Key Record Database must be set!" }
 
         val storedPreKey = preKeyRecordDatabase.getPreKey(envelope.source)
         check(storedPreKey != null) {
