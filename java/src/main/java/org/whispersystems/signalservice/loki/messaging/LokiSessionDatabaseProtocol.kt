@@ -1,7 +1,7 @@
 package org.whispersystems.signalservice.loki.messaging
 import org.whispersystems.libsignal.state.SessionStore
 
-interface LokiSessionProtocol : SessionStore {
+interface LokiSessionDatabaseProtocol : SessionStore {
     
-    fun archiveAllSessions(name: String)
+    fun archiveAllSessions(hexEncodedPublicKey: String)
 }

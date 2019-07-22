@@ -4,7 +4,6 @@ interface LokiThreadDatabaseProtocol {
 
     fun getThreadID(messageID: Long): Long
     fun setFriendRequestStatus(threadID: Long, friendRequestStatus: LokiThreadFriendRequestStatus)
-
-    fun getSessionResetState(threadID: Long): LokiThreadSessionResetState
-    fun setSessionResetState(threadID: Long, sessionResetState: LokiThreadSessionResetState)
+    fun getSessionResetStatus(threadID: Long): LokiThreadSessionResetStatus
+    fun setSessionResetStatus(threadID: Long, sessionResetStatus: LokiThreadSessionResetStatus)
 }

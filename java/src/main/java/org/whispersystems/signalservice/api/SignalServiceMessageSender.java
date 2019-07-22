@@ -78,10 +78,10 @@ import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageFriendRequestStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleDatabaseProtocol;
-import org.whispersystems.signalservice.loki.messaging.LokiSessionProtocol;
+import org.whispersystems.signalservice.loki.messaging.LokiSessionDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadFriendRequestStatus;
-import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetState;
+import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetStatus;
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
 
 import java.io.IOException;
@@ -123,8 +123,8 @@ public class SignalServiceMessageSender {
   private final LokiAPIDatabaseProtocol                             apiDatabase;
   private final LokiThreadDatabaseProtocol                          threadDatabase;
   private final LokiMessageDatabaseProtocol                         messageDatabase;
-  private final LokiPreKeyBundleDatabaseProtocol                    preKeyBundleStore;
-  private final LokiSessionProtocol                                 sessionStore;
+  private final LokiPreKeyBundleDatabaseProtocol                    preKeyBundleDatabase;
+  private final LokiSessionDatabaseProtocol sessionDatabase;
 
   /**
    * Construct a SignalServiceMessageSender.
@@ -149,9 +149,9 @@ public class SignalServiceMessageSender {
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
-                                    LokiSessionProtocol sessionStore)
+                                    LokiSessionDatabaseProtocol sessionDatabase)
   {
-    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase, sessionStore);
+    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase, sessionDatabase);
   }
 
   public SignalServiceMessageSender(SignalServiceConfiguration urls,
@@ -167,21 +167,21 @@ public class SignalServiceMessageSender {
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
-                                    LokiSessionProtocol sessionStore)
+                                    LokiSessionDatabaseProtocol sessionDatabase)
   {
-    this.socket             = new PushServiceSocket(urls, credentialsProvider, userAgent);
-    this.store              = store;
-    this.localAddress       = new SignalServiceAddress(credentialsProvider.getUser());
-    this.pipe               = new AtomicReference<Optional<SignalServiceMessagePipe>>(pipe);
-    this.unidentifiedPipe   = new AtomicReference<Optional<SignalServiceMessagePipe>>(unidentifiedPipe);
-    this.isMultiDevice      = new AtomicBoolean(isMultiDevice);
-    this.eventListener      = eventListener;
-    this.userPublicKey      = userPublicKey;
-    this.apiDatabase        = apiDatabase;
-    this.threadDatabase     = threadDatabase;
-    this.messageDatabase    = messageDatabase;
-    this.preKeyBundleStore  = preKeyBundleDatabase;
-    this.sessionStore = sessionStore;
+    this.socket               = new PushServiceSocket(urls, credentialsProvider, userAgent);
+    this.store                = store;
+    this.localAddress         = new SignalServiceAddress(credentialsProvider.getUser());
+    this.pipe                 = new AtomicReference<Optional<SignalServiceMessagePipe>>(pipe);
+    this.unidentifiedPipe     = new AtomicReference<Optional<SignalServiceMessagePipe>>(unidentifiedPipe);
+    this.isMultiDevice        = new AtomicBoolean(isMultiDevice);
+    this.eventListener        = eventListener;
+    this.userPublicKey        = userPublicKey;
+    this.apiDatabase          = apiDatabase;
+    this.threadDatabase       = threadDatabase;
+    this.messageDatabase      = messageDatabase;
+    this.preKeyBundleDatabase = preKeyBundleDatabase;
+    this.sessionDatabase      = sessionDatabase;
   }
 
   /**
@@ -274,16 +274,16 @@ public class SignalServiceMessageSender {
     }
 
     if (message.isEndSession()) {
-      sessionStore.archiveAllSessions(recipient.getNumber());
+      sessionDatabase.archiveAllSessions(recipient.getNumber());
 
       long threadID = threadDatabase.getThreadID(messageID);
-      LokiThreadSessionResetState sessionResetState = threadDatabase.getSessionResetState(threadID);
+      LokiThreadSessionResetStatus sessionResetStatus = threadDatabase.getSessionResetStatus(threadID);
 
-      if (sessionResetState != LokiThreadSessionResetState.REQUEST_RECEIVED) {
+      if (sessionResetStatus != LokiThreadSessionResetStatus.REQUEST_RECEIVED) {
         // TODO: Show session reset in progress
 
-        Log.d("LOKI", "Session reset initiated");
-        threadDatabase.setSessionResetState(threadID, LokiThreadSessionResetState.INITIATED);
+        Log.d("Loki", "Starting session reset...");
+        threadDatabase.setSessionResetStatus(threadID, LokiThreadSessionResetStatus.IN_PROGRESS);
       }
       
       if (eventListener.isPresent()) {
@@ -1241,7 +1241,7 @@ public class SignalServiceMessageSender {
     if (!store.containsSession(signalProtocolAddress)) {
       try {
         String contactHexEncodedPublicKey = recipient.getNumber();
-        PreKeyBundle preKeyBundle = preKeyBundleStore.getPreKeyBundle(contactHexEncodedPublicKey);
+        PreKeyBundle preKeyBundle = preKeyBundleDatabase.getPreKeyBundle(contactHexEncodedPublicKey);
         if (preKeyBundle == null) {
           throw new InvalidKeyException("Pre key bundle not found for: " + recipient.getNumber() + ".");
         }
@@ -1250,7 +1250,7 @@ public class SignalServiceMessageSender {
           SessionBuilder sessionBuilder = new SessionBuilder(store, address);
           sessionBuilder.process(preKeyBundle);
           // Loki - Discard the pre key bundle once the session has been initiated
-          preKeyBundleStore.removePreKeyBundle(contactHexEncodedPublicKey);
+          preKeyBundleDatabase.removePreKeyBundle(contactHexEncodedPublicKey);
         } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
           throw new UntrustedIdentityException("Untrusted identity key", recipient.getNumber(), preKeyBundle.getIdentityKey());
         }
