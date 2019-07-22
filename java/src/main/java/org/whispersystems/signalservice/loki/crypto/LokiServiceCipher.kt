@@ -55,7 +55,7 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
         val sessionStatus = getSessionStatus(envelope) // The status can change during decryption
         val plainText = super.decrypt(envelope, ciphertext)
         if (sessionStatus == null && envelope.isPreKeySignalMessage) {
-            validateFriendRequestAcceptedMessage(envelope, ciphertext)
+            validateSilentMessage(envelope, ciphertext)
         }
         handleSessionResetRequestIfNeeded(envelope, sessionStatus)
         return plainText
@@ -68,7 +68,7 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
         return if (sessionStatus.hasSenderChain()) sessionStatus else null
     }
 
-    private fun validateFriendRequestAcceptedMessage(envelope: SignalServiceEnvelope, ciphertext: ByteArray) {
+    private fun validateSilentMessage(envelope: SignalServiceEnvelope, ciphertext: ByteArray) {
         val preKeyRecord = preKeyRecordDatabase!!.getPreKeyRecord(envelope.source)
         check(preKeyRecord != null) {
             "Received a friend request from a user without an associated pre key bundle."
