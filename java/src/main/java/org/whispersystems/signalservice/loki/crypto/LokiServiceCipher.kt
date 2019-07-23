@@ -45,8 +45,8 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
     fun getSessionStatus(envelope: SignalServiceEnvelope): SessionState? {
         val address = SignalProtocolAddress(envelope.source, envelope.sourceDevice)
         val sessionRecord = signalProtocolStore.loadSession(address)
-        val sessionStatus = sessionRecord.sessionState
-        return if (sessionStatus.hasSenderChain()) sessionStatus else null
+        val session = sessionRecord.sessionState
+        return if (session.hasSenderChain()) session else null
     }
 
     fun validateBackgroundMessage(envelope: SignalServiceEnvelope, ciphertext: ByteArray) {
@@ -56,38 +56,38 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
         check(preKeyRecord.id == (message.preKeyId ?: -1)) { "Received a background message from an unknown source." }
     }
 
-    fun handleSessionResetRequestIfNeeded(envelope: SignalServiceEnvelope, oldSessionStatus: SessionState?) {
-        if (oldSessionStatus == null) return
+    fun handleSessionResetRequestIfNeeded(envelope: SignalServiceEnvelope, oldSession: SessionState?) {
+        if (oldSession == null) return
         threadDatabase!!
         val threadID = threadDatabase.getThreadID(envelope.source)
         val currentSessionResetStatus = threadDatabase.getSessionResetStatus(threadID)
         if (currentSessionResetStatus == LokiThreadSessionResetStatus.NONE) return
-        val currentSessionStatus = getSessionStatus(envelope)
+        val currentSession = getSessionStatus(envelope)
         val address = SignalProtocolAddress(envelope.source, envelope.sourceDevice)
         fun restoreOldSession() {
             val session = signalProtocolStore.loadSession(address)
-            session.previousSessionStates.removeAll { it.aliceBaseKey?.contentEquals(oldSessionStatus.aliceBaseKey) ?: false }
-            session.promoteState(oldSessionStatus)
+            session.previousSessionStates.removeAll { it.aliceBaseKey?.contentEquals(oldSession.aliceBaseKey) ?: false }
+            session.promoteState(oldSession)
             signalProtocolStore.storeSession(address, session)
         }
-        fun deleteAllSessionsExcept(status: SessionState?) {
-            val session = signalProtocolStore.loadSession(address)
-            session.removePreviousSessionStates()
-            session.setState(status ?: SessionState())
-            signalProtocolStore.storeSession(address, session)
+        fun deleteAllSessionsExcept(session: SessionState?) {
+            val sessionRecord = signalProtocolStore.loadSession(address)
+            sessionRecord.removePreviousSessionStates()
+            sessionRecord.setState(session ?: SessionState())
+            signalProtocolStore.storeSession(address, sessionRecord)
         }
-        if (currentSessionStatus == null || currentSessionStatus.aliceBaseKey?.contentEquals(oldSessionStatus.aliceBaseKey) != true) {
+        if (currentSession == null || currentSession.aliceBaseKey?.contentEquals(oldSession.aliceBaseKey) != true) {
             if (currentSessionResetStatus == LokiThreadSessionResetStatus.REQUEST_RECEIVED) {
                 // The other user used an old session to contact us; wait for them to switch to a new one.
                 restoreOldSession()
             } else {
                 // Our session reset was successful; we initiated one and got a new session back from the other user.
-                deleteAllSessionsExcept(currentSessionStatus)
+                deleteAllSessionsExcept(currentSession)
                 threadDatabase.setSessionResetStatus(threadID, LokiThreadSessionResetStatus.NONE)
             }
         } else if (currentSessionResetStatus == LokiThreadSessionResetStatus.REQUEST_RECEIVED) {
             // Our session reset was successful; we received a message with the same session from the other user.
-            deleteAllSessionsExcept(oldSessionStatus)
+            deleteAllSessionsExcept(oldSession)
             threadDatabase.setSessionResetStatus(threadID, LokiThreadSessionResetStatus.NONE)
         }
     }

@@ -280,8 +280,6 @@ public class SignalServiceMessageSender {
       LokiThreadSessionResetStatus sessionResetStatus = threadDatabase.getSessionResetStatus(threadID);
 
       if (sessionResetStatus != LokiThreadSessionResetStatus.REQUEST_RECEIVED) {
-        // TODO: Show session reset in progress
-
         Log.d("Loki", "Starting session reset...");
         threadDatabase.setSessionResetStatus(threadID, LokiThreadSessionResetStatus.IN_PROGRESS);
       }
@@ -1071,7 +1069,7 @@ public class SignalServiceMessageSender {
       return SendMessageResult.networkFailure(recipient);
     }
 
-    /** Loki - Original code
+    /* Loki - Original code
   }
     for (int i=0;i<4;i++) {
       try {
