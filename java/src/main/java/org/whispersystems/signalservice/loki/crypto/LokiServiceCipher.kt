@@ -56,7 +56,7 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
         check(preKeyRecord.id == (message.preKeyId ?: -1)) { "Received a background message from an unknown source." }
     }
 
-    private fun handleSessionResetRequestIfNeeded(envelope: SignalServiceEnvelope, oldSessionStatus: SessionState?) {
+    fun handleSessionResetRequestIfNeeded(envelope: SignalServiceEnvelope, oldSessionStatus: SessionState?) {
         if (oldSessionStatus == null) return
         threadDatabase!!
         val threadID = threadDatabase.getThreadID(envelope.source)
