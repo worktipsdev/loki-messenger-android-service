@@ -17,17 +17,11 @@ import org.whispersystems.signalservice.loki.messaging.LokiPreKeyRecordDatabaseP
 import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtocol
 import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetStatus
 
-/**
- * The only difference between this and `SignalServiceCipher` is the custom encryption/decryption logic.
- */
 class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalProtocolStore: SignalProtocolStore, private val threadDatabase: LokiThreadDatabaseProtocol? = null,
         private val preKeyRecordDatabase: LokiPreKeyRecordDatabaseProtocol? = null, certificateValidator: CertificateValidator? = null) : SignalServiceCipher(localAddress, signalProtocolStore, certificateValidator) {
 
-    // region Convenience
     private val userPrivateKey get() = signalProtocolStore.identityKeyPair.privateKey.serialize()
-    // endregion
 
-    // region Implementation
     fun encryptFriendRequest(destination: SignalProtocolAddress, unpaddedMessageBody: ByteArray): OutgoingPushMessage {
         val cipher = FallbackSessionCipher(userPrivateKey, destination.name)
         val transportDetails = PushTransportDetails(FallbackSessionCipher.sessionVersion)
@@ -35,11 +29,8 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
         return OutgoingPushMessage(Type.FRIEND_REQUEST_VALUE, destination.deviceId, 0, Base64.encodeBytes(bytes))
     }
 
-    /**
-     * Decrypt the given `SignalServiceEnvelope` using a `FallbackSessionCipher` if it's a friend request and default Signal decryption otherwise.
-     */
     override fun decrypt(envelope: SignalServiceEnvelope, ciphertext: ByteArray): Plaintext {
-        return if (envelope.isFriendRequest) decryptFriendRequest(envelope, ciphertext) else lokiDecrypt(envelope, ciphertext)
+        return if (envelope.isFriendRequest) decryptFriendRequest(envelope, ciphertext) else super.decrypt(envelope, ciphertext)
     }
 
     private fun decryptFriendRequest(envelope: SignalServiceEnvelope, ciphertext: ByteArray): Plaintext {
@@ -51,70 +42,53 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
         return Plaintext(metadata, unpaddedMessageBody)
     }
 
-    private fun lokiDecrypt(envelope: SignalServiceEnvelope, ciphertext: ByteArray): Plaintext {
-        val sessionStatus = getSessionStatus(envelope) // The status can change during decryption
-        val plainText = super.decrypt(envelope, ciphertext)
-        if (sessionStatus == null && envelope.isPreKeySignalMessage) {
-            validateSilentMessage(envelope, ciphertext)
-        }
-        handleSessionResetRequestIfNeeded(envelope, sessionStatus)
-        return plainText
-    }
-
-    private fun getSessionStatus(envelope: SignalServiceEnvelope): SessionState? {
+    fun getSessionStatus(envelope: SignalServiceEnvelope): SessionState? {
         val address = SignalProtocolAddress(envelope.source, envelope.sourceDevice)
         val sessionRecord = signalProtocolStore.loadSession(address)
         val sessionStatus = sessionRecord.sessionState
         return if (sessionStatus.hasSenderChain()) sessionStatus else null
     }
 
-    private fun validateSilentMessage(envelope: SignalServiceEnvelope, ciphertext: ByteArray) {
+    fun validateBackgroundMessage(envelope: SignalServiceEnvelope, ciphertext: ByteArray) {
         val preKeyRecord = preKeyRecordDatabase!!.getPreKeyRecord(envelope.source)
-        check(preKeyRecord != null) {
-            "Received a friend request from a user without an associated pre key bundle."
-        }
+        check(preKeyRecord != null) { "Received a background message from a user without an associated pre key record." }
         val message = PreKeySignalMessage(ciphertext)
-        check(preKeyRecord.id == (message.preKeyId ?: -1)) {
-            "Received a friend request accepted message from an unknown source."
-        }
+        check(preKeyRecord.id == (message.preKeyId ?: -1)) { "Received a background message from an unknown source." }
     }
 
     private fun handleSessionResetRequestIfNeeded(envelope: SignalServiceEnvelope, oldSessionStatus: SessionState?) {
         if (oldSessionStatus == null) return
-        val threadID = threadDatabase!!.getThreadID(envelope.source)
-        val sessionResetStatus = threadDatabase!!.getSessionResetStatus(threadID)
-        if (sessionResetStatus == LokiThreadSessionResetStatus.NONE) return
-        val isSessionResetRequest = (sessionResetStatus == LokiThreadSessionResetStatus.REQUEST_RECEIVED)
+        threadDatabase!!
+        val threadID = threadDatabase.getThreadID(envelope.source)
+        val currentSessionResetStatus = threadDatabase.getSessionResetStatus(threadID)
+        if (currentSessionResetStatus == LokiThreadSessionResetStatus.NONE) return
         val currentSessionStatus = getSessionStatus(envelope)
         val address = SignalProtocolAddress(envelope.source, envelope.sourceDevice)
+        fun restoreOldSession() {
+            val session = signalProtocolStore.loadSession(address)
+            session.previousSessionStates.removeAll { it.aliceBaseKey?.contentEquals(oldSessionStatus.aliceBaseKey) ?: false }
+            session.promoteState(oldSessionStatus)
+            signalProtocolStore.storeSession(address, session)
+        }
+        fun deleteAllSessionsExcept(status: SessionState?) {
+            val session = signalProtocolStore.loadSession(address)
+            session.removePreviousSessionStates()
+            session.setState(status ?: SessionState())
+            signalProtocolStore.storeSession(address, session)
+        }
         if (currentSessionStatus == null || currentSessionStatus.aliceBaseKey?.contentEquals(oldSessionStatus.aliceBaseKey) != true) {
-            if (isSessionResetRequest) {
+            if (currentSessionResetStatus == LokiThreadSessionResetStatus.REQUEST_RECEIVED) {
                 // The other user used an old session to contact us; wait for them to switch to a new one.
-                resetSession(oldSessionStatus, address)
+                restoreOldSession()
             } else {
                 // Our session reset was successful; we initiated one and got a new session back from the other user.
-                deleteAllSessionsExcept(currentSessionStatus, address)
-                // TODO: Notify session reset success
+                deleteAllSessionsExcept(currentSessionStatus)
+                threadDatabase.setSessionResetStatus(threadID, LokiThreadSessionResetStatus.NONE)
             }
-        } else if (isSessionResetRequest) {
+        } else if (currentSessionResetStatus == LokiThreadSessionResetStatus.REQUEST_RECEIVED) {
             // Our session reset was successful; we received a message with the same session from the other user.
-            deleteAllSessionsExcept(oldSessionStatus, address)
-            // TODO: Notify session reset success
+            deleteAllSessionsExcept(oldSessionStatus)
+            threadDatabase.setSessionResetStatus(threadID, LokiThreadSessionResetStatus.NONE)
         }
     }
-
-    private fun resetSession(status: SessionState, address: SignalProtocolAddress) {
-        val session = signalProtocolStore.loadSession(address)
-        session.previousSessionStates.removeAll { it.aliceBaseKey?.contentEquals(status.aliceBaseKey) ?: false }
-        session.promoteState(status) // This archives the old status
-        signalProtocolStore.storeSession(address, session)
-    }
-
-    private fun deleteAllSessionsExcept(status: SessionState?, address: SignalProtocolAddress) {
-        val session = signalProtocolStore.loadSession(address)
-        session.removePreviousSessionStates()
-        session.setState(status ?: SessionState())
-        signalProtocolStore.storeSession(address, session)
-    }
-    // endregion
 }

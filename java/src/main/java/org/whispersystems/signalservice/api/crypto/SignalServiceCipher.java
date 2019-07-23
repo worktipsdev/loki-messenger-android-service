@@ -159,15 +159,17 @@ public class SignalServiceCipher {
 
   {
     try {
-//      if (envelope.hasLegacyMessage()) {
-//        Plaintext plaintext = decrypt(envelope, envelope.getLegacyMessage());
-//        DataMessage message = DataMessage.parseFrom(plaintext.getData());
-//        return new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), message),
-//                                        plaintext.getMetadata().getSender(),
-//                                        plaintext.getMetadata().getSenderDevice(),
-//                                        plaintext.getMetadata().getTimestamp(),
-//                                        plaintext.getMetadata().isNeedsReceipt());
-//      } else if (envelope.hasContent()) {
+      /*
+      if (envelope.hasLegacyMessage()) {
+        Plaintext plaintext = decrypt(envelope, envelope.getLegacyMessage());
+        DataMessage message = DataMessage.parseFrom(plaintext.getData());
+        return new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), message),
+                                        plaintext.getMetadata().getSender(),
+                                        plaintext.getMetadata().getSenderDevice(),
+                                        plaintext.getMetadata().getTimestamp(),
+                                        plaintext.getMetadata().isNeedsReceipt());
+      } else if (envelope.hasContent()) {
+       */
         Plaintext plaintext = decrypt(envelope, envelope.getContent());
         Content   message   = Content.parseFrom(plaintext.getData());
 
