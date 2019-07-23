@@ -24,6 +24,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
         // endregion
 
         // region Clearnet Setup
+        private val seedNodePool: Set<String> = setOf( "http://3.104.19.14:22023", "http://13.238.53.205:38157", "http://imaginary.stream:38157" )
         internal var randomSnodePool: MutableSet<LokiAPITarget> = mutableSetOf()
         // endregion
     }
@@ -41,8 +42,9 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
     // region Internal API
     private fun getRandomSnode(): Promise<LokiAPITarget, Exception> {
         if (randomSnodePool.isEmpty()) {
-            val url = "http://3.104.19.14:22023/json_rpc"
-            Log.d("Loki", "Invoking get_service_nodes on http://3.104.19.14:22023 (i.e. the seed node).")
+            val target = seedNodePool.random()
+            val url = "$target/json_rpc"
+            Log.d("Loki", "Invoking get_service_nodes on $target.")
             val body = RequestBody.create(MediaType.get("application/json"), "{ \"method\" : \"get_service_nodes\" }")
             val request = Request.Builder().url(url).post(body)
             val connection = OkHttpClient()
@@ -75,7 +77,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
                             }
                         }
                         else -> {
-                            Log.d("Loki", "Couldn't reach the seed node.")
+                            Log.d("Loki", "Couldn't reach $target.")
                             deferred.reject(LokiAPI.Error.Generic)
                         }
                     }
