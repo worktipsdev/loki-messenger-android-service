@@ -53,7 +53,7 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
         val preKeyRecord = preKeyRecordDatabase!!.getPreKeyRecord(envelope.source)
         check(preKeyRecord != null) { "Received a background message from a user without an associated pre key record." }
         val message = PreKeySignalMessage(ciphertext)
-        check(preKeyRecord.id == (message.preKeyId ?: -1)) { "Received a background message from an unknown source." }
+        check(preKeyRecord.id == (message.preKeyId.orNull() ?: -1)) { "Received a background message from an unknown source." }
     }
 
     fun handleSessionResetRequestIfNeeded(envelope: SignalServiceEnvelope, oldSession: SessionState?) {
