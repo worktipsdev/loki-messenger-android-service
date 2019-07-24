@@ -70,7 +70,12 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
                                         null
                                     }
                                 }.toMutableSet()
-                                deferred.resolve(randomSnodePool.random())
+                                try {
+                                    deferred.resolve(randomSnodePool.random())
+                                } catch (exception: Exception) {
+                                    Log.d("Loki", "Got a random snode pool from: $target.")
+                                    deferred.reject(LokiAPI.Error.Generic)
+                                }
                             } else {
                                 Log.d("Loki", "Failed to update random snode pool from: ${(rawTargets as List<*>?)?.prettifiedDescription()}.")
                                 deferred.reject(LokiAPI.Error.Generic)
