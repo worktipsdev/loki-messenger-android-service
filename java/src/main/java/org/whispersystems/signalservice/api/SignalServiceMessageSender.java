@@ -468,107 +468,8 @@ public class SignalServiceMessageSender {
 
   private byte[] createMessageContent(SignalServiceDataMessage message) throws IOException {
     Content.Builder         container = Content.newBuilder();
-    DataMessage.Builder     builder   = DataMessage.newBuilder();
-    List<AttachmentPointer> pointers  = createAttachmentPointers(message.getAttachments());
 
-    if (!pointers.isEmpty()) {
-      builder.addAllAttachments(pointers);
-    }
-
-    if (message.getBody().isPresent()) {
-      builder.setBody(message.getBody().get());
-    }
-
-    if (message.getGroupInfo().isPresent()) {
-      builder.setGroup(createGroupContent(message.getGroupInfo().get()));
-    }
-
-    if (message.isEndSession()) {
-      builder.setFlags(DataMessage.Flags.END_SESSION_VALUE);
-    }
-
-    if (message.isExpirationUpdate()) {
-      builder.setFlags(DataMessage.Flags.EXPIRATION_TIMER_UPDATE_VALUE);
-    }
-
-    if (message.isProfileKeyUpdate()) {
-      builder.setFlags(DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE);
-    }
-
-    if (message.getExpiresInSeconds() > 0) {
-      builder.setExpireTimer(message.getExpiresInSeconds());
-    }
-
-    if (message.getProfileKey().isPresent()) {
-      builder.setProfileKey(ByteString.copyFrom(message.getProfileKey().get()));
-    }
-
-    if (message.getQuote().isPresent()) {
-      DataMessage.Quote.Builder quoteBuilder = DataMessage.Quote.newBuilder()
-                                                                .setId(message.getQuote().get().getId())
-                                                                .setAuthor(message.getQuote().get().getAuthor().getNumber())
-                                                                .setText(message.getQuote().get().getText());
-
-      for (SignalServiceDataMessage.Quote.QuotedAttachment attachment : message.getQuote().get().getAttachments()) {
-        DataMessage.Quote.QuotedAttachment.Builder quotedAttachment = DataMessage.Quote.QuotedAttachment.newBuilder();
-
-        quotedAttachment.setContentType(attachment.getContentType());
-
-        if (attachment.getFileName() != null) {
-          quotedAttachment.setFileName(attachment.getFileName());
-        }
-
-        if (attachment.getThumbnail() != null) {
-          quotedAttachment.setThumbnail(createAttachmentPointer(attachment.getThumbnail().asStream()));
-        }
-
-        quoteBuilder.addAttachments(quotedAttachment);
-      }
-
-      builder.setQuote(quoteBuilder);
-    }
-
-    if (message.getSharedContacts().isPresent()) {
-      builder.addAllContact(createSharedContactContent(message.getSharedContacts().get()));
-    }
-
-    if (message.getPreviews().isPresent()) {
-      for (SignalServiceDataMessage.Preview preview : message.getPreviews().get()) {
-        DataMessage.Preview.Builder previewBuilder = DataMessage.Preview.newBuilder();
-        previewBuilder.setTitle(preview.getTitle());
-        previewBuilder.setUrl(preview.getUrl());
-
-        if (preview.getImage().isPresent()) {
-          if (preview.getImage().get().isStream()) {
-            previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asStream()));
-          } else {
-            previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asPointer()));
-          }
-        }
-
-        builder.addPreview(previewBuilder.build());
-      }
-    }
-
-    if (message.getSticker().isPresent()) {
-      DataMessage.Sticker.Builder stickerBuilder = DataMessage.Sticker.newBuilder();
-
-      stickerBuilder.setPackId(ByteString.copyFrom(message.getSticker().get().getPackId()));
-      stickerBuilder.setPackKey(ByteString.copyFrom(message.getSticker().get().getPackKey()));
-      stickerBuilder.setStickerId(message.getSticker().get().getStickerId());
-
-      if (message.getSticker().get().getAttachment().isStream()) {
-        stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asStream(), true));
-      } else {
-        stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asPointer()));
-      }
-
-      builder.setSticker(stickerBuilder.build());
-    }
-
-    builder.setTimestamp(message.getTimestamp());
-
-    // Loki
+    // Loki: Set the pre key bundle if needed
     if (message.getPreKeyBundle().isPresent()) {
       PreKeyBundle preKeyBundle = message.getPreKeyBundle().get();
       PrekeyBundleMessage.Builder preKeyBuilder = PrekeyBundleMessage.newBuilder()
@@ -583,13 +484,118 @@ public class SignalServiceMessageSender {
       container.setPreKeyBundleMessage(preKeyBuilder);
     }
 
-    String displayName = apiDatabase.getUserDisplayName();
-    if (displayName != null) {
-      LokiProfile profile = LokiProfile.newBuilder().setDisplayName(displayName).build();
-      builder.setProfile(profile);
+    // Loki: Background messages don't need a data message field
+    if (!message.isBackgroundMessage()) {
+      DataMessage.Builder builder = DataMessage.newBuilder();
+      List<AttachmentPointer> pointers = createAttachmentPointers(message.getAttachments());
+
+      if (!pointers.isEmpty()) {
+        builder.addAllAttachments(pointers);
+      }
+
+      if (message.getBody().isPresent()) {
+        builder.setBody(message.getBody().get());
+      }
+
+      if (message.getGroupInfo().isPresent()) {
+        builder.setGroup(createGroupContent(message.getGroupInfo().get()));
+      }
+
+      if (message.isEndSession()) {
+        builder.setFlags(DataMessage.Flags.END_SESSION_VALUE);
+      }
+
+      if (message.isExpirationUpdate()) {
+        builder.setFlags(DataMessage.Flags.EXPIRATION_TIMER_UPDATE_VALUE);
+      }
+
+      if (message.isProfileKeyUpdate()) {
+        builder.setFlags(DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE);
+      }
+
+      if (message.getExpiresInSeconds() > 0) {
+        builder.setExpireTimer(message.getExpiresInSeconds());
+      }
+
+      if (message.getProfileKey().isPresent()) {
+        builder.setProfileKey(ByteString.copyFrom(message.getProfileKey().get()));
+      }
+
+      if (message.getQuote().isPresent()) {
+        DataMessage.Quote.Builder quoteBuilder = DataMessage.Quote.newBuilder()
+                .setId(message.getQuote().get().getId())
+                .setAuthor(message.getQuote().get().getAuthor().getNumber())
+                .setText(message.getQuote().get().getText());
+
+        for (SignalServiceDataMessage.Quote.QuotedAttachment attachment : message.getQuote().get().getAttachments()) {
+          DataMessage.Quote.QuotedAttachment.Builder quotedAttachment = DataMessage.Quote.QuotedAttachment.newBuilder();
+
+          quotedAttachment.setContentType(attachment.getContentType());
+
+          if (attachment.getFileName() != null) {
+            quotedAttachment.setFileName(attachment.getFileName());
+          }
+
+          if (attachment.getThumbnail() != null) {
+            quotedAttachment.setThumbnail(createAttachmentPointer(attachment.getThumbnail().asStream()));
+          }
+
+          quoteBuilder.addAttachments(quotedAttachment);
+        }
+
+        builder.setQuote(quoteBuilder);
+      }
+
+      if (message.getSharedContacts().isPresent()) {
+        builder.addAllContact(createSharedContactContent(message.getSharedContacts().get()));
+      }
+
+      if (message.getPreviews().isPresent()) {
+        for (SignalServiceDataMessage.Preview preview : message.getPreviews().get()) {
+          DataMessage.Preview.Builder previewBuilder = DataMessage.Preview.newBuilder();
+          previewBuilder.setTitle(preview.getTitle());
+          previewBuilder.setUrl(preview.getUrl());
+
+          if (preview.getImage().isPresent()) {
+            if (preview.getImage().get().isStream()) {
+              previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asStream()));
+            } else {
+              previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asPointer()));
+            }
+          }
+
+          builder.addPreview(previewBuilder.build());
+        }
+      }
+
+      if (message.getSticker().isPresent()) {
+        DataMessage.Sticker.Builder stickerBuilder = DataMessage.Sticker.newBuilder();
+
+        stickerBuilder.setPackId(ByteString.copyFrom(message.getSticker().get().getPackId()));
+        stickerBuilder.setPackKey(ByteString.copyFrom(message.getSticker().get().getPackKey()));
+        stickerBuilder.setStickerId(message.getSticker().get().getStickerId());
+
+        if (message.getSticker().get().getAttachment().isStream()) {
+          stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asStream(), true));
+        } else {
+          stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asPointer()));
+        }
+
+        builder.setSticker(stickerBuilder.build());
+      }
+
+      builder.setTimestamp(message.getTimestamp());
+
+      String displayName = apiDatabase.getUserDisplayName();
+      if (displayName != null) {
+        LokiProfile profile = LokiProfile.newBuilder().setDisplayName(displayName).build();
+        builder.setProfile(profile);
+      }
+
+      container.setDataMessage(builder);
     }
 
-    return container.setDataMessage(builder).build().toByteArray();
+    return container.build().toByteArray();
   }
 
   private byte[] createCallContent(SignalServiceCallMessage callMessage) {
