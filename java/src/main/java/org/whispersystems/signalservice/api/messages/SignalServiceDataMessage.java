@@ -35,6 +35,7 @@ public class SignalServiceDataMessage {
   // Loki
   private final boolean                                 isFriendRequest;
   private final Optional<PreKeyBundle>                  preKeyBundle;
+  private final boolean                                 isBackgroundMessage;
 
   /**
    * Construct a SignalServiceDataMessage with a body and no attachments.
@@ -108,7 +109,7 @@ public class SignalServiceDataMessage {
    * @param expiresInSeconds The number of seconds in which a message should disappear after having been seen.
    */
   public SignalServiceDataMessage(long timestamp, SignalServiceGroup group, List<SignalServiceAttachment> attachments, String body, int expiresInSeconds) {
-    this(timestamp, group, attachments, body, false, expiresInSeconds, false, null, false, null, null, null, null);
+    this(timestamp, group, attachments, body, false, expiresInSeconds, false, null, false, null, null, null, null, body == null);
   }
 
   /**
@@ -126,9 +127,9 @@ public class SignalServiceDataMessage {
                                   String body, boolean endSession, int expiresInSeconds,
                                   boolean expirationUpdate, byte[] profileKey, boolean profileKeyUpdate,
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
-                                  Sticker sticker)
+                                  Sticker sticker, boolean isBackgroundMessage)
   {
-    this(timestamp, group, attachments, body, endSession, expiresInSeconds, expirationUpdate, profileKey, profileKeyUpdate, quote, sharedContacts, previews, sticker, false, null);
+    this(timestamp, group, attachments, body, endSession, expiresInSeconds, expirationUpdate, profileKey, profileKeyUpdate, quote, sharedContacts, previews, sticker, false, null, isBackgroundMessage);
   }
 
   /**
@@ -148,7 +149,7 @@ public class SignalServiceDataMessage {
                                   String body, boolean endSession, int expiresInSeconds,
                                   boolean expirationUpdate, byte[] profileKey, boolean profileKeyUpdate,
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
-                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle)
+                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle, boolean isBackgroundMessage)
   {
     this.timestamp             = timestamp;
     this.body                  = Optional.fromNullable(body);
@@ -162,6 +163,7 @@ public class SignalServiceDataMessage {
     this.sticker               = Optional.fromNullable(sticker);
     this.isFriendRequest       = isFriendRequest;
     this.preKeyBundle          = Optional.fromNullable(preKeyBundle);
+    this.isBackgroundMessage   = isBackgroundMessage;
 
     if (attachments != null && !attachments.isEmpty()) {
       this.attachments = Optional.of(attachments);
@@ -259,6 +261,7 @@ public class SignalServiceDataMessage {
     return isFriendRequest;
   }
   public Optional<PreKeyBundle> getPreKeyBundle() { return preKeyBundle; }
+  public boolean isBackgroundMessage() { return isBackgroundMessage; }
 
   public static class Builder {
 
@@ -379,7 +382,7 @@ public class SignalServiceDataMessage {
       return new SignalServiceDataMessage(timestamp, group, attachments, body, endSession,
                                           expiresInSeconds, expirationUpdate, profileKey,
                                           profileKeyUpdate, quote, sharedContacts, previews,
-                                          sticker, isFriendRequest, preKeyBundle);
+                                          sticker, isFriendRequest, preKeyBundle, false);
     }
   }
 
