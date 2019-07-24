@@ -469,7 +469,7 @@ public class SignalServiceMessageSender {
   private byte[] createMessageContent(SignalServiceDataMessage message) throws IOException {
     Content.Builder         container = Content.newBuilder();
 
-    // Loki: Set the pre key bundle if needed
+    // Loki - Set the pre key bundle if needed
     if (message.getPreKeyBundle().isPresent()) {
       PreKeyBundle preKeyBundle = message.getPreKeyBundle().get();
       PrekeyBundleMessage.Builder preKeyBuilder = PrekeyBundleMessage.newBuilder()
@@ -484,7 +484,7 @@ public class SignalServiceMessageSender {
       container.setPreKeyBundleMessage(preKeyBuilder);
     }
 
-    // Loki: Background messages don't need a data message field
+    // Loki - Background messages don't need a data message
     if (!message.isBackgroundMessage()) {
       DataMessage.Builder builder = DataMessage.newBuilder();
       List<AttachmentPointer> pointers = createAttachmentPointers(message.getAttachments());
