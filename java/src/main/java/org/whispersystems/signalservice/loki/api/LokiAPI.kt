@@ -235,7 +235,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             if (newMessageCount == 1) {
                 Log.d("Loki", "Retrieved 1 new message.")
             } else if (newMessageCount != 0) {
-                Log.d("Loki", "Retrieved ${newMessages.count()} new messages.")
+                Log.d("Loki", "Retrieved $newMessageCount new messages.")
             }
             return newMessages
         } else {
