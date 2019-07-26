@@ -340,8 +340,7 @@ public class SignalServiceCipher {
                                         quote,
                                         sharedContacts,
                                         previews,
-                                        sticker,
-                      false);
+                                        sticker);
   }
 
   private SignalServiceSyncMessage createSynchronizeMessage(Metadata metadata, SyncMessage content)
