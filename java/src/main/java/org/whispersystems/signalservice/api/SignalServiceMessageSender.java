@@ -10,6 +10,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.whispersystems.libsignal.InvalidKeyException;
 import org.whispersystems.libsignal.SessionBuilder;
+import org.whispersystems.libsignal.SessionCipher;
 import org.whispersystems.libsignal.SignalProtocolAddress;
 import org.whispersystems.libsignal.logging.Log;
 import org.whispersystems.libsignal.state.PreKeyBundle;
@@ -1263,10 +1264,13 @@ public class SignalServiceMessageSender {
       }
     }
 
-    try {
-      return cipher.encrypt(signalProtocolAddress, unidentifiedAccess, plaintext);
-    } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
-      throw new UntrustedIdentityException("Untrusted on send", recipient.getNumber(), e.getUntrustedIdentity());
+    // Ensure all session building processing has been done
+    synchronized (SessionCipher.SESSION_LOCK) {
+      try {
+        return cipher.encrypt(signalProtocolAddress, unidentifiedAccess, plaintext);
+      } catch (org.whispersystems.libsignal.UntrustedIdentityException e) {
+        throw new UntrustedIdentityException("Untrusted on send", recipient.getNumber(), e.getUntrustedIdentity());
+      }
     }
   }
 
