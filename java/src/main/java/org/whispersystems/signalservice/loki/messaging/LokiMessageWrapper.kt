@@ -52,7 +52,7 @@ object LokiMessageWrapper {
         try {
             val requestBuilder = WebSocketRequestMessage.newBuilder()
             requestBuilder.verb = "PUT"
-            requestBuilder.path = "api/v1/message"
+            requestBuilder.path = "/api/v1/message"
             requestBuilder.id = SecureRandom.getInstance("SHA1PRNG").nextLong()
             requestBuilder.body = envelope.toByteString()
             val messageBuilder = WebSocketMessage.newBuilder()
