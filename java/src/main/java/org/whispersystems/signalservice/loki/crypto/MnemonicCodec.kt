@@ -51,7 +51,7 @@ class MnemonicCodec(private val languageFileDirectory: File) {
         }
     }
 
-    sealed class DecodingError(val description: String) : Error() {
+    sealed class DecodingError(val description: String) : Exception() {
         object Generic : DecodingError("Something went wrong. Please check your mnemonic and try again.")
         object InputTooShort : DecodingError("Looks like you didn't enter enough words. Please check your mnemonic and try again.")
         object MissingLastWord : DecodingError("You seem to be missing the last word of your mnemonic. Please check what you entered and try again.")
