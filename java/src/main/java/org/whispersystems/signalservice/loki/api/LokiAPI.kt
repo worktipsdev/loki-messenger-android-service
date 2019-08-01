@@ -1,7 +1,6 @@
 package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
-import nl.komponents.kovenant.all
 import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
@@ -173,28 +172,26 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             return invoke(LokiAPITarget.Method.SendMessage, target, destination, parameters)
         }
         fun sendLokiMessageUsingSwarmAPI(): Promise<Set<RawResponsePromise>, Exception> {
-            return retryIfNeeded(maxRetryCount) {
-                val powPromise = lokiMessage.calculatePoW()
-                val swarmPromise = LokiSwarmAPI(database).getTargetSnodes(destination)
-                all(powPromise, swarmPromise).map {
-                    val lokiMessageWithPoW = it[0] as LokiMessage
-                    val swarm = it[1] as List<*>
-                    swarm.map {
-                        sendLokiMessage(lokiMessageWithPoW, it as LokiAPITarget).map { rawResponse ->
-                            val json = rawResponse as? Map<*, *>
-                            val powDifficulty = json?.get("difficulty") as? Int
-                            if (powDifficulty != null) {
-                                if (powDifficulty != LokiAPI.powDifficulty) {
-                                    Log.d("Loki", "Setting proof of work difficulty to $powDifficulty.")
-                                    LokiAPI.powDifficulty = powDifficulty
+            return lokiMessage.calculatePoW().bind { lokiMessageWithPoW ->
+                retryIfNeeded(maxRetryCount) {
+                    LokiSwarmAPI(database).getTargetSnodes(destination).map { swarm ->
+                        swarm.map { target ->
+                            sendLokiMessage(lokiMessageWithPoW, target).map { rawResponse ->
+                                val json = rawResponse as? Map<*, *>
+                                val powDifficulty = json?.get("difficulty") as? Int
+                                if (powDifficulty != null) {
+                                    if (powDifficulty != LokiAPI.powDifficulty) {
+                                        Log.d("Loki", "Setting proof of work difficulty to $powDifficulty.")
+                                        LokiAPI.powDifficulty = powDifficulty
+                                    }
+                                } else {
+                                    Log.d("Loki", "Failed to update proof of work difficulty from: ${rawResponse.prettifiedDescription()}.")
                                 }
-                            } else {
-                                Log.d("Loki", "Failed to update proof of work difficulty from: ${rawResponse.prettifiedDescription()}.")
+                                rawResponse
                             }
-                            rawResponse
-                        }
-                    }.toSet()
-                }.get()
+                        }.toSet()
+                    }.get()
+                }
             }
         }
         val peer = LokiP2PAPI.shared.peerInfo[destination]
