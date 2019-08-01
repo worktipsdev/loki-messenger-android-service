@@ -44,8 +44,9 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
         if (randomSnodePool.isEmpty()) {
             val target = seedNodePool.random()
             val url = "$target/json_rpc"
-            Log.d("Loki", "Invoking get_service_nodes on $target.")
-            val body = RequestBody.create(MediaType.get("application/json"), "{ \"method\" : \"get_service_nodes\" }")
+            Log.d("Loki", "Invoking get_n_service_nodes on $target.")
+            val parameters = "{ \"method\" : \"get_n_service_nodes\", \"params\" : { \"active_only\" : true, \"limit\" : 24, \"fields\" : { \"public_ip\" : true, \"storage_port\" : true } } }"
+            val body = RequestBody.create(MediaType.get("application/json"), parameters)
             val request = Request.Builder().url(url).post(body)
             val connection = OkHttpClient()
             val deferred = deferred<LokiAPITarget, Exception>()
