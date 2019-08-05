@@ -14,10 +14,10 @@ public object LokiGroupChatAPI {
     public val publicChatID: Long = 1
 
     @JvmStatic
-    public fun getMessages(channelID: Long): Promise<List<LokiGroupMessage>, Exception> {
-        Log.d("Loki", "Getting messages for group chat with ID: $channelID.")
+    public fun getMessages(groupID: Long): Promise<List<LokiGroupMessage>, Exception> {
+        Log.d("Loki", "Getting messages for group chat with ID: $groupID.")
         val queryParameters = "include_annotations=1&count=-$batchCount"
-        val url = "$serverURL/channels/$channelID/messages?$queryParameters"
+        val url = "$serverURL/channels/$groupID/messages?$queryParameters"
         val request = Request.Builder().url(url).get()
         val connection = OkHttpClient()
         val deferred = deferred<List<LokiGroupMessage>, Exception>()
@@ -58,9 +58,9 @@ public object LokiGroupChatAPI {
     }
 
     @JvmStatic
-    public fun sendMessage(message: LokiGroupMessage, channelID: Long): Promise<Unit, Exception> {
-        Log.d("Loki", "Sending message to group chat with ID: $channelID.")
-        val url = "$serverURL/channels/$channelID/messages"
+    public fun sendMessage(message: LokiGroupMessage, groupID: Long): Promise<Unit, Exception> {
+        Log.d("Loki", "Sending message to group chat with ID: $groupID.")
+        val url = "$serverURL/channels/$groupID/messages"
         val parameters = message.toJSON()
         val body = RequestBody.create(MediaType.get("application/json"), parameters)
         val request = Request.Builder().url(url).header("Authorization", "Bearer loki").post(body)
