@@ -9,10 +9,10 @@ import java.io.IOException
 
 public object LokiGroupChatAPI {
     private val serverURL = "https://chat.lokinet.org"
-    private val pollInterval = 5
     private val batchCount = 20
 
-    public fun getMessages(channelID: String): Promise<List<LokiGroupMessage>, Exception> {
+    @JvmStatic
+    public fun getMessages(channelID: Long): Promise<List<LokiGroupMessage>, Exception> {
         Log.d("Loki", "Getting messages for group chat with ID: $channelID.")
         val queryParameters = "include_annotations=1&count=-$batchCount"
         val url = "$serverURL/channels/$channelID/messages?$queryParameters"
@@ -55,7 +55,8 @@ public object LokiGroupChatAPI {
         return deferred.promise
     }
 
-    public fun sendMessage(message: LokiGroupMessage, channelID: String): Promise<Unit, Exception> {
+    @JvmStatic
+    public fun sendMessage(message: LokiGroupMessage, channelID: Long): Promise<Unit, Exception> {
         Log.d("Loki", "Sending message to group chat with ID: $channelID.")
         val url = "$serverURL/channels/$channelID/messages"
         val parameters = message.toJSON()
