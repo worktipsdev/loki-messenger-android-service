@@ -63,7 +63,7 @@ internal class LokiGroupChatAPI {
         val url = "$serverURL/channels/$channelID/messages"
         val parameters = message.toJSON()
         val body = RequestBody.create(MediaType.get("application/json"), parameters)
-        val request = Request.Builder().url(url).post(body)
+        val request = Request.Builder().url(url).header("Authorization", "Bearer loki").post(body)
         val connection = OkHttpClient()
         val deferred = deferred<Unit, Exception>()
         connection.newCall(request.build()).enqueue(object : Callback {
