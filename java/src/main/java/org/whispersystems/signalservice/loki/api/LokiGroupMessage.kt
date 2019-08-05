@@ -1,6 +1,6 @@
 package org.whispersystems.signalservice.loki.api
 
-internal data class LokiGroupMessage(
+public data class LokiGroupMessage(
         internal val id: String?,
         internal val hexEncodedPublicKey: String,
         internal val displayName: String,

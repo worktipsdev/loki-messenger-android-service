@@ -7,13 +7,10 @@ import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import java.io.IOException
 
-internal class LokiGroupChatAPI {
-
-    companion object {
-        private val serverURL = "https://chat.lokinet.org"
-        private val pollInterval = 5
-        private val batchCount = 20
-    }
+public object LokiGroupChatAPI {
+    private val serverURL = "https://chat.lokinet.org"
+    private val pollInterval = 5
+    private val batchCount = 20
 
     public fun getMessages(channelID: String): Promise<List<LokiGroupMessage>, Exception> {
         Log.d("Loki", "Getting messages for group chat with ID: $channelID.")
