@@ -9,7 +9,7 @@ import java.io.IOException
 
 public object LokiGroupChatAPI {
     private val serverURL = "https://chat.lokinet.org"
-    private val batchCount = 20
+    private val batchCount = 80
     @JvmStatic
     public val publicChatID: Long = 1
 
@@ -34,7 +34,7 @@ public object LokiGroupChatAPI {
                             val x2 = x1["annotations"] as? List<*> ?: return@mapNotNull null
                             val x3 = x2.firstOrNull() as? Map<*, *> ?: return@mapNotNull null
                             val x4 = x3["value"] as? Map<*, *> ?: return@mapNotNull null
-                            val id = x4["id"] as? String ?: return@mapNotNull null
+                            val id = x4["id"] as? String ?: x1["id"] as? String ?: return@mapNotNull null
                             val hexEncodedPublicKey = x4["source"] as? String ?: return@mapNotNull null
                             val displayName = x4["from"] as? String ?: return@mapNotNull null
                             @Suppress("NAME_SHADOWING") val body = x1["text"] as? String ?: return@mapNotNull null
