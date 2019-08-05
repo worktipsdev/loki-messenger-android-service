@@ -1,11 +1,11 @@
 package org.whispersystems.signalservice.loki.api
 
 public data class LokiGroupMessage(
-        internal val id: String?,
-        internal val hexEncodedPublicKey: String,
-        internal val displayName: String,
-        internal val body: String,
-        internal var timestamp: Long
+        public val id: String?,
+        public val hexEncodedPublicKey: String,
+        public val displayName: String,
+        public val body: String,
+        public var timestamp: Long
 ) {
 
     constructor(hexEncodedPublicKey: String, displayName: String, body: String, timestamp: Long)
