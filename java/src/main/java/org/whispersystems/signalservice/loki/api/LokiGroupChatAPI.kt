@@ -9,7 +9,7 @@ import java.io.IOException
 
 public object LokiGroupChatAPI {
     private val serverURL = "https://chat.lokinet.org"
-    private val batchCount = 80
+    private val batchCount = 8
     @JvmStatic
     public val publicChatID: Long = 1
 
