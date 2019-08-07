@@ -989,7 +989,7 @@ public class SignalServiceMessageSender {
       // TODO: PoW
       // Update the message and thread if needed
       if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-        messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
+        messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING);
         long threadID = threadDatabase.getThreadID(messageID);
         threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENDING);
       }
@@ -1034,7 +1034,7 @@ public class SignalServiceMessageSender {
                 if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
                 // Update the message and thread if needed
                 if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-                  messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
+                  messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_FAILED);
                   long threadID = threadDatabase.getThreadID(messageID);
                   threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
                 }
@@ -1052,7 +1052,7 @@ public class SignalServiceMessageSender {
         public Unit invoke(Exception exception) { // The snode is unreachable
           // Update the message and thread if needed
           if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-            messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
+            messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_FAILED);
             long threadID = threadDatabase.getThreadID(messageID);
             threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
           }
