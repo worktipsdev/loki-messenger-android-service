@@ -12,7 +12,7 @@ class LokiP2PAPI private constructor(private val userHexEncodedPublicKey: String
     /**
      * The pinging interval for offline users.
      */
-    private val offlinePingInterval = 2 * 60
+    private val offlinePingInterval = 2 * 60 * 1000
     // endregion
 
     // region Types
