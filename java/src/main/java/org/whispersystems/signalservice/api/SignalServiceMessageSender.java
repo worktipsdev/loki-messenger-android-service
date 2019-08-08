@@ -987,8 +987,9 @@ public class SignalServiceMessageSender {
       new LokiGroupChatAPI(userPublicKey, apiDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatID()).success(new Function1<LokiGroupMessage, Unit>() {
 
         @Override
-        public Unit invoke(LokiGroupMessage lokiGroupMessage) {
+        public Unit invoke(LokiGroupMessage message) {
           @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>) future[0];
+          apiDatabase.setMessageID(messageID, message.getId());
           f.set(Unit.INSTANCE);
           return Unit.INSTANCE;
         }
