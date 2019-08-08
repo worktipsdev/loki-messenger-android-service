@@ -40,7 +40,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                 val x2 = x1["annotations"] as? List<*> ?: return@mapNotNull null
                                 val x3 = x2.firstOrNull() as? Map<*, *> ?: return@mapNotNull null
                                 val x4 = x3["value"] as? Map<*, *> ?: return@mapNotNull null
-                                val id = x4["id"] as? String ?: (x1["id"] as? Int)?.toString() ?: return@mapNotNull null
+                                val id = x1["id"] as? Long ?: (x1["id"] as? Int)?.toLong() ?: return@mapNotNull null
                                 val hexEncodedPublicKey = x4["source"] as? String ?: return@mapNotNull null
                                 val displayName = x4["from"] as? String ?: return@mapNotNull null
                                 @Suppress("NAME_SHADOWING") val body = x1["text"] as? String ?: return@mapNotNull null
@@ -84,7 +84,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                         @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
                         try {
                             val messageAsJSON = body["data"] as Map<*, *>
-                            val id = (messageAsJSON["id"] as Int).toString()
+                            val id = messageAsJSON["id"] as? Long ?: (messageAsJSON["id"] as Int).toLong()
                             val displayName = database.getUserDisplayName() ?: "Anonymous"
                             val text = messageAsJSON["text"] as String
                             val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
