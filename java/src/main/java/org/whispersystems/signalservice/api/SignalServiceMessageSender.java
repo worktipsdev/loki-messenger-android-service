@@ -977,7 +977,6 @@ public class SignalServiceMessageSender {
                                         byte[]                       content,
                                         boolean                      online,
                                         boolean                      isFriendRequest)
-      throws UntrustedIdentityException, IOException
   {
     final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
     if (recipient.getNumber().equals("network.loki.messenger.publicChat")) {
@@ -988,7 +987,7 @@ public class SignalServiceMessageSender {
 
         @Override
         public Unit invoke(LokiGroupMessage message) {
-          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>) future[0];
+          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
           apiDatabase.setMessageID(messageID, message.getId());
           f.set(Unit.INSTANCE);
           return Unit.INSTANCE;
@@ -997,7 +996,7 @@ public class SignalServiceMessageSender {
 
         @Override
         public Unit invoke(Exception exception) {
-          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>) future[0];
+          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
           f.setException(exception);
           return Unit.INSTANCE;
         }
@@ -1049,7 +1048,7 @@ public class SignalServiceMessageSender {
                     long threadID = threadDatabase.getThreadID(messageID);
                     threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENT);
                   }
-                  @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>) future[0];
+                  @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
                   f.set(Unit.INSTANCE);
                   return Unit.INSTANCE;
                 }
@@ -1067,7 +1066,7 @@ public class SignalServiceMessageSender {
                     long threadID = threadDatabase.getThreadID(messageID);
                     threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
                   }
-                  @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>) future[0];
+                  @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
                   f.setException(exception);
                   return Unit.INSTANCE;
                 }
@@ -1085,17 +1084,17 @@ public class SignalServiceMessageSender {
               long threadID = threadDatabase.getThreadID(messageID);
               threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
             }
-            @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>) future[0];
+            @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
             f.setException(exception);
             return Unit.INSTANCE;
           }
         });
       } catch (Exception exception) {
-        @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>) future[0];
+        @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
         f.setException(exception);
       }
     }
-    @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>) future[0];
+    @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
     try {
       f.get();
       return SendMessageResult.success(recipient, false, false);
