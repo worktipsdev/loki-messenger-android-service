@@ -979,10 +979,10 @@ public class SignalServiceMessageSender {
                                         boolean                      isFriendRequest)
   {
     final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
-    if (recipient.getNumber().equals("network.loki.messenger.publicChat")) {
+    if (recipient.getNumber().equals(LokiGroupChatAPI.getServerURL())) {
       String displayName = apiDatabase.getUserDisplayName();
       if (displayName == null) displayName = "Anonymous";
-      LokiGroupMessage message = new LokiGroupMessage(userPublicKey, displayName, "test", timestamp);
+      LokiGroupMessage message = new LokiGroupMessage(userPublicKey, displayName, "test", timestamp, LokiGroupChatAPI.getPublicChatMessageType());
       new LokiGroupChatAPI(userPublicKey, apiDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatID()).success(new Function1<LokiGroupMessage, Unit>() {
 
         @Override

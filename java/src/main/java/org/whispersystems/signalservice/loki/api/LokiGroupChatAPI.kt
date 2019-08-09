@@ -13,8 +13,11 @@ import java.util.*
 public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
 
     companion object {
-        private val serverURL = "https://chat.lokinet.org"
+        @JvmStatic
+        public val serverURL = "https://chat.lokinet.org"
         private val batchCount = 8
+        @JvmStatic
+        public val publicChatMessageType = "network.loki.messenger.publicChat"
         @JvmStatic
         public val publicChatID: Long = 1
     }
@@ -47,7 +50,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val displayName = x4["from"] as String
                                     @Suppress("NAME_SHADOWING") val body = x1["text"] as String
                                     val timestamp = x4["timestamp"] as Long
-                                    LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp)
+                                    LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType)
                                 } catch (exception: Exception) {
                                     Log.d("Loki", "Couldn't parse message from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
                                     return@mapNotNull null
@@ -97,7 +100,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                             val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
                             val dateAsString = messageAsJSON["created_at"] as String
                             val timestamp = format.parse(dateAsString).time
-                            @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp)
+                            @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType)
                             deferred.resolve(message)
                         } catch (exception: Exception) {
                             Log.d("Loki", "Couldn't parse message for group chat with ID: $groupID.")
