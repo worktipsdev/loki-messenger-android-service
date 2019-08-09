@@ -1,7 +1,7 @@
 package org.whispersystems.signalservice.loki.api
 
 public data class LokiGroupMessage(
-        public val id: Long?,
+        public val serverID: Long?,
         public val hexEncodedPublicKey: String,
         public val displayName: String,
         public val body: String,

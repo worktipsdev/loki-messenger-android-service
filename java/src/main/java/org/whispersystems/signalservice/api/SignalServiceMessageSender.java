@@ -988,7 +988,7 @@ public class SignalServiceMessageSender {
         @Override
         public Unit invoke(LokiGroupMessage message) {
           @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-          apiDatabase.updateMessageIDIfNeeded(messageID, message.getId());
+          apiDatabase.setMessageServerID(messageID, message.getServerID());
           f.set(Unit.INSTANCE);
           return Unit.INSTANCE;
         }

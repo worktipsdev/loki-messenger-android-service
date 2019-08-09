@@ -41,13 +41,13 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val x2 = x1["annotations"] as List<*>
                                     val x3 = x2.first() as Map<*, *>
                                     val x4 = x3["value"] as Map<*, *>
-                                    val id = x1["id"] as? Long ?: (x1["id"] as Int).toLong()
+                                    val serverID = x1["id"] as? Long ?: (x1["id"] as Int).toLong()
                                     val hexEncodedPublicKey = x4["source"] as String
                                     if (hexEncodedPublicKey == userHexEncodedPublicKey) return@mapNotNull null
                                     val displayName = x4["from"] as String
                                     @Suppress("NAME_SHADOWING") val body = x1["text"] as String
                                     val timestamp = x4["timestamp"] as Long
-                                    LokiGroupMessage(id, hexEncodedPublicKey, displayName, body, timestamp)
+                                    LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp)
                                 } catch (exception: Exception) {
                                     Log.d("Loki", "Couldn't parse message from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
                                     return@mapNotNull null
@@ -91,13 +91,13 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                             val bodyAsString = response.body()!!.string()
                             @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
                             val messageAsJSON = body["data"] as Map<*, *>
-                            val id = messageAsJSON["id"] as? Long ?: (messageAsJSON["id"] as Int).toLong()
+                            val serverID = messageAsJSON["id"] as? Long ?: (messageAsJSON["id"] as Int).toLong()
                             val displayName = database.getUserDisplayName() ?: "Anonymous"
                             val text = messageAsJSON["text"] as String
                             val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
                             val dateAsString = messageAsJSON["created_at"] as String
                             val timestamp = format.parse(dateAsString).time
-                            @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(id, userHexEncodedPublicKey, displayName, text, timestamp)
+                            @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp)
                             deferred.resolve(message)
                         } catch (exception: Exception) {
                             Log.d("Loki", "Couldn't parse message for group chat with ID: $groupID.")

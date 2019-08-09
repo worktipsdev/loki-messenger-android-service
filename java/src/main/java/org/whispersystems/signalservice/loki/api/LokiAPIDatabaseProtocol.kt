@@ -9,5 +9,5 @@ interface LokiAPIDatabaseProtocol {
     fun getReceivedMessageHashValues(): Set<String>?
     fun setReceivedMessageHashValues(newValue: Set<String>)
     fun getUserDisplayName(): String?
-    fun updateMessageIDIfNeeded(signalID: Long, lokiID: Long)
+    fun setMessageServerID(id: Long, serverID: Long)
 }
