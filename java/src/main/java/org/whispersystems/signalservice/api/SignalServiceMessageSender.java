@@ -987,25 +987,31 @@ public class SignalServiceMessageSender {
     if (recipient.getNumber().equals(LokiGroupChatAPI.getServerURL())) {
       String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
       if (displayName == null) displayName = "Anonymous";
-      LokiGroupMessage message = new LokiGroupMessage(userHexEncodedPublicKey, displayName, "test", timestamp, LokiGroupChatAPI.getPublicChatMessageType());
-      new LokiGroupChatAPI(userHexEncodedPublicKey, userDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatID()).success(new Function1<LokiGroupMessage, Unit>() {
+      try {
+        String body = SignalServiceProtos.Content.parseFrom(content).getDataMessage().getBody();
+        LokiGroupMessage message = new LokiGroupMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiGroupChatAPI.getPublicChatMessageType());
+        new LokiGroupChatAPI(userHexEncodedPublicKey, userDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatID()).success(new Function1<LokiGroupMessage, Unit>() {
 
-        @Override
-        public Unit invoke(LokiGroupMessage message) {
-          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-          messageDatabase.setServerID(messageID, message.getServerID());
-          f.set(Unit.INSTANCE);
-          return Unit.INSTANCE;
-        }
-      }).fail(new Function1<Exception, Unit>() {
+          @Override
+          public Unit invoke(LokiGroupMessage message) {
+            @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+            messageDatabase.setServerID(messageID, message.getServerID());
+            f.set(Unit.INSTANCE);
+            return Unit.INSTANCE;
+          }
+        }).fail(new Function1<Exception, Unit>() {
 
-        @Override
-        public Unit invoke(Exception exception) {
-          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-          f.setException(exception);
-          return Unit.INSTANCE;
-        }
-      });
+          @Override
+          public Unit invoke(Exception exception) {
+            @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+            f.setException(exception);
+            return Unit.INSTANCE;
+          }
+        });
+      } catch (Exception exception) {
+        @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+        f.setException(exception);
+      }
     } else {
       try {
         OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
