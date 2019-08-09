@@ -31,26 +31,31 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
                     200 -> {
-                        val bodyAsString = response.body()!!.string()
-                        @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
                         try {
+                            val bodyAsString = response.body()!!.string()
+                            val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
                             val messagesAsJSON = body["data"] as List<*>
                             val messages = messagesAsJSON.mapNotNull { messageAsJSON ->
-                                val x1 = messageAsJSON as? Map<*, *> ?: return@mapNotNull null
-                                val x2 = x1["annotations"] as? List<*> ?: return@mapNotNull null
-                                val x3 = x2.firstOrNull() as? Map<*, *> ?: return@mapNotNull null
-                                val x4 = x3["value"] as? Map<*, *> ?: return@mapNotNull null
-                                val id = x1["id"] as? Long ?: (x1["id"] as? Int)?.toLong() ?: return@mapNotNull null
-                                val hexEncodedPublicKey = x4["source"] as? String ?: return@mapNotNull null
-                                if (hexEncodedPublicKey == userHexEncodedPublicKey) return@mapNotNull null
-                                val displayName = x4["from"] as? String ?: return@mapNotNull null
-                                @Suppress("NAME_SHADOWING") val body = x1["text"] as? String ?: return@mapNotNull null
-                                val timestamp = x4["timestamp"] as? Long ?: return@mapNotNull null
-                                LokiGroupMessage(id, hexEncodedPublicKey, displayName, body, timestamp)
+                                try {
+                                    val x1 = messageAsJSON as Map<*, *>
+                                    val x2 = x1["annotations"] as List<*>
+                                    val x3 = x2.first() as Map<*, *>
+                                    val x4 = x3["value"] as Map<*, *>
+                                    val id = x1["id"] as? Long ?: (x1["id"] as Int).toLong()
+                                    val hexEncodedPublicKey = x4["source"] as String
+                                    if (hexEncodedPublicKey == userHexEncodedPublicKey) return@mapNotNull null
+                                    val displayName = x4["from"] as String
+                                    @Suppress("NAME_SHADOWING") val body = x1["text"] as String
+                                    val timestamp = x4["timestamp"] as Long
+                                    LokiGroupMessage(id, hexEncodedPublicKey, displayName, body, timestamp)
+                                } catch (exception: Exception) {
+                                    Log.d("Loki", "Couldn't parse message from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
+                                    return@mapNotNull null
+                                }
                             }
                             deferred.resolve(messages)
                         } catch (exception: Exception) {
-                            Log.d("Loki", "Couldn't parse group message from: ${body.prettifiedDescription()}.")
+                            Log.d("Loki", "Couldn't parse messages for group chat with ID: $groupID.")
                             deferred.reject(exception)
                         }
                     }
@@ -62,6 +67,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
             }
 
             override fun onFailure(call: Call, exception: IOException) {
+                Log.d("Loki", "Couldn't reach group chat server.")
                 deferred.reject(exception)
             }
         })
@@ -81,9 +87,9 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
                     200 -> {
-                        val bodyAsString = response.body()!!.string()
-                        @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
                         try {
+                            val bodyAsString = response.body()!!.string()
+                            @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
                             val messageAsJSON = body["data"] as Map<*, *>
                             val id = messageAsJSON["id"] as? Long ?: (messageAsJSON["id"] as Int).toLong()
                             val displayName = database.getUserDisplayName() ?: "Anonymous"
@@ -91,10 +97,10 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                             val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
                             val dateAsString = messageAsJSON["created_at"] as String
                             val timestamp = format.parse(dateAsString).time
-                            val message = LokiGroupMessage(id, userHexEncodedPublicKey, displayName, text, timestamp)
+                            @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(id, userHexEncodedPublicKey, displayName, text, timestamp)
                             deferred.resolve(message)
                         } catch (exception: Exception) {
-                            Log.d("Loki", "Couldn't parse group message from: ${body.prettifiedDescription()}.")
+                            Log.d("Loki", "Couldn't parse message for group chat with ID: $groupID.")
                             deferred.reject(exception)
                         }
                     }
@@ -106,6 +112,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
             }
 
             override fun onFailure(call: Call, exception: IOException) {
+                Log.d("Loki", "Couldn't reach group chat server.")
                 deferred.reject(exception)
             }
         })
