@@ -85,6 +85,7 @@ import org.whispersystems.signalservice.loki.messaging.LokiSessionDatabaseProtoc
 import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadFriendRequestStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetStatus;
+import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
 
 import java.io.IOException;
@@ -122,12 +123,13 @@ public class SignalServiceMessageSender {
   private final AtomicReference<Optional<SignalServiceMessagePipe>> unidentifiedPipe;
   private final AtomicBoolean                                       isMultiDevice;
 
-  private final String                                              userPublicKey;
+  private final String                                              userHexEncodedPublicKey;
   private final LokiAPIDatabaseProtocol                             apiDatabase;
   private final LokiThreadDatabaseProtocol                          threadDatabase;
   private final LokiMessageDatabaseProtocol                         messageDatabase;
   private final LokiPreKeyBundleDatabaseProtocol                    preKeyBundleDatabase;
-  private final LokiSessionDatabaseProtocol sessionDatabase;
+  private final LokiSessionDatabaseProtocol                         sessionDatabase;
+  private final LokiUserDatabaseProtocol                            userDatabase;
 
   /**
    * Construct a SignalServiceMessageSender.
@@ -147,14 +149,15 @@ public class SignalServiceMessageSender {
                                     Optional<SignalServiceMessagePipe> pipe,
                                     Optional<SignalServiceMessagePipe> unidentifiedPipe,
                                     Optional<EventListener> eventListener,
-                                    String userPublicKey,
+                                    String userHexEncodedPublicKey,
                                     LokiAPIDatabaseProtocol apiDatabase,
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
-                                    LokiSessionDatabaseProtocol sessionDatabase)
+                                    LokiSessionDatabaseProtocol sessionDatabase,
+                                    LokiUserDatabaseProtocol userDatabase)
   {
-    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase, sessionDatabase);
+    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userHexEncodedPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase, sessionDatabase, userDatabase);
   }
 
   public SignalServiceMessageSender(SignalServiceConfiguration urls,
@@ -165,12 +168,13 @@ public class SignalServiceMessageSender {
                                     Optional<SignalServiceMessagePipe> pipe,
                                     Optional<SignalServiceMessagePipe> unidentifiedPipe,
                                     Optional<EventListener> eventListener,
-                                    String userPublicKey,
+                                    String userHexEncodedPublicKey,
                                     LokiAPIDatabaseProtocol apiDatabase,
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
-                                    LokiSessionDatabaseProtocol sessionDatabase)
+                                    LokiSessionDatabaseProtocol sessionDatabase,
+                                    LokiUserDatabaseProtocol userDatabase)
   {
     this.socket               = new PushServiceSocket(urls, credentialsProvider, userAgent);
     this.store                = store;
@@ -179,12 +183,13 @@ public class SignalServiceMessageSender {
     this.unidentifiedPipe     = new AtomicReference<Optional<SignalServiceMessagePipe>>(unidentifiedPipe);
     this.isMultiDevice        = new AtomicBoolean(isMultiDevice);
     this.eventListener        = eventListener;
-    this.userPublicKey        = userPublicKey;
+    this.userHexEncodedPublicKey = userHexEncodedPublicKey;
     this.apiDatabase          = apiDatabase;
     this.threadDatabase       = threadDatabase;
     this.messageDatabase      = messageDatabase;
     this.preKeyBundleDatabase = preKeyBundleDatabase;
     this.sessionDatabase      = sessionDatabase;
+    this.userDatabase         = userDatabase;
   }
 
   /**
@@ -587,7 +592,7 @@ public class SignalServiceMessageSender {
 
     builder.setTimestamp(message.getTimestamp());
 
-    String displayName = apiDatabase.getUserDisplayName();
+    String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
     if (displayName != null) {
       LokiProfile profile = LokiProfile.newBuilder().setDisplayName(displayName).build();
       builder.setProfile(profile);
@@ -980,15 +985,15 @@ public class SignalServiceMessageSender {
   {
     final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
     if (recipient.getNumber().equals(LokiGroupChatAPI.getServerURL())) {
-      String displayName = apiDatabase.getUserDisplayName();
+      String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
       if (displayName == null) displayName = "Anonymous";
-      LokiGroupMessage message = new LokiGroupMessage(userPublicKey, displayName, "test", timestamp, LokiGroupChatAPI.getPublicChatMessageType());
-      new LokiGroupChatAPI(userPublicKey, apiDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatID()).success(new Function1<LokiGroupMessage, Unit>() {
+      LokiGroupMessage message = new LokiGroupMessage(userHexEncodedPublicKey, displayName, "test", timestamp, LokiGroupChatAPI.getPublicChatMessageType());
+      new LokiGroupChatAPI(userHexEncodedPublicKey, userDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatID()).success(new Function1<LokiGroupMessage, Unit>() {
 
         @Override
         public Unit invoke(LokiGroupMessage message) {
           @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-          apiDatabase.setMessageServerID(messageID, message.getServerID());
+          messageDatabase.setServerID(messageID, message.getServerID());
           f.set(Unit.INSTANCE);
           return Unit.INSTANCE;
         }
@@ -1009,7 +1014,7 @@ public class SignalServiceMessageSender {
         // TODO: isPing
         int day = 24 * 60 * 60 * 1000;
         int ttl = isFriendRequest ? 4 * day : day;
-        SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
+        SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userHexEncodedPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
         // TODO: PoW
         // Update the message and thread if needed
         if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
@@ -1017,7 +1022,7 @@ public class SignalServiceMessageSender {
           long threadID = threadDatabase.getThreadID(messageID);
           threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENDING);
         }
-        LokiAPI api = new LokiAPI(userPublicKey, apiDatabase);
+        LokiAPI api = new LokiAPI(userHexEncodedPublicKey, apiDatabase);
         api.sendSignalMessage(messageInfo, new Function0<Unit>() {
 
           @Override
