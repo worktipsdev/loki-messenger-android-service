@@ -23,6 +23,38 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         public val publicChatID: Long = 1
     }
 
+    public fun authorize(): Promise<String, Exception> {
+        Log.d("Loki", "Getting group chat auth token.")
+        val url = "$serverURL/loki/v1/getToken"
+        val body = RequestBody.create(MediaType.get("application/json"), userHexEncodedPublicKey)
+        val request = Request.Builder().url(url).post(body)
+        val connection = OkHttpClient()
+        val deferred = deferred<String, Exception>()
+        connection.newCall(request.build()).enqueue(object : Callback {
+
+            override fun onResponse(call: Call, response: Response) {
+                when (response.code()) {
+                    200 -> {
+                        val bodyAsString = response.body()!!.string()
+                        @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
+                        Log.d("Loki", body.prettifiedDescription())
+                        deferred.resolve("token")
+                    }
+                    else -> {
+                        Log.d("Loki", "Couldn't reach group chat server.")
+                        deferred.reject(LokiAPI.Error.Generic)
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call, exception: IOException) {
+                Log.d("Loki", "Couldn't reach group chat server.")
+                deferred.reject(exception)
+            }
+        })
+        return deferred.promise
+    }
+
     public fun getMessages(groupID: Long): Promise<List<LokiGroupMessage>, Exception> {
         Log.d("Loki", "Getting messages for group chat with ID: $groupID.")
         val queryParameters = "include_annotations=1&count=-$batchCount"
