@@ -23,10 +23,11 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         public val publicChatID: Long = 1
     }
 
-    public fun authorize(): Promise<String, Exception> {
+    public fun getEncryptedToken(): Promise<String, Exception> {
         Log.d("Loki", "Getting group chat auth token.")
         val url = "$serverURL/loki/v1/getToken"
-        val body = RequestBody.create(MediaType.get("application/json"), userHexEncodedPublicKey)
+        val parameters = "{ \"pubKey\" : \"$userHexEncodedPublicKey\" }"
+        val body = RequestBody.create(MediaType.get("application/json"), parameters)
         val request = Request.Builder().url(url).post(body)
         val connection = OkHttpClient()
         val deferred = deferred<String, Exception>()
@@ -35,10 +36,15 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
                     200 -> {
-                        val bodyAsString = response.body()!!.string()
-                        @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
-                        Log.d("Loki", body.prettifiedDescription())
-                        deferred.resolve("token")
+                        try {
+                            val bodyAsString = response.body()!!.string()
+                            @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
+                            val encryptedToken = body["cipherText64"] as String
+                            deferred.resolve(encryptedToken)
+                        } catch (exception: Exception) {
+                            Log.d("Loki", "Couldn't parse auth token.")
+                            deferred.reject(exception)
+                        }
                     }
                     else -> {
                         Log.d("Loki", "Couldn't reach group chat server.")
