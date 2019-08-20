@@ -109,7 +109,7 @@ class MnemonicCodec(private val languageFileDirectory: File) {
                 val x = w1 + n * ((n - w1 + w2) % n) + n * n * ((n - w2 + w3) % n)
                 if (x % n != w1.toLong()) { throw DecodingError.Generic }
                 val string = "0000000" + x.toString(16)
-                result += swap(string.substring(string.lastIndex - 8 until string.lastIndex))
+                result += swap(string.substring(string.length - 8 until string.length))
             } catch (e: Exception) {
                 throw DecodingError.InvalidWord
             }
