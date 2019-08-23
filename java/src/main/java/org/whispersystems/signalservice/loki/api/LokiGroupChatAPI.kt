@@ -12,6 +12,7 @@ import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.crypto.DiffieHellman
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
+import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
@@ -26,6 +27,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         public val publicChatMessageType = "network.loki.messenger.publicChat"
         @JvmStatic
         public val publicChatID: Long = 1
+        private val maxRetryCount = 4
     }
 
     private fun getTokenFromServer(): Promise<String, Exception> {
@@ -171,49 +173,55 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
     }
 
     public fun sendMessage(message: LokiGroupMessage, groupID: Long): Promise<LokiGroupMessage, Exception> {
-        return getToken().bind { token ->
-            Log.d("Loki", "Sending message to group chat with ID: $groupID.")
-            val url = "$serverURL/channels/$groupID/messages"
-            val parameters = message.toJSON()
-            val body = RequestBody.create(MediaType.get("application/json"), parameters)
-            val request = Request.Builder().url(url).header("Authorization", "Bearer $token").post(body)
-            val connection = OkHttpClient()
-            val deferred = deferred<LokiGroupMessage, Exception>()
-            connection.newCall(request.build()).enqueue(object : Callback {
+        return retryIfNeeded(maxRetryCount) {
+            getToken().bind { token ->
+                Log.d("Loki", "Sending message to group chat with ID: $groupID.")
+                val url = "$serverURL/channels/$groupID/messages"
+                val parameters = message.toJSON()
+                val body = RequestBody.create(MediaType.get("application/json"), parameters)
+                val request = Request.Builder().url(url).header("Authorization", "Bearer $token").post(body)
+                val connection = OkHttpClient()
+                val deferred = deferred<LokiGroupMessage, Exception>()
+                connection.newCall(request.build()).enqueue(object : Callback {
 
-                override fun onResponse(call: Call, response: Response) {
-                    when (response.code()) {
-                        200 -> {
-                            try {
-                                val bodyAsString = response.body()!!.string()
-                                @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
-                                val messageAsJSON = body["data"] as Map<*, *>
-                                val serverID = messageAsJSON["id"] as? Long ?: (messageAsJSON["id"] as Int).toLong()
-                                val displayName = userDatabase.getDisplayName(userHexEncodedPublicKey) ?: "Anonymous"
-                                val text = messageAsJSON["text"] as String
-                                val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-                                val dateAsString = messageAsJSON["created_at"] as String
-                                val timestamp = format.parse(dateAsString).time
-                                @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType)
-                                deferred.resolve(message)
-                            } catch (exception: Exception) {
-                                Log.d("Loki", "Couldn't parse message for group chat with ID: $groupID.")
-                                deferred.reject(exception)
+                    override fun onResponse(call: Call, response: Response) {
+                        when (response.code()) {
+                            200 -> {
+                                try {
+                                    val bodyAsString = response.body()!!.string()
+                                    @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
+                                    val messageAsJSON = body["data"] as Map<*, *>
+                                    val serverID = messageAsJSON["id"] as? Long ?: (messageAsJSON["id"] as Int).toLong()
+                                    val displayName = userDatabase.getDisplayName(userHexEncodedPublicKey) ?: "Anonymous"
+                                    val text = messageAsJSON["text"] as String
+                                    val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+                                    val dateAsString = messageAsJSON["created_at"] as String
+                                    val timestamp = format.parse(dateAsString).time
+                                    @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType)
+                                    deferred.resolve(message)
+                                } catch (exception: Exception) {
+                                    Log.d("Loki", "Couldn't parse message for group chat with ID: $groupID.")
+                                    deferred.reject(exception)
+                                }
+                            }
+                            401 -> {
+                                Log.d("Loki", "Group chat token expired; dropping it.")
+                                apiDatabase.setGroupChatAuthToken(null, serverURL)
+                            }
+                            else -> {
+                                Log.d("Loki", "Couldn't reach group chat server.")
+                                deferred.reject(LokiAPI.Error.Generic)
                             }
                         }
-                        else -> {
-                            Log.d("Loki", "Couldn't reach group chat server.")
-                            deferred.reject(LokiAPI.Error.Generic)
-                        }
                     }
-                }
 
-                override fun onFailure(call: Call, exception: IOException) {
-                    Log.d("Loki", "Couldn't reach group chat server.")
-                    deferred.reject(exception)
-                }
-            })
-            deferred.promise
+                    override fun onFailure(call: Call, exception: IOException) {
+                        Log.d("Loki", "Couldn't reach group chat server.")
+                        deferred.reject(exception)
+                    }
+                })
+                deferred.promise
+            }.get()
         }
     }
 }
