@@ -82,7 +82,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
     private fun submitToken(token: String): Promise<String, Exception> {
         Log.d("Loki", "Submitting group chat auth token.")
         val url = "$serverURL/loki/v1/submit_challenge"
-        val parameters = "{ \"pubKey\" : \"$userHexEncodedPublicKey\" \"token\" : \"$token\" }"
+        val parameters = "{ \"pubKey\" : \"$userHexEncodedPublicKey\", \"token\" : \"$token\" }"
         val body = RequestBody.create(MediaType.get("application/json"), parameters)
         val request = Request.Builder().url(url).post(body)
         val connection = OkHttpClient()
