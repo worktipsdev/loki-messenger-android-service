@@ -65,8 +65,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                             // If we have length 33 pubkey that means that it's prefixed with 05
                             if (serverPubKey.count() == 33) {
                                 val hex = serverPubKey.joinToString("") { String.format("%02x", it) }
-                                hex.removePrefix("05")
-                                serverPubKey = hex.hexStringToByteArray()
+                                serverPubKey = hex.removePrefix("05").hexStringToByteArray()
                             }
 
                             val tokenData = DiffeHellman.decrypt(cipherText, serverPubKey, userPrivateKey)
