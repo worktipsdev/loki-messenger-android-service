@@ -990,7 +990,8 @@ public class SignalServiceMessageSender {
       try {
         String body = SignalServiceProtos.Content.parseFrom(content).getDataMessage().getBody();
         LokiGroupMessage message = new LokiGroupMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiGroupChatAPI.getPublicChatMessageType());
-        new LokiGroupChatAPI(userHexEncodedPublicKey, userDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatID()).success(new Function1<LokiGroupMessage, Unit>() {
+        byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
+        new LokiGroupChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatID()).success(new Function1<LokiGroupMessage, Unit>() {
 
           @Override
           public Unit invoke(LokiGroupMessage message) {
