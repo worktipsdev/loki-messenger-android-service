@@ -2,7 +2,6 @@ package org.whispersystems.signalservice.loki.crypto
 
 import org.whispersystems.curve25519.Curve25519
 import org.whispersystems.libsignal.util.Hex
-import org.whispersystems.signalservice.loki.utilities.DiffeHellman
 
 /**
  * A session cipher that uses the current user's private key along with a contact's public key to encrypt data.
@@ -40,7 +39,7 @@ class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val h
     fun encrypt(paddedMessageBody: ByteArray): ByteArray? {
         val symmetricKey = symmetricKey ?: return null
         try {
-            return DiffeHellman.encrypt(paddedMessageBody, symmetricKey)
+            return DiffieHellman.encrypt(paddedMessageBody, symmetricKey)
         } catch (e: Exception) {
             e.printStackTrace()
             return null
@@ -52,7 +51,7 @@ class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val h
     fun decrypt(bytes: ByteArray): ByteArray? {
         val symmetricKey = symmetricKey ?: return null
         try {
-            return DiffeHellman.decrypt(bytes, symmetricKey)
+            return DiffieHellman.decrypt(bytes, symmetricKey)
         } catch (e: Exception) {
             e.printStackTrace()
             return null

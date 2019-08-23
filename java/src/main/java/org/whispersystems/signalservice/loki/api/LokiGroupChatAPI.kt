@@ -2,22 +2,21 @@ package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.deferred
+import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.then
-import nl.komponents.kovenant.unwrap
 import okhttp3.*
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Base64
+import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.loki.crypto.DiffieHellman
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol
-import org.whispersystems.signalservice.loki.utilities.DiffeHellman
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
-val String.hexAsByteArray inline get() = this.chunked(2).map { it.toUpperCase().toInt(16).toByte() }.toByteArray()
-
-public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val userDatabase: LokiUserDatabaseProtocol) {
+public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val apiDatabase: LokiAPIDatabaseProtocol, private val userDatabase: LokiUserDatabaseProtocol) {
 
     companion object {
         @JvmStatic
@@ -29,7 +28,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         public val publicChatID: Long = 1
     }
 
-    private fun fetchToken(): Promise<String, Exception> {
+    private fun getTokenFromServer(): Promise<String, Exception> {
         Log.d("Loki", "Getting group chat auth token.")
         val url = "$serverURL/loki/v1/get_challenge?pubKey=$userHexEncodedPublicKey"
         val request = Request.Builder().url(url).get()
@@ -43,21 +42,18 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                         try {
                             val bodyAsString = response.body()!!.string()
                             @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
-                            val cipherText64 = body["cipherText64"] as String
-                            val cipherText = Base64.decode(cipherText64)
-
-                            val serverPubKey64 = body["serverPubKey64"] as String
-                            var serverPubKey = Base64.decode(serverPubKey64)
-
-                            // If we have length 33 pubkey that means that it's prefixed with 05
-                            if (serverPubKey.count() == 33) {
-                                val hex = serverPubKey.joinToString("") { String.format("%02x", it) }
-                                serverPubKey = hex.removePrefix("05").hexAsByteArray
+                            val base64EncodedChallenge = body["cipherText64"] as String
+                            val challenge = Base64.decode(base64EncodedChallenge)
+                            val base64EncodedServerPublicKey = body["serverPubKey64"] as String
+                            var serverPublicKey = Base64.decode(base64EncodedServerPublicKey)
+                            // Discard the "05" prefix if needed
+                            if (serverPublicKey.count() == 33) {
+                                val hexEncodedServerPublicKey = Hex.toStringCondensed(serverPublicKey)
+                                serverPublicKey = Hex.fromStringCondensed(hexEncodedServerPublicKey.removePrefix("05"))
                             }
-
-                            val tokenData = DiffeHellman.decrypt(cipherText, serverPubKey, userPrivateKey)
-                            val token = tokenData.toString(Charsets.UTF_8)
-
+                            // The challenge is prefixed by the 16 bit IV
+                            val tokenAsData = DiffieHellman.decrypt(challenge, serverPublicKey, userPrivateKey)
+                            val token = tokenAsData.toString(Charsets.UTF_8)
                             deferred.resolve(token)
                         } catch (exception: Exception) {
                             Log.d("Loki", "Couldn't parse auth token.")
@@ -91,9 +87,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
 
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
-                    200 -> {
-                        deferred.resolve(token)
-                    }
+                    200 -> deferred.resolve(token)
                     else -> {
                         Log.d("Loki", "Couldn't reach group chat server.")
                         deferred.reject(LokiAPI.Error.Generic)
@@ -110,12 +104,15 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
     }
 
     private fun getToken(): Promise<String, Exception> {
-        val userToken = userDatabase.getToken(serverURL)
-        return if (userToken == null)
-            fetchToken().then { submitToken(it) }.unwrap().then { token ->
-                userDatabase.setToken(token, serverURL)
+        val token = apiDatabase.getGroupChatAuthToken(serverURL)
+        if (token != null) {
+            return Promise.of(token)
+        } else {
+            return getTokenFromServer().bind { submitToken(it) }.then { token ->
+                apiDatabase.setGroupChatAuthToken(token, serverURL)
                 token
-            } else Promise.of(userToken)
+            }
+        }
     }
 
     public fun getMessages(groupID: Long): Promise<List<LokiGroupMessage>, Exception> {
@@ -174,7 +171,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
     }
 
     public fun sendMessage(message: LokiGroupMessage, groupID: Long): Promise<LokiGroupMessage, Exception> {
-        return getToken().then { token ->
+        return getToken().bind { token ->
             Log.d("Loki", "Sending message to group chat with ID: $groupID.")
             val url = "$serverURL/channels/$groupID/messages"
             val parameters = message.toJSON()
@@ -217,6 +214,6 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                 }
             })
             deferred.promise
-        }.unwrap()
+        }
     }
 }
