@@ -24,7 +24,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
     companion object {
         @JvmStatic
         public val serverURL = "https://chat.lokinet.org"
-        private val fallbackBatchCount = 20
+        private val fallbackBatchCount = 40
         private var lastFetchedMessageID: Long? = null
         @JvmStatic
         public val publicChatMessageType = "network.loki.messenger.publicChat"
@@ -120,15 +120,14 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         }
     }
 
-    public fun getMessages(groupID: Long, batchStartMessageID: Long? = null, includeDeletedMessages: Boolean = false): Promise<List<LokiGroupMessage>, Exception> {
+    public fun getMessages(groupID: Long): Promise<List<LokiGroupMessage>, Exception> {
         Log.d("Loki", "Getting messages for group chat with ID: $groupID.")
         var queryParameters = "include_annotations=1"
-        if (includeDeletedMessages) { queryParameters += "&is_deleted=true" }
         val lastFetchedMessageID = lastFetchedMessageID
-        when {
-            batchStartMessageID != null -> queryParameters += "&since_id=$batchStartMessageID"
-            lastFetchedMessageID != null -> queryParameters += "&since_id=$lastFetchedMessageID"
-            else -> queryParameters += "&count=-$fallbackBatchCount"
+        if (lastFetchedMessageID != null) {
+            queryParameters += "&since_id=$lastFetchedMessageID"
+        } else {
+            queryParameters += "&count=-$fallbackBatchCount"
         }
         val url = "$serverURL/channels/$groupID/messages?$queryParameters"
         val request = Request.Builder().url(url).get()
@@ -156,8 +155,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     @Suppress("NAME_SHADOWING") val body = x1["text"] as String
                                     val timestamp = x4["timestamp"] as Long
                                     if (serverID > lastFetchedMessageID ?: 0) { Companion.lastFetchedMessageID = serverID }
-                                    val isDeleted = x1["is_deleted"] as? Boolean ?: false
-                                    LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, isDeleted)
+                                    LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, false)
                                 } catch (exception: Exception) {
                                     Log.d("Loki", "Couldn't parse message from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
                                     return@mapNotNull null
@@ -166,6 +164,54 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                             deferred.resolve(messages)
                         } catch (exception: Exception) {
                             Log.d("Loki", "Couldn't parse messages for group chat with ID: $groupID.")
+                            deferred.reject(exception)
+                        }
+                    }
+                    else -> {
+                        Log.d("Loki", "Couldn't reach group chat server.")
+                        deferred.reject(LokiAPI.Error.Generic)
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call, exception: IOException) {
+                Log.d("Loki", "Couldn't reach group chat server.")
+                deferred.reject(exception)
+            }
+        })
+        return deferred.promise
+    }
+
+    public fun getDeletedMessageIDs(groupID: Long, firstMessageID: Long): Promise<List<Long>, Exception> {
+        Log.d("Loki", "Getting deleted messages for group chat with ID: $groupID.")
+        val queryParameters = "is_deleted=true&since_id=$firstMessageID"
+        val url = "$serverURL/channels/$groupID/messages?$queryParameters"
+        val request = Request.Builder().url(url).get()
+        val connection = OkHttpClient()
+        val deferred = deferred<List<Long>, Exception>()
+        connection.newCall(request.build()).enqueue(object : Callback {
+
+            override fun onResponse(call: Call, response: Response) {
+                when (response.code()) {
+                    200 -> {
+                        try {
+                            val bodyAsString = response.body()!!.string()
+                            val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
+                            val messagesAsJSON = body["data"] as List<*>
+                            val deletedMessageIDs = messagesAsJSON.mapNotNull { messageAsJSON ->
+                                try {
+                                    val x1 = messageAsJSON as Map<*, *>
+                                    val serverID = x1["id"] as? Long ?: (x1["id"] as Int).toLong()
+                                    val isDeleted = x1["is_deleted"] as? Boolean ?: false
+                                    if (isDeleted) serverID else null
+                                } catch (exception: Exception) {
+                                    Log.d("Loki", "Couldn't parse deleted message from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
+                                    return@mapNotNull null
+                                }
+                            }
+                            deferred.resolve(deletedMessageIDs)
+                        } catch (exception: Exception) {
+                            Log.d("Loki", "Couldn't parse deleted messages for group chat with ID: $groupID.")
                             deferred.reject(exception)
                         }
                     }
