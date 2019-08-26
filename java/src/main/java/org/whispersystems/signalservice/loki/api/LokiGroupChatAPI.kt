@@ -25,7 +25,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         @JvmStatic
         public val serverURL = "https://chat.lokinet.org"
         private val fallbackBatchCount = 20
-        private var lastFetchedMessageID: Int? = null
+        private var lastFetchedMessageID: Long? = null
         @JvmStatic
         public val publicChatMessageType = "network.loki.messenger.publicChat"
         @JvmStatic
@@ -154,6 +154,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val displayName = x4["from"] as String
                                     @Suppress("NAME_SHADOWING") val body = x1["text"] as String
                                     val timestamp = x4["timestamp"] as Long
+                                    if (serverID > lastFetchedMessageID ?: 0) { Companion.lastFetchedMessageID = serverID }
                                     LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType)
                                 } catch (exception: Exception) {
                                     Log.d("Loki", "Couldn't parse message from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
