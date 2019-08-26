@@ -25,7 +25,6 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         @JvmStatic
         public val serverURL = "https://chat.lokinet.org"
         private val fallbackBatchCount = 40
-        private var lastFetchedMessageID: Long? = null
         @JvmStatic
         public val publicChatMessageType = "network.loki.messenger.publicChat"
         @JvmStatic
@@ -114,7 +113,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
             return Promise.of(token)
         } else {
             return getTokenFromServer().bind { submitToken(it) }.then { token ->
-                apiDatabase.setGroupChatAuthToken(token, serverURL)
+                apiDatabase.setGroupChatAuthToken(serverURL, token)
                 token
             }
         }
@@ -123,9 +122,10 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
     public fun getMessages(groupID: Long): Promise<List<LokiGroupMessage>, Exception> {
         Log.d("Loki", "Getting messages for group chat with ID: $groupID.")
         var queryParameters = "include_annotations=1"
-        val lastFetchedMessageID = lastFetchedMessageID
-        if (lastFetchedMessageID != null) {
-            queryParameters += "&since_id=$lastFetchedMessageID"
+        val lastMessageServerID = apiDatabase.getLastMessageServerID(groupID)
+        val firstMessageServerID = apiDatabase.getFirstMessageServerID(groupID)
+        if (lastMessageServerID != null) {
+            queryParameters += "&since_id=$lastMessageServerID"
         } else {
             queryParameters += "&count=-$fallbackBatchCount"
         }
@@ -154,7 +154,8 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val displayName = x4["from"] as String
                                     @Suppress("NAME_SHADOWING") val body = x1["text"] as String
                                     val timestamp = x4["timestamp"] as Long
-                                    if (serverID > lastFetchedMessageID ?: 0) { Companion.lastFetchedMessageID = serverID }
+                                    if (serverID > lastMessageServerID ?: 0) { apiDatabase.setLastMessageServerID(groupID, serverID) }
+                                    if (serverID < firstMessageServerID ?: Long.MAX_VALUE) { apiDatabase.setFirstMessageServerID(groupID, serverID) }
                                     LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType)
                                 } catch (exception: Exception) {
                                     Log.d("Loki", "Couldn't parse message from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
@@ -182,9 +183,10 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         return deferred.promise
     }
 
-    public fun getDeletedMessageIDs(groupID: Long, firstMessageID: Long): Promise<List<Long>, Exception> {
+    public fun getDeletedMessageServerIDs(groupID: Long): Promise<List<Long>, Exception> {
         Log.d("Loki", "Getting deleted messages for group chat with ID: $groupID.")
-        val queryParameters = "is_deleted=true&since_id=$firstMessageID"
+        val firstMessageServerID = apiDatabase.getFirstMessageServerID(groupID) ?: 0
+        val queryParameters = "is_deleted=true&since_id=$firstMessageServerID"
         val url = "$serverURL/channels/$groupID/messages?$queryParameters"
         val request = Request.Builder().url(url).get()
         val connection = OkHttpClient()
@@ -198,7 +200,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                             val bodyAsString = response.body()!!.string()
                             val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
                             val messagesAsJSON = body["data"] as List<*>
-                            val deletedMessageIDs = messagesAsJSON.mapNotNull { messageAsJSON ->
+                            val deletedMessageServerIDs = messagesAsJSON.mapNotNull { messageAsJSON ->
                                 try {
                                     val x1 = messageAsJSON as Map<*, *>
                                     val serverID = x1["id"] as? Long ?: (x1["id"] as Int).toLong()
@@ -209,7 +211,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     return@mapNotNull null
                                 }
                             }
-                            deferred.resolve(deletedMessageIDs)
+                            deferred.resolve(deletedMessageServerIDs)
                         } catch (exception: Exception) {
                             Log.d("Loki", "Couldn't parse deleted messages for group chat with ID: $groupID.")
                             deferred.reject(exception)
@@ -264,7 +266,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                             }
                             401 -> {
                                 Log.d("Loki", "Group chat token expired; dropping it.")
-                                apiDatabase.setGroupChatAuthToken(null, serverURL)
+                                apiDatabase.setGroupChatAuthToken(serverURL, null)
                             }
                             else -> {
                                 Log.d("Loki", "Couldn't reach group chat server.")
