@@ -120,9 +120,10 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         }
     }
 
-    public fun getMessages(groupID: Long, batchStartMessageID: Long? = null): Promise<List<LokiGroupMessage>, Exception> {
+    public fun getMessages(groupID: Long, batchStartMessageID: Long? = null, includeDeletedMessages: Boolean = false): Promise<List<LokiGroupMessage>, Exception> {
         Log.d("Loki", "Getting messages for group chat with ID: $groupID.")
-        var queryParameters = "include_annotations=1&is_deleted=true"
+        var queryParameters = "include_annotations=1"
+        if (includeDeletedMessages) { queryParameters += "&is_deleted=true" }
         val lastFetchedMessageID = lastFetchedMessageID
         when {
             batchStartMessageID != null -> queryParameters += "&since_id=$batchStartMessageID"
