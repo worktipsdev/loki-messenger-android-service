@@ -17,6 +17,8 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
+// TODO: Get rid of the duplication around making HTTP requests
+
 public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val apiDatabase: LokiAPIDatabaseProtocol, private val userDatabase: LokiUserDatabaseProtocol) {
 
     companion object {
