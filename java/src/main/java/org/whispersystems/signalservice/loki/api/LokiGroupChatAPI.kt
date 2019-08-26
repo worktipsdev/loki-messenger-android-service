@@ -123,7 +123,6 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         Log.d("Loki", "Getting messages for group chat with ID: $groupID.")
         var queryParameters = "include_annotations=1"
         val lastMessageServerID = apiDatabase.getLastMessageServerID(groupID)
-        val firstMessageServerID = apiDatabase.getFirstMessageServerID(groupID)
         if (lastMessageServerID != null) {
             queryParameters += "&since_id=$lastMessageServerID"
         } else {
@@ -154,6 +153,8 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val displayName = x4["from"] as String
                                     @Suppress("NAME_SHADOWING") val body = x1["text"] as String
                                     val timestamp = x4["timestamp"] as Long
+                                    @Suppress("NAME_SHADOWING") val lastMessageServerID = apiDatabase.getLastMessageServerID(groupID)
+                                    val firstMessageServerID = apiDatabase.getFirstMessageServerID(groupID)
                                     if (serverID > lastMessageServerID ?: 0) { apiDatabase.setLastMessageServerID(groupID, serverID) }
                                     if (serverID < firstMessageServerID ?: Long.MAX_VALUE) { apiDatabase.setFirstMessageServerID(groupID, serverID) }
                                     LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType)
