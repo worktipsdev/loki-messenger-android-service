@@ -22,7 +22,8 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
     companion object {
         @JvmStatic
         public val serverURL = "https://chat.lokinet.org"
-        private val batchCount = 8
+        private val fallbackBatchCount = 20
+        private var lastFetchedMessageID: Int? = null
         @JvmStatic
         public val publicChatMessageType = "network.loki.messenger.publicChat"
         @JvmStatic
@@ -119,7 +120,13 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
 
     public fun getMessages(groupID: Long): Promise<List<LokiGroupMessage>, Exception> {
         Log.d("Loki", "Getting messages for group chat with ID: $groupID.")
-        val queryParameters = "include_annotations=1&count=-$batchCount"
+        var queryParameters = "include_annotations=1"
+        val lastFetchedMessageID = lastFetchedMessageID
+        if (lastFetchedMessageID != null) {
+            queryParameters += "&since_id=$lastFetchedMessageID"
+        } else {
+            queryParameters += "&count=-$fallbackBatchCount"
+        }
         val url = "$serverURL/channels/$groupID/messages?$queryParameters"
         val request = Request.Builder().url(url).get()
         val connection = OkHttpClient()
