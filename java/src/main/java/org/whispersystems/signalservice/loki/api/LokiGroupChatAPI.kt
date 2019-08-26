@@ -233,4 +233,36 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
             }.get()
         }
     }
+
+    public fun deleteMessage(messageID: Long, groupID: Long): Promise<Long, Exception> {
+        return retryIfNeeded(maxRetryCount) {
+            getToken().bind { token ->
+                Log.d("Loki", "Deleting message with ID: $messageID from group chat with ID: $groupID.")
+                val url = "$serverURL/channels/$groupID/messages/$messageID"
+                val request = Request.Builder().url(url).header("Authorization", "Bearer $token").delete()
+                val connection = OkHttpClient()
+                val deferred = deferred<Long, Exception>()
+                connection.newCall(request.build()).enqueue(object : Callback {
+
+                    override fun onResponse(call: Call, response: Response) {
+                        when (response.code()) {
+                            200 -> {
+                                deferred.resolve(messageID)
+                            }
+                            else -> {
+                                Log.d("Loki", "Couldn't reach group chat server.")
+                                deferred.reject(LokiAPI.Error.Generic)
+                            }
+                        }
+                    }
+
+                    override fun onFailure(call: Call, exception: IOException) {
+                        Log.d("Loki", "Couldn't reach group chat server.")
+                        deferred.reject(exception)
+                    }
+                })
+                deferred.promise
+            }.get()
+        }
+    }
 }
