@@ -984,14 +984,14 @@ public class SignalServiceMessageSender {
                                         boolean                      isFriendRequest)
   {
     final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
-    if (recipient.getNumber().equals(LokiGroupChatAPI.getServerURL())) {
+    if (recipient.getNumber().equals(LokiGroupChatAPI.getPublicChatServer())) {
       String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
       if (displayName == null) displayName = "Anonymous";
       try {
         String body = SignalServiceProtos.Content.parseFrom(content).getDataMessage().getBody();
         LokiGroupMessage message = new LokiGroupMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiGroupChatAPI.getPublicChatMessageType());
         byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
-        new LokiGroupChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatID()).success(new Function1<LokiGroupMessage, Unit>() {
+        new LokiGroupChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatServerID(), LokiGroupChatAPI.getPublicChatServer()).success(new Function1<LokiGroupMessage, Unit>() {
 
           @Override
           public Unit invoke(LokiGroupMessage message) {
