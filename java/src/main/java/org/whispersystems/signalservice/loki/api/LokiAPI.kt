@@ -32,7 +32,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         private val defaultTimeout: Long = 20
         private val longPollingTimeout: Long = 40
         internal val defaultMessageTTL = 24 * 60 * 60 * 1000
-        internal var powDifficulty = 100
+        internal var powDifficulty = 40
     }
     // endregion
 
