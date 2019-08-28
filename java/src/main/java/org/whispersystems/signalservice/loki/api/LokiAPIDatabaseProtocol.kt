@@ -8,10 +8,10 @@ interface LokiAPIDatabaseProtocol {
     fun setLastMessageHashValue(target: LokiAPITarget, newValue: String)
     fun getReceivedMessageHashValues(): Set<String>?
     fun setReceivedMessageHashValues(newValue: Set<String>)
-    fun getGroupChatAuthToken(serverURL: String): String?
-    fun setGroupChatAuthToken(serverURL: String, newValue: String?)
-    fun getLastMessageServerID(groupID: Long): Long?
-    fun setLastMessageServerID(groupID: Long, newValue: Long)
-    fun getFirstMessageServerID(groupID: Long): Long?
-    fun setFirstMessageServerID(groupID: Long, newValue: Long)
+    fun getGroupChatAuthToken(server: String): String?
+    fun setGroupChatAuthToken(server: String, newValue: String?)
+    fun getLastMessageServerID(group: Long, server: String): Long?
+    fun setLastMessageServerID(group: Long, server: String, newValue: Long)
+    fun getFirstMessageServerID(group: Long, server: String): Long?
+    fun setFirstMessageServerID(group: Long, server: String, newValue: Long)
 }
