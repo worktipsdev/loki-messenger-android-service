@@ -22,19 +22,26 @@ import java.util.*
 public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val apiDatabase: LokiAPIDatabaseProtocol, private val userDatabase: LokiUserDatabaseProtocol) {
 
     companion object {
-        @JvmStatic
-        public val serverURL = "https://chat.lokinet.org"
+        // region Settings
         private val fallbackBatchCount = 40
+        private val maxRetryCount = 4
+        // endregion
+
+        // region Public Chat
+        @JvmStatic
+        public val publicChatServer = "https://chat.lokinet.org"
         @JvmStatic
         public val publicChatMessageType = "network.loki.messenger.publicChat"
         @JvmStatic
-        public val publicChatID: Long = 1
-        private val maxRetryCount = 4
+        public val publicChatServerID: Long = 1
+        // endregion
     }
 
-    private fun getTokenFromServer(): Promise<String, Exception> {
-        Log.d("Loki", "Getting group chat auth token.")
-        val url = "$serverURL/loki/v1/get_challenge?pubKey=$userHexEncodedPublicKey"
+    // region Private API
+    private fun requestNewAuthToken(server: String): Promise<String, Exception> {
+        Log.d("Loki", "Requesting group chat auth token for server: $server.")
+        val queryParameters = "pubKey=$userHexEncodedPublicKey"
+        val url = "$server/loki/v1/get_challenge?$queryParameters"
         val request = Request.Builder().url(url).get()
         val connection = OkHttpClient()
         val deferred = deferred<String, Exception>()
@@ -60,28 +67,28 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                             val token = tokenAsData.toString(Charsets.UTF_8)
                             deferred.resolve(token)
                         } catch (exception: Exception) {
-                            Log.d("Loki", "Couldn't parse auth token.")
+                            Log.d("Loki", "Couldn't parse group chat auth token for server: $server.")
                             deferred.reject(exception)
                         }
                     }
                     else -> {
-                        Log.d("Loki", "Couldn't reach group chat server.")
+                        Log.d("Loki", "Couldn't reach group chat server: $server.")
                         deferred.reject(LokiAPI.Error.Generic)
                     }
                 }
             }
 
             override fun onFailure(call: Call, exception: IOException) {
-                Log.d("Loki", "Couldn't reach group chat server.")
+                Log.d("Loki", "Couldn't reach group chat server: $server.")
                 deferred.reject(exception)
             }
         })
         return deferred.promise
     }
 
-    private fun submitToken(token: String): Promise<String, Exception> {
-        Log.d("Loki", "Submitting group chat auth token.")
-        val url = "$serverURL/loki/v1/submit_challenge"
+    private fun submitToken(token: String, server: String): Promise<String, Exception> {
+        Log.d("Loki", "Submitting group chat auth token for server: $server.")
+        val url = "$server/loki/v1/submit_challenge"
         val parameters = "{ \"pubKey\" : \"$userHexEncodedPublicKey\", \"token\" : \"$token\" }"
         val body = RequestBody.create(MediaType.get("application/json"), parameters)
         val request = Request.Builder().url(url).post(body)
@@ -93,42 +100,44 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                 when (response.code()) {
                     200 -> deferred.resolve(token)
                     else -> {
-                        Log.d("Loki", "Couldn't reach group chat server.")
+                        Log.d("Loki", "Couldn't reach group chat server: $server.")
                         deferred.reject(LokiAPI.Error.Generic)
                     }
                 }
             }
 
             override fun onFailure(call: Call, exception: IOException) {
-                Log.d("Loki", "Couldn't reach group chat server.")
+                Log.d("Loki", "Couldn't reach group chat server: $server.")
                 deferred.reject(exception)
             }
         })
         return deferred.promise
     }
 
-    private fun getToken(): Promise<String, Exception> {
-        val token = apiDatabase.getGroupChatAuthToken(serverURL)
+    private fun getAuthToken(server: String): Promise<String, Exception> {
+        val token = apiDatabase.getGroupChatAuthToken(server)
         if (token != null) {
             return Promise.of(token)
         } else {
-            return getTokenFromServer().bind { submitToken(it) }.then { token ->
-                apiDatabase.setGroupChatAuthToken(serverURL, token)
+            return requestNewAuthToken(server).bind { submitToken(it, server) }.then { token ->
+                apiDatabase.setGroupChatAuthToken(server, token)
                 token
             }
         }
     }
+    // endregion
 
-    public fun getMessages(groupID: Long): Promise<List<LokiGroupMessage>, Exception> {
-        Log.d("Loki", "Getting messages for group chat with ID: $groupID.")
+    // region Public API
+    public fun getMessages(group: Long, server: String): Promise<List<LokiGroupMessage>, Exception> {
+        Log.d("Loki", "Getting messages for group chat with ID: $group on server: $server.")
         var queryParameters = "include_annotations=1"
-        val lastMessageServerID = apiDatabase.getLastMessageServerID(groupID)
+        val lastMessageServerID = apiDatabase.getLastMessageServerID(group, server)
         if (lastMessageServerID != null) {
             queryParameters += "&since_id=$lastMessageServerID"
         } else {
             queryParameters += "&count=-$fallbackBatchCount"
         }
-        val url = "$serverURL/channels/$groupID/messages?$queryParameters"
+        val url = "$server/channels/$group/messages?$queryParameters"
         val request = Request.Builder().url(url).get()
         val connection = OkHttpClient()
         val deferred = deferred<List<LokiGroupMessage>, Exception>()
@@ -153,42 +162,42 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val displayName = x4["from"] as String
                                     @Suppress("NAME_SHADOWING") val body = x1["text"] as String
                                     val timestamp = x4["timestamp"] as Long
-                                    @Suppress("NAME_SHADOWING") val lastMessageServerID = apiDatabase.getLastMessageServerID(groupID)
-                                    val firstMessageServerID = apiDatabase.getFirstMessageServerID(groupID)
-                                    if (serverID > lastMessageServerID ?: 0) { apiDatabase.setLastMessageServerID(groupID, serverID) }
-                                    if (serverID < firstMessageServerID ?: Long.MAX_VALUE) { apiDatabase.setFirstMessageServerID(groupID, serverID) }
+                                    @Suppress("NAME_SHADOWING") val lastMessageServerID = apiDatabase.getLastMessageServerID(group, server)
+                                    val firstMessageServerID = apiDatabase.getFirstMessageServerID(group, server)
+                                    if (serverID > lastMessageServerID ?: 0) { apiDatabase.setLastMessageServerID(group, server, serverID) }
+                                    if (serverID < firstMessageServerID ?: Long.MAX_VALUE) { apiDatabase.setFirstMessageServerID(group, server, serverID) }
                                     LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType)
                                 } catch (exception: Exception) {
-                                    Log.d("Loki", "Couldn't parse message from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
+                                    Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
                                     return@mapNotNull null
                                 }
                             }
                             deferred.resolve(messages)
                         } catch (exception: Exception) {
-                            Log.d("Loki", "Couldn't parse messages for group chat with ID: $groupID.")
+                            Log.d("Loki", "Couldn't parse messages for group chat with ID: $group on server: $server.")
                             deferred.reject(exception)
                         }
                     }
                     else -> {
-                        Log.d("Loki", "Couldn't reach group chat server.")
+                        Log.d("Loki", "Couldn't reach group chat server: $server.")
                         deferred.reject(LokiAPI.Error.Generic)
                     }
                 }
             }
 
             override fun onFailure(call: Call, exception: IOException) {
-                Log.d("Loki", "Couldn't reach group chat server.")
+                Log.d("Loki", "Couldn't reach group chat server: $server.")
                 deferred.reject(exception)
             }
         })
         return deferred.promise
     }
 
-    public fun getDeletedMessageServerIDs(groupID: Long): Promise<List<Long>, Exception> {
-        Log.d("Loki", "Getting deleted messages for group chat with ID: $groupID.")
-        val firstMessageServerID = apiDatabase.getFirstMessageServerID(groupID) ?: 0
+    public fun getDeletedMessageServerIDs(group: Long, server: String): Promise<List<Long>, Exception> {
+        Log.d("Loki", "Getting deleted messages for group chat with ID: $group on server: $server.")
+        val firstMessageServerID = apiDatabase.getFirstMessageServerID(group, server) ?: 0
         val queryParameters = "is_deleted=true&since_id=$firstMessageServerID"
-        val url = "$serverURL/channels/$groupID/messages?$queryParameters"
+        val url = "$server/channels/$group/messages?$queryParameters"
         val request = Request.Builder().url(url).get()
         val connection = OkHttpClient()
         val deferred = deferred<List<Long>, Exception>()
@@ -208,36 +217,36 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val isDeleted = x1["is_deleted"] as? Boolean ?: false
                                     if (isDeleted) serverID else null
                                 } catch (exception: Exception) {
-                                    Log.d("Loki", "Couldn't parse deleted message from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
+                                    Log.d("Loki", "Couldn't parse deleted message for group chat with ID: $group on server: $server from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
                                     return@mapNotNull null
                                 }
                             }
                             deferred.resolve(deletedMessageServerIDs)
                         } catch (exception: Exception) {
-                            Log.d("Loki", "Couldn't parse deleted messages for group chat with ID: $groupID.")
+                            Log.d("Loki", "Couldn't parse deleted messages for group chat with ID: $group on server: $server.")
                             deferred.reject(exception)
                         }
                     }
                     else -> {
-                        Log.d("Loki", "Couldn't reach group chat server.")
+                        Log.d("Loki", "Couldn't reach group chat server: $server.")
                         deferred.reject(LokiAPI.Error.Generic)
                     }
                 }
             }
 
             override fun onFailure(call: Call, exception: IOException) {
-                Log.d("Loki", "Couldn't reach group chat server.")
+                Log.d("Loki", "Couldn't reach group chat server: $server.")
                 deferred.reject(exception)
             }
         })
         return deferred.promise
     }
 
-    public fun sendMessage(message: LokiGroupMessage, groupID: Long): Promise<LokiGroupMessage, Exception> {
+    public fun sendMessage(message: LokiGroupMessage, group: Long, server: String): Promise<LokiGroupMessage, Exception> {
         return retryIfNeeded(maxRetryCount) {
-            getToken().bind { token ->
-                Log.d("Loki", "Sending message to group chat with ID: $groupID.")
-                val url = "$serverURL/channels/$groupID/messages"
+            getAuthToken(server).bind { token ->
+                Log.d("Loki", "Sending message to group chat with ID: $group on server: $server.")
+                val url = "$server/channels/$group/messages"
                 val parameters = message.toJSON()
                 val body = RequestBody.create(MediaType.get("application/json"), parameters)
                 val request = Request.Builder().url(url).header("Authorization", "Bearer $token").post(body)
@@ -261,23 +270,23 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType)
                                     deferred.resolve(message)
                                 } catch (exception: Exception) {
-                                    Log.d("Loki", "Couldn't parse message for group chat with ID: $groupID.")
+                                    Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server.")
                                     deferred.reject(exception)
                                 }
                             }
                             401 -> {
-                                Log.d("Loki", "Group chat token expired; dropping it.")
-                                apiDatabase.setGroupChatAuthToken(serverURL, null)
+                                Log.d("Loki", "Group chat token for: $server expired; dropping it.")
+                                apiDatabase.setGroupChatAuthToken(server, null)
                             }
                             else -> {
-                                Log.d("Loki", "Couldn't reach group chat server.")
+                                Log.d("Loki", "Couldn't reach group chat server: $server.")
                                 deferred.reject(LokiAPI.Error.Generic)
                             }
                         }
                     }
 
                     override fun onFailure(call: Call, exception: IOException) {
-                        Log.d("Loki", "Couldn't reach group chat server.")
+                        Log.d("Loki", "Couldn't reach group chat server: $server.")
                         deferred.reject(exception)
                     }
                 })
@@ -286,11 +295,11 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         }
     }
 
-    public fun deleteMessage(messageID: Long, groupID: Long): Promise<Long, Exception> {
+    public fun deleteMessage(messageServerID: Long, group: Long, server: String): Promise<Long, Exception> {
         return retryIfNeeded(maxRetryCount) {
-            getToken().bind { token ->
-                Log.d("Loki", "Deleting message with ID: $messageID from group chat with ID: $groupID.")
-                val url = "$serverURL/channels/$groupID/messages/$messageID"
+            getAuthToken(server).bind { token ->
+                Log.d("Loki", "Deleting message with ID: $messageServerID from group chat with ID: $group on server: $server.")
+                val url = "$server/channels/$group/messages/$messageServerID"
                 val request = Request.Builder().url(url).header("Authorization", "Bearer $token").delete()
                 val connection = OkHttpClient()
                 val deferred = deferred<Long, Exception>()
@@ -299,17 +308,17 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                     override fun onResponse(call: Call, response: Response) {
                         when (response.code()) {
                             200 -> {
-                                deferred.resolve(messageID)
+                                deferred.resolve(messageServerID)
                             }
                             else -> {
-                                Log.d("Loki", "Couldn't reach group chat server.")
+                                Log.d("Loki", "Couldn't reach group chat server: $server.")
                                 deferred.reject(LokiAPI.Error.Generic)
                             }
                         }
                     }
 
                     override fun onFailure(call: Call, exception: IOException) {
-                        Log.d("Loki", "Couldn't reach group chat server.")
+                        Log.d("Loki", "Couldn't reach group chat server: $server.")
                         deferred.reject(exception)
                     }
                 })
