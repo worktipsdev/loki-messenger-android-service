@@ -208,6 +208,7 @@ message DataMessage {
   repeated Preview            preview     = 10;
   optional Sticker            sticker     = 11;
   optional LokiProfile profile = 101; // Loki - The profile of the current user
+  optional PublicChatInfo publicChatInfo = 999; // Loki - Internal public chat info
 }
 
 message LokiProfile {
@@ -390,4 +391,9 @@ message GroupDetails {
   optional uint32 expireTimer = 6;
   optional string color       = 7;
   optional bool   blocked     = 8;
+}
+
+// Internal - DO NOT SEND
+message PublicChatInfo {
+    optional uint64 serverID = 1;
 }

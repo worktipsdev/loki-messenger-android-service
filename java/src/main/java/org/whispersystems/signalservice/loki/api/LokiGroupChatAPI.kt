@@ -163,9 +163,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     @Suppress("NAME_SHADOWING") val body = x1["text"] as String
                                     val timestamp = x4["timestamp"] as Long
                                     @Suppress("NAME_SHADOWING") val lastMessageServerID = apiDatabase.getLastMessageServerID(group, server)
-                                    val firstMessageServerID = apiDatabase.getFirstMessageServerID(group, server)
                                     if (serverID > lastMessageServerID ?: 0) { apiDatabase.setLastMessageServerID(group, server, serverID) }
-                                    if (serverID < firstMessageServerID ?: Long.MAX_VALUE) { apiDatabase.setFirstMessageServerID(group, server, serverID) }
                                     LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType)
                                 } catch (exception: Exception) {
                                     Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
@@ -195,9 +193,14 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
 
     public fun getDeletedMessageServerIDs(group: Long, server: String): Promise<List<Long>, Exception> {
         Log.d("Loki", "Getting deleted messages for group chat with ID: $group on server: $server.")
-        val firstMessageServerID = apiDatabase.getFirstMessageServerID(group, server) ?: 0
-        val queryParameters = "is_deleted=true&since_id=$firstMessageServerID"
-        val url = "$server/channels/$group/messages?$queryParameters"
+        val queryParameters: String
+        val lastDeletionServerID = apiDatabase.getLastDeletionServerID(group, server)
+        if (lastDeletionServerID != null) {
+            queryParameters = "since_id=$lastDeletionServerID"
+        } else {
+            queryParameters = "count=$fallbackBatchCount"
+        }
+        val url = "$server/loki/v1/channel/$group/deletes?$queryParameters"
         val request = Request.Builder().url(url).get()
         val connection = OkHttpClient()
         val deferred = deferred<List<Long>, Exception>()
@@ -209,15 +212,17 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                         try {
                             val bodyAsString = response.body()!!.string()
                             val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
-                            val messagesAsJSON = body["data"] as List<*>
-                            val deletedMessageServerIDs = messagesAsJSON.mapNotNull { messageAsJSON ->
+                            val deletions = body["data"] as List<*>
+                            val deletedMessageServerIDs = deletions.mapNotNull { deletionAsString ->
                                 try {
-                                    val x1 = messageAsJSON as Map<*, *>
-                                    val serverID = x1["id"] as? Long ?: (x1["id"] as Int).toLong()
-                                    val isDeleted = x1["is_deleted"] as? Boolean ?: false
-                                    if (isDeleted) serverID else null
+                                    val deletion = deletionAsString as Map<*, *>
+                                    val serverID = deletion["id"] as? Long ?: (deletion["id"] as Int).toLong()
+                                    val messageServerID = deletion["message_id"] as? Long ?: (deletion["message_id"] as Int).toLong()
+                                    @Suppress("NAME_SHADOWING") val lastDeletionServerID = apiDatabase.getLastDeletionServerID(group, server)
+                                    if (serverID > (lastDeletionServerID ?: 0)) { apiDatabase.setLastDeletionServerID(group, server, serverID) }
+                                    messageServerID
                                 } catch (exception: Exception) {
-                                    Log.d("Loki", "Couldn't parse deleted message for group chat with ID: $group on server: $server from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
+                                    Log.d("Loki", "Couldn't parse deleted message for group chat with ID: $group on server: $server from: ${deletionAsString?.prettifiedDescription() ?: "null"}.")
                                     return@mapNotNull null
                                 }
                             }

@@ -137,7 +137,7 @@ public final class SignalServiceProtos {
      * <code>optional bool isPtpMessage = 999;</code>
      *
      * <pre>
-     * Loki: This field is only here as a helper
+     * Loki - This field is only here as a helper
      * It shouldn't be set when sending a message
      * </pre>
      */
@@ -146,7 +146,7 @@ public final class SignalServiceProtos {
      * <code>optional bool isPtpMessage = 999;</code>
      *
      * <pre>
-     * Loki: This field is only here as a helper
+     * Loki - This field is only here as a helper
      * It shouldn't be set when sending a message
      * </pre>
      */
@@ -682,7 +682,7 @@ public final class SignalServiceProtos {
      * <code>optional bool isPtpMessage = 999;</code>
      *
      * <pre>
-     * Loki: This field is only here as a helper
+     * Loki - This field is only here as a helper
      * It shouldn't be set when sending a message
      * </pre>
      */
@@ -693,7 +693,7 @@ public final class SignalServiceProtos {
      * <code>optional bool isPtpMessage = 999;</code>
      *
      * <pre>
-     * Loki: This field is only here as a helper
+     * Loki - This field is only here as a helper
      * It shouldn't be set when sending a message
      * </pre>
      */
@@ -1554,7 +1554,7 @@ public final class SignalServiceProtos {
        * <code>optional bool isPtpMessage = 999;</code>
        *
        * <pre>
-       * Loki: This field is only here as a helper
+       * Loki - This field is only here as a helper
        * It shouldn't be set when sending a message
        * </pre>
        */
@@ -1565,7 +1565,7 @@ public final class SignalServiceProtos {
        * <code>optional bool isPtpMessage = 999;</code>
        *
        * <pre>
-       * Loki: This field is only here as a helper
+       * Loki - This field is only here as a helper
        * It shouldn't be set when sending a message
        * </pre>
        */
@@ -1576,7 +1576,7 @@ public final class SignalServiceProtos {
        * <code>optional bool isPtpMessage = 999;</code>
        *
        * <pre>
-       * Loki: This field is only here as a helper
+       * Loki - This field is only here as a helper
        * It shouldn't be set when sending a message
        * </pre>
        */
@@ -1590,7 +1590,7 @@ public final class SignalServiceProtos {
        * <code>optional bool isPtpMessage = 999;</code>
        *
        * <pre>
-       * Loki: This field is only here as a helper
+       * Loki - This field is only here as a helper
        * It shouldn't be set when sending a message
        * </pre>
        */
@@ -9239,6 +9239,32 @@ public final class SignalServiceProtos {
      * </pre>
      */
     org.whispersystems.signalservice.internal.push.SignalServiceProtos.LokiProfileOrBuilder getProfileOrBuilder();
+
+    // optional .signalservice.PublicChatInfo publicChatInfo = 999;
+    /**
+     * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+     *
+     * <pre>
+     * Loki - Internal public chat info
+     * </pre>
+     */
+    boolean hasPublicChatInfo();
+    /**
+     * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+     *
+     * <pre>
+     * Loki - Internal public chat info
+     * </pre>
+     */
+    org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo getPublicChatInfo();
+    /**
+     * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+     *
+     * <pre>
+     * Loki - Internal public chat info
+     * </pre>
+     */
+    org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfoOrBuilder getPublicChatInfoOrBuilder();
   }
   /**
    * Protobuf type {@code signalservice.DataMessage}
@@ -9390,6 +9416,19 @@ public final class SignalServiceProtos {
                 profile_ = subBuilder.buildPartial();
               }
               bitField0_ |= 0x00000100;
+              break;
+            }
+            case 7994: {
+              org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.Builder subBuilder = null;
+              if (((bitField0_ & 0x00000200) == 0x00000200)) {
+                subBuilder = publicChatInfo_.toBuilder();
+              }
+              publicChatInfo_ = input.readMessage(org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(publicChatInfo_);
+                publicChatInfo_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00000200;
               break;
             }
           }
@@ -20469,6 +20508,40 @@ public final class SignalServiceProtos {
       return profile_;
     }
 
+    // optional .signalservice.PublicChatInfo publicChatInfo = 999;
+    public static final int PUBLICCHATINFO_FIELD_NUMBER = 999;
+    private org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo publicChatInfo_;
+    /**
+     * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+     *
+     * <pre>
+     * Loki - Internal public chat info
+     * </pre>
+     */
+    public boolean hasPublicChatInfo() {
+      return ((bitField0_ & 0x00000200) == 0x00000200);
+    }
+    /**
+     * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+     *
+     * <pre>
+     * Loki - Internal public chat info
+     * </pre>
+     */
+    public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo getPublicChatInfo() {
+      return publicChatInfo_;
+    }
+    /**
+     * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+     *
+     * <pre>
+     * Loki - Internal public chat info
+     * </pre>
+     */
+    public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfoOrBuilder getPublicChatInfoOrBuilder() {
+      return publicChatInfo_;
+    }
+
     private void initFields() {
       body_ = "";
       attachments_ = java.util.Collections.emptyList();
@@ -20482,6 +20555,7 @@ public final class SignalServiceProtos {
       preview_ = java.util.Collections.emptyList();
       sticker_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.DataMessage.Sticker.getDefaultInstance();
       profile_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.LokiProfile.getDefaultInstance();
+      publicChatInfo_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.getDefaultInstance();
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -20530,6 +20604,9 @@ public final class SignalServiceProtos {
       }
       if (((bitField0_ & 0x00000100) == 0x00000100)) {
         output.writeMessage(101, profile_);
+      }
+      if (((bitField0_ & 0x00000200) == 0x00000200)) {
+        output.writeMessage(999, publicChatInfo_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -20587,6 +20664,10 @@ public final class SignalServiceProtos {
       if (((bitField0_ & 0x00000100) == 0x00000100)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(101, profile_);
+      }
+      if (((bitField0_ & 0x00000200) == 0x00000200)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(999, publicChatInfo_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -20703,6 +20784,7 @@ public final class SignalServiceProtos {
           getPreviewFieldBuilder();
           getStickerFieldBuilder();
           getProfileFieldBuilder();
+          getPublicChatInfoFieldBuilder();
         }
       }
       private static Builder create() {
@@ -20763,6 +20845,12 @@ public final class SignalServiceProtos {
           profileBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000800);
+        if (publicChatInfoBuilder_ == null) {
+          publicChatInfo_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.getDefaultInstance();
+        } else {
+          publicChatInfoBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00001000);
         return this;
       }
 
@@ -20869,6 +20957,14 @@ public final class SignalServiceProtos {
           result.profile_ = profile_;
         } else {
           result.profile_ = profileBuilder_.build();
+        }
+        if (((from_bitField0_ & 0x00001000) == 0x00001000)) {
+          to_bitField0_ |= 0x00000200;
+        }
+        if (publicChatInfoBuilder_ == null) {
+          result.publicChatInfo_ = publicChatInfo_;
+        } else {
+          result.publicChatInfo_ = publicChatInfoBuilder_.build();
         }
         result.bitField0_ = to_bitField0_;
         onBuilt();
@@ -20992,6 +21088,9 @@ public final class SignalServiceProtos {
         }
         if (other.hasProfile()) {
           mergeProfile(other.getProfile());
+        }
+        if (other.hasPublicChatInfo()) {
+          mergePublicChatInfo(other.getPublicChatInfo());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -22451,6 +22550,159 @@ public final class SignalServiceProtos {
           profile_ = null;
         }
         return profileBuilder_;
+      }
+
+      // optional .signalservice.PublicChatInfo publicChatInfo = 999;
+      private org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo publicChatInfo_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.getDefaultInstance();
+      private com.google.protobuf.SingleFieldBuilder<
+          org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.Builder, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfoOrBuilder> publicChatInfoBuilder_;
+      /**
+       * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+       *
+       * <pre>
+       * Loki - Internal public chat info
+       * </pre>
+       */
+      public boolean hasPublicChatInfo() {
+        return ((bitField0_ & 0x00001000) == 0x00001000);
+      }
+      /**
+       * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+       *
+       * <pre>
+       * Loki - Internal public chat info
+       * </pre>
+       */
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo getPublicChatInfo() {
+        if (publicChatInfoBuilder_ == null) {
+          return publicChatInfo_;
+        } else {
+          return publicChatInfoBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+       *
+       * <pre>
+       * Loki - Internal public chat info
+       * </pre>
+       */
+      public Builder setPublicChatInfo(org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo value) {
+        if (publicChatInfoBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          publicChatInfo_ = value;
+          onChanged();
+        } else {
+          publicChatInfoBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00001000;
+        return this;
+      }
+      /**
+       * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+       *
+       * <pre>
+       * Loki - Internal public chat info
+       * </pre>
+       */
+      public Builder setPublicChatInfo(
+          org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.Builder builderForValue) {
+        if (publicChatInfoBuilder_ == null) {
+          publicChatInfo_ = builderForValue.build();
+          onChanged();
+        } else {
+          publicChatInfoBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00001000;
+        return this;
+      }
+      /**
+       * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+       *
+       * <pre>
+       * Loki - Internal public chat info
+       * </pre>
+       */
+      public Builder mergePublicChatInfo(org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo value) {
+        if (publicChatInfoBuilder_ == null) {
+          if (((bitField0_ & 0x00001000) == 0x00001000) &&
+              publicChatInfo_ != org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.getDefaultInstance()) {
+            publicChatInfo_ =
+              org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.newBuilder(publicChatInfo_).mergeFrom(value).buildPartial();
+          } else {
+            publicChatInfo_ = value;
+          }
+          onChanged();
+        } else {
+          publicChatInfoBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00001000;
+        return this;
+      }
+      /**
+       * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+       *
+       * <pre>
+       * Loki - Internal public chat info
+       * </pre>
+       */
+      public Builder clearPublicChatInfo() {
+        if (publicChatInfoBuilder_ == null) {
+          publicChatInfo_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.getDefaultInstance();
+          onChanged();
+        } else {
+          publicChatInfoBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00001000);
+        return this;
+      }
+      /**
+       * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+       *
+       * <pre>
+       * Loki - Internal public chat info
+       * </pre>
+       */
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.Builder getPublicChatInfoBuilder() {
+        bitField0_ |= 0x00001000;
+        onChanged();
+        return getPublicChatInfoFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+       *
+       * <pre>
+       * Loki - Internal public chat info
+       * </pre>
+       */
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfoOrBuilder getPublicChatInfoOrBuilder() {
+        if (publicChatInfoBuilder_ != null) {
+          return publicChatInfoBuilder_.getMessageOrBuilder();
+        } else {
+          return publicChatInfo_;
+        }
+      }
+      /**
+       * <code>optional .signalservice.PublicChatInfo publicChatInfo = 999;</code>
+       *
+       * <pre>
+       * Loki - Internal public chat info
+       * </pre>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.Builder, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfoOrBuilder> 
+          getPublicChatInfoFieldBuilder() {
+        if (publicChatInfoBuilder_ == null) {
+          publicChatInfoBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.Builder, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfoOrBuilder>(
+                  publicChatInfo_,
+                  getParentForChildren(),
+                  isClean());
+          publicChatInfo_ = null;
+        }
+        return publicChatInfoBuilder_;
       }
 
       // @@protoc_insertion_point(builder_scope:signalservice.DataMessage)
@@ -40250,6 +40502,410 @@ public final class SignalServiceProtos {
     // @@protoc_insertion_point(class_scope:signalservice.GroupDetails)
   }
 
+  public interface PublicChatInfoOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // optional uint64 serverID = 1;
+    /**
+     * <code>optional uint64 serverID = 1;</code>
+     */
+    boolean hasServerID();
+    /**
+     * <code>optional uint64 serverID = 1;</code>
+     */
+    long getServerID();
+  }
+  /**
+   * Protobuf type {@code signalservice.PublicChatInfo}
+   *
+   * <pre>
+   * Internal - DO NOT SEND
+   * </pre>
+   */
+  public static final class PublicChatInfo extends
+      com.google.protobuf.GeneratedMessage
+      implements PublicChatInfoOrBuilder {
+    // Use PublicChatInfo.newBuilder() to construct.
+    private PublicChatInfo(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private PublicChatInfo(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final PublicChatInfo defaultInstance;
+    public static PublicChatInfo getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public PublicChatInfo getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private PublicChatInfo(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 8: {
+              bitField0_ |= 0x00000001;
+              serverID_ = input.readUInt64();
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.whispersystems.signalservice.internal.push.SignalServiceProtos.internal_static_signalservice_PublicChatInfo_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.whispersystems.signalservice.internal.push.SignalServiceProtos.internal_static_signalservice_PublicChatInfo_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.class, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<PublicChatInfo> PARSER =
+        new com.google.protobuf.AbstractParser<PublicChatInfo>() {
+      public PublicChatInfo parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new PublicChatInfo(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<PublicChatInfo> getParserForType() {
+      return PARSER;
+    }
+
+    private int bitField0_;
+    // optional uint64 serverID = 1;
+    public static final int SERVERID_FIELD_NUMBER = 1;
+    private long serverID_;
+    /**
+     * <code>optional uint64 serverID = 1;</code>
+     */
+    public boolean hasServerID() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional uint64 serverID = 1;</code>
+     */
+    public long getServerID() {
+      return serverID_;
+    }
+
+    private void initFields() {
+      serverID_ = 0L;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeUInt64(1, serverID_);
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeUInt64Size(1, serverID_);
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code signalservice.PublicChatInfo}
+     *
+     * <pre>
+     * Internal - DO NOT SEND
+     * </pre>
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfoOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.whispersystems.signalservice.internal.push.SignalServiceProtos.internal_static_signalservice_PublicChatInfo_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.whispersystems.signalservice.internal.push.SignalServiceProtos.internal_static_signalservice_PublicChatInfo_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.class, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.Builder.class);
+      }
+
+      // Construct using org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        serverID_ = 0L;
+        bitField0_ = (bitField0_ & ~0x00000001);
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.whispersystems.signalservice.internal.push.SignalServiceProtos.internal_static_signalservice_PublicChatInfo_descriptor;
+      }
+
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo getDefaultInstanceForType() {
+        return org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.getDefaultInstance();
+      }
+
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo build() {
+        org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo buildPartial() {
+        org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo result = new org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.serverID_ = serverID_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo) {
+          return mergeFrom((org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo other) {
+        if (other == org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo.getDefaultInstance()) return this;
+        if (other.hasServerID()) {
+          setServerID(other.getServerID());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.whispersystems.signalservice.internal.push.SignalServiceProtos.PublicChatInfo) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      // optional uint64 serverID = 1;
+      private long serverID_ ;
+      /**
+       * <code>optional uint64 serverID = 1;</code>
+       */
+      public boolean hasServerID() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional uint64 serverID = 1;</code>
+       */
+      public long getServerID() {
+        return serverID_;
+      }
+      /**
+       * <code>optional uint64 serverID = 1;</code>
+       */
+      public Builder setServerID(long value) {
+        bitField0_ |= 0x00000001;
+        serverID_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional uint64 serverID = 1;</code>
+       */
+      public Builder clearServerID() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        serverID_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:signalservice.PublicChatInfo)
+    }
+
+    static {
+      defaultInstance = new PublicChatInfo(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:signalservice.PublicChatInfo)
+  }
+
   private static com.google.protobuf.Descriptors.Descriptor
     internal_static_signalservice_Envelope_descriptor;
   private static
@@ -40460,6 +41116,11 @@ public final class SignalServiceProtos {
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_signalservice_GroupDetails_Avatar_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_signalservice_PublicChatInfo_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_signalservice_PublicChatInfo_fieldAccessorTable;
 
   public static com.google.protobuf.Descriptors.FileDescriptor
       getDescriptor() {
@@ -40507,7 +41168,7 @@ public final class SignalServiceProtos {
       "\022\023\n\013description\030\002 \001(\t\032K\n\tIceUpdate\022\n\n\002id" +
       "\030\001 \001(\004\022\016\n\006sdpMid\030\002 \001(\t\022\025\n\rsdpMLineIndex\030" +
       "\003 \001(\r\022\013\n\003sdp\030\004 \001(\t\032\022\n\004Busy\022\n\n\002id\030\001 \001(\004\032\024" +
-      "\n\006Hangup\022\n\n\002id\030\001 \001(\004\"\217\020\n\013DataMessage\022\014\n\004" +
+      "\n\006Hangup\022\n\n\002id\030\001 \001(\004\"\307\020\n\013DataMessage\022\014\n\004" +
       "body\030\001 \001(\t\0225\n\013attachments\030\002 \003(\0132 .signal",
       "service.AttachmentPointer\022*\n\005group\030\003 \001(\013" +
       "2\033.signalservice.GroupContext\022\r\n\005flags\030\004" +
@@ -40518,123 +41179,125 @@ public final class SignalServiceProtos {
       "ontact\0223\n\007preview\030\n \003(\0132\".signalservice." +
       "DataMessage.Preview\0223\n\007sticker\030\013 \001(\0132\".s" +
       "ignalservice.DataMessage.Sticker\022+\n\007prof" +
-      "ile\030e \001(\0132\032.signalservice.LokiProfile\032\351\001",
-      "\n\005Quote\022\n\n\002id\030\001 \001(\004\022\016\n\006author\030\002 \001(\t\022\014\n\004t" +
-      "ext\030\003 \001(\t\022F\n\013attachments\030\004 \003(\01321.signals" +
-      "ervice.DataMessage.Quote.QuotedAttachmen" +
-      "t\032n\n\020QuotedAttachment\022\023\n\013contentType\030\001 \001" +
-      "(\t\022\020\n\010fileName\030\002 \001(\t\0223\n\tthumbnail\030\003 \001(\0132" +
-      " .signalservice.AttachmentPointer\032\304\010\n\007Co" +
-      "ntact\0225\n\004name\030\001 \001(\0132\'.signalservice.Data" +
-      "Message.Contact.Name\0228\n\006number\030\003 \003(\0132(.s" +
-      "ignalservice.DataMessage.Contact.Phone\0227" +
-      "\n\005email\030\004 \003(\0132(.signalservice.DataMessag",
-      "e.Contact.Email\022A\n\007address\030\005 \003(\01320.signa" +
-      "lservice.DataMessage.Contact.PostalAddre" +
-      "ss\0229\n\006avatar\030\006 \001(\0132).signalservice.DataM" +
-      "essage.Contact.Avatar\022\024\n\014organization\030\007 " +
-      "\001(\t\032v\n\004Name\022\021\n\tgivenName\030\001 \001(\t\022\022\n\nfamily" +
-      "Name\030\002 \001(\t\022\016\n\006prefix\030\003 \001(\t\022\016\n\006suffix\030\004 \001" +
-      "(\t\022\022\n\nmiddleName\030\005 \001(\t\022\023\n\013displayName\030\006 " +
-      "\001(\t\032\226\001\n\005Phone\022\r\n\005value\030\001 \001(\t\022;\n\004type\030\002 \001" +
-      "(\0162-.signalservice.DataMessage.Contact.P" +
-      "hone.Type\022\r\n\005label\030\003 \001(\t\"2\n\004Type\022\010\n\004HOME",
-      "\020\001\022\n\n\006MOBILE\020\002\022\010\n\004WORK\020\003\022\n\n\006CUSTOM\020\004\032\226\001\n" +
-      "\005Email\022\r\n\005value\030\001 \001(\t\022;\n\004type\030\002 \001(\0162-.si" +
-      "gnalservice.DataMessage.Contact.Email.Ty" +
-      "pe\022\r\n\005label\030\003 \001(\t\"2\n\004Type\022\010\n\004HOME\020\001\022\n\n\006M" +
-      "OBILE\020\002\022\010\n\004WORK\020\003\022\n\n\006CUSTOM\020\004\032\201\002\n\rPostal" +
-      "Address\022C\n\004type\030\001 \001(\01625.signalservice.Da" +
-      "taMessage.Contact.PostalAddress.Type\022\r\n\005" +
-      "label\030\002 \001(\t\022\016\n\006street\030\003 \001(\t\022\r\n\005pobox\030\004 \001" +
-      "(\t\022\024\n\014neighborhood\030\005 \001(\t\022\014\n\004city\030\006 \001(\t\022\016" +
-      "\n\006region\030\007 \001(\t\022\020\n\010postcode\030\010 \001(\t\022\017\n\007coun",
-      "try\030\t \001(\t\"&\n\004Type\022\010\n\004HOME\020\001\022\010\n\004WORK\020\002\022\n\n" +
-      "\006CUSTOM\020\003\032M\n\006Avatar\0220\n\006avatar\030\001 \001(\0132 .si" +
-      "gnalservice.AttachmentPointer\022\021\n\tisProfi" +
-      "le\030\002 \001(\010\032V\n\007Preview\022\013\n\003url\030\001 \001(\t\022\r\n\005titl" +
-      "e\030\002 \001(\t\022/\n\005image\030\003 \001(\0132 .signalservice.A" +
-      "ttachmentPointer\032m\n\007Sticker\022\016\n\006packId\030\001 " +
-      "\001(\014\022\017\n\007packKey\030\002 \001(\014\022\021\n\tstickerId\030\003 \001(\r\022" +
-      ".\n\004data\030\004 \001(\0132 .signalservice.Attachment" +
-      "Pointer\"M\n\005Flags\022\017\n\013END_SESSION\020\001\022\033\n\027EXP" +
-      "IRATION_TIMER_UPDATE\020\002\022\026\n\022PROFILE_KEY_UP",
-      "DATE\020\004\"\"\n\013LokiProfile\022\023\n\013displayName\030\001 \001" +
-      "(\t\"\036\n\013NullMessage\022\017\n\007padding\030\001 \001(\014\"u\n\016Re" +
-      "ceiptMessage\0220\n\004type\030\001 \001(\0162\".signalservi" +
-      "ce.ReceiptMessage.Type\022\021\n\ttimestamp\030\002 \003(" +
-      "\004\"\036\n\004Type\022\014\n\010DELIVERY\020\000\022\010\n\004READ\020\001\"\214\001\n\rTy" +
-      "pingMessage\022\021\n\ttimestamp\030\001 \001(\004\0223\n\006action" +
-      "\030\002 \001(\0162#.signalservice.TypingMessage.Act" +
-      "ion\022\017\n\007groupId\030\003 \001(\014\"\"\n\006Action\022\013\n\007STARTE" +
-      "D\020\000\022\013\n\007STOPPED\020\001\"\253\001\n\010Verified\022\023\n\013destina" +
-      "tion\030\001 \001(\t\022\023\n\013identityKey\030\002 \001(\014\022,\n\005state",
-      "\030\003 \001(\0162\035.signalservice.Verified.State\022\023\n" +
-      "\013nullMessage\030\004 \001(\014\"2\n\005State\022\013\n\007DEFAULT\020\000" +
-      "\022\014\n\010VERIFIED\020\001\022\016\n\nUNVERIFIED\020\002\"\304\013\n\013SyncM" +
-      "essage\022-\n\004sent\030\001 \001(\0132\037.signalservice.Syn" +
-      "cMessage.Sent\0225\n\010contacts\030\002 \001(\0132#.signal" +
-      "service.SyncMessage.Contacts\0221\n\006groups\030\003" +
-      " \001(\0132!.signalservice.SyncMessage.Groups\022" +
-      "3\n\007request\030\004 \001(\0132\".signalservice.SyncMes" +
-      "sage.Request\022-\n\004read\030\005 \003(\0132\037.signalservi" +
-      "ce.SyncMessage.Read\0223\n\007blocked\030\006 \001(\0132\".s",
-      "ignalservice.SyncMessage.Blocked\022)\n\010veri" +
-      "fied\030\007 \001(\0132\027.signalservice.Verified\022?\n\rc" +
-      "onfiguration\030\t \001(\0132(.signalservice.SyncM" +
-      "essage.Configuration\022\017\n\007padding\030\010 \001(\014\022M\n" +
-      "\024stickerPackOperation\030\n \003(\0132/.signalserv" +
-      "ice.SyncMessage.StickerPackOperation\032\236\002\n" +
-      "\004Sent\022\023\n\013destination\030\001 \001(\t\022\021\n\ttimestamp\030" +
-      "\002 \001(\004\022+\n\007message\030\003 \001(\0132\032.signalservice.D" +
-      "ataMessage\022 \n\030expirationStartTimestamp\030\004" +
-      " \001(\004\022V\n\022unidentifiedStatus\030\005 \003(\0132:.signa",
-      "lservice.SyncMessage.Sent.UnidentifiedDe" +
-      "liveryStatus\032G\n\032UnidentifiedDeliveryStat" +
-      "us\022\023\n\013destination\030\001 \001(\t\022\024\n\014unidentified\030" +
-      "\002 \001(\010\032S\n\010Contacts\022.\n\004blob\030\001 \001(\0132 .signal" +
-      "service.AttachmentPointer\022\027\n\010complete\030\002 " +
-      "\001(\010:\005false\0328\n\006Groups\022.\n\004blob\030\001 \001(\0132 .sig" +
-      "nalservice.AttachmentPointer\032,\n\007Blocked\022" +
-      "\017\n\007numbers\030\001 \003(\t\022\020\n\010groupIds\030\002 \003(\014\032\217\001\n\007R" +
-      "equest\0225\n\004type\030\001 \001(\0162\'.signalservice.Syn" +
-      "cMessage.Request.Type\"M\n\004Type\022\013\n\007UNKNOWN",
-      "\020\000\022\014\n\010CONTACTS\020\001\022\n\n\006GROUPS\020\002\022\013\n\007BLOCKED\020" +
-      "\003\022\021\n\rCONFIGURATION\020\004\032)\n\004Read\022\016\n\006sender\030\001" +
-      " \001(\t\022\021\n\ttimestamp\030\002 \001(\004\032}\n\rConfiguration" +
-      "\022\024\n\014readReceipts\030\001 \001(\010\022&\n\036unidentifiedDe" +
-      "liveryIndicators\030\002 \001(\010\022\030\n\020typingIndicato" +
-      "rs\030\003 \001(\010\022\024\n\014linkPreviews\030\004 \001(\010\032\234\001\n\024Stick" +
-      "erPackOperation\022\016\n\006packId\030\001 \001(\014\022\017\n\007packK" +
-      "ey\030\002 \001(\014\022B\n\004type\030\003 \001(\01624.signalservice.S" +
-      "yncMessage.StickerPackOperation.Type\"\037\n\004" +
-      "Type\022\013\n\007INSTALL\020\000\022\n\n\006REMOVE\020\001\"\337\001\n\021Attach",
-      "mentPointer\022\n\n\002id\030\001 \001(\006\022\023\n\013contentType\030\002" +
-      " \001(\t\022\013\n\003key\030\003 \001(\014\022\014\n\004size\030\004 \001(\r\022\021\n\tthumb" +
-      "nail\030\005 \001(\014\022\016\n\006digest\030\006 \001(\014\022\020\n\010fileName\030\007" +
-      " \001(\t\022\r\n\005flags\030\010 \001(\r\022\r\n\005width\030\t \001(\r\022\016\n\006he" +
-      "ight\030\n \001(\r\022\017\n\007caption\030\013 \001(\t\"\032\n\005Flags\022\021\n\r" +
-      "VOICE_MESSAGE\020\001\"\345\001\n\014GroupContext\022\n\n\002id\030\001" +
-      " \001(\014\022.\n\004type\030\002 \001(\0162 .signalservice.Group" +
-      "Context.Type\022\014\n\004name\030\003 \001(\t\022\017\n\007members\030\004 " +
-      "\003(\t\0220\n\006avatar\030\005 \001(\0132 .signalservice.Atta" +
-      "chmentPointer\"H\n\004Type\022\013\n\007UNKNOWN\020\000\022\n\n\006UP",
-      "DATE\020\001\022\013\n\007DELIVER\020\002\022\010\n\004QUIT\020\003\022\020\n\014REQUEST" +
-      "_INFO\020\004\"\207\002\n\016ContactDetails\022\016\n\006number\030\001 \001" +
-      "(\t\022\014\n\004name\030\002 \001(\t\0224\n\006avatar\030\003 \001(\0132$.signa" +
-      "lservice.ContactDetails.Avatar\022\r\n\005color\030" +
-      "\004 \001(\t\022)\n\010verified\030\005 \001(\0132\027.signalservice." +
-      "Verified\022\022\n\nprofileKey\030\006 \001(\014\022\017\n\007blocked\030" +
-      "\007 \001(\010\022\023\n\013expireTimer\030\010 \001(\r\032-\n\006Avatar\022\023\n\013" +
-      "contentType\030\001 \001(\t\022\016\n\006length\030\002 \001(\r\"\347\001\n\014Gr" +
-      "oupDetails\022\n\n\002id\030\001 \001(\014\022\014\n\004name\030\002 \001(\t\022\017\n\007" +
-      "members\030\003 \003(\t\0222\n\006avatar\030\004 \001(\0132\".signalse",
-      "rvice.GroupDetails.Avatar\022\024\n\006active\030\005 \001(" +
-      "\010:\004true\022\023\n\013expireTimer\030\006 \001(\r\022\r\n\005color\030\007 " +
-      "\001(\t\022\017\n\007blocked\030\010 \001(\010\032-\n\006Avatar\022\023\n\013conten" +
-      "tType\030\001 \001(\t\022\016\n\006length\030\002 \001(\rBE\n.org.whisp" +
-      "ersystems.signalservice.internal.pushB\023S" +
-      "ignalServiceProtos"
+      "ile\030e \001(\0132\032.signalservice.LokiProfile\0226\n",
+      "\016publicChatInfo\030\347\007 \001(\0132\035.signalservice.P" +
+      "ublicChatInfo\032\351\001\n\005Quote\022\n\n\002id\030\001 \001(\004\022\016\n\006a" +
+      "uthor\030\002 \001(\t\022\014\n\004text\030\003 \001(\t\022F\n\013attachments" +
+      "\030\004 \003(\01321.signalservice.DataMessage.Quote" +
+      ".QuotedAttachment\032n\n\020QuotedAttachment\022\023\n" +
+      "\013contentType\030\001 \001(\t\022\020\n\010fileName\030\002 \001(\t\0223\n\t" +
+      "thumbnail\030\003 \001(\0132 .signalservice.Attachme" +
+      "ntPointer\032\304\010\n\007Contact\0225\n\004name\030\001 \001(\0132\'.si" +
+      "gnalservice.DataMessage.Contact.Name\0228\n\006" +
+      "number\030\003 \003(\0132(.signalservice.DataMessage",
+      ".Contact.Phone\0227\n\005email\030\004 \003(\0132(.signalse" +
+      "rvice.DataMessage.Contact.Email\022A\n\007addre" +
+      "ss\030\005 \003(\01320.signalservice.DataMessage.Con" +
+      "tact.PostalAddress\0229\n\006avatar\030\006 \001(\0132).sig" +
+      "nalservice.DataMessage.Contact.Avatar\022\024\n" +
+      "\014organization\030\007 \001(\t\032v\n\004Name\022\021\n\tgivenName" +
+      "\030\001 \001(\t\022\022\n\nfamilyName\030\002 \001(\t\022\016\n\006prefix\030\003 \001" +
+      "(\t\022\016\n\006suffix\030\004 \001(\t\022\022\n\nmiddleName\030\005 \001(\t\022\023" +
+      "\n\013displayName\030\006 \001(\t\032\226\001\n\005Phone\022\r\n\005value\030\001" +
+      " \001(\t\022;\n\004type\030\002 \001(\0162-.signalservice.DataM",
+      "essage.Contact.Phone.Type\022\r\n\005label\030\003 \001(\t" +
+      "\"2\n\004Type\022\010\n\004HOME\020\001\022\n\n\006MOBILE\020\002\022\010\n\004WORK\020\003" +
+      "\022\n\n\006CUSTOM\020\004\032\226\001\n\005Email\022\r\n\005value\030\001 \001(\t\022;\n" +
+      "\004type\030\002 \001(\0162-.signalservice.DataMessage." +
+      "Contact.Email.Type\022\r\n\005label\030\003 \001(\t\"2\n\004Typ" +
+      "e\022\010\n\004HOME\020\001\022\n\n\006MOBILE\020\002\022\010\n\004WORK\020\003\022\n\n\006CUS" +
+      "TOM\020\004\032\201\002\n\rPostalAddress\022C\n\004type\030\001 \001(\01625." +
+      "signalservice.DataMessage.Contact.Postal" +
+      "Address.Type\022\r\n\005label\030\002 \001(\t\022\016\n\006street\030\003 " +
+      "\001(\t\022\r\n\005pobox\030\004 \001(\t\022\024\n\014neighborhood\030\005 \001(\t",
+      "\022\014\n\004city\030\006 \001(\t\022\016\n\006region\030\007 \001(\t\022\020\n\010postco" +
+      "de\030\010 \001(\t\022\017\n\007country\030\t \001(\t\"&\n\004Type\022\010\n\004HOM" +
+      "E\020\001\022\010\n\004WORK\020\002\022\n\n\006CUSTOM\020\003\032M\n\006Avatar\0220\n\006a" +
+      "vatar\030\001 \001(\0132 .signalservice.AttachmentPo" +
+      "inter\022\021\n\tisProfile\030\002 \001(\010\032V\n\007Preview\022\013\n\003u" +
+      "rl\030\001 \001(\t\022\r\n\005title\030\002 \001(\t\022/\n\005image\030\003 \001(\0132 " +
+      ".signalservice.AttachmentPointer\032m\n\007Stic" +
+      "ker\022\016\n\006packId\030\001 \001(\014\022\017\n\007packKey\030\002 \001(\014\022\021\n\t" +
+      "stickerId\030\003 \001(\r\022.\n\004data\030\004 \001(\0132 .signalse" +
+      "rvice.AttachmentPointer\"M\n\005Flags\022\017\n\013END_",
+      "SESSION\020\001\022\033\n\027EXPIRATION_TIMER_UPDATE\020\002\022\026" +
+      "\n\022PROFILE_KEY_UPDATE\020\004\"\"\n\013LokiProfile\022\023\n" +
+      "\013displayName\030\001 \001(\t\"\036\n\013NullMessage\022\017\n\007pad" +
+      "ding\030\001 \001(\014\"u\n\016ReceiptMessage\0220\n\004type\030\001 \001" +
+      "(\0162\".signalservice.ReceiptMessage.Type\022\021" +
+      "\n\ttimestamp\030\002 \003(\004\"\036\n\004Type\022\014\n\010DELIVERY\020\000\022" +
+      "\010\n\004READ\020\001\"\214\001\n\rTypingMessage\022\021\n\ttimestamp" +
+      "\030\001 \001(\004\0223\n\006action\030\002 \001(\0162#.signalservice.T" +
+      "ypingMessage.Action\022\017\n\007groupId\030\003 \001(\014\"\"\n\006" +
+      "Action\022\013\n\007STARTED\020\000\022\013\n\007STOPPED\020\001\"\253\001\n\010Ver",
+      "ified\022\023\n\013destination\030\001 \001(\t\022\023\n\013identityKe" +
+      "y\030\002 \001(\014\022,\n\005state\030\003 \001(\0162\035.signalservice.V" +
+      "erified.State\022\023\n\013nullMessage\030\004 \001(\014\"2\n\005St" +
+      "ate\022\013\n\007DEFAULT\020\000\022\014\n\010VERIFIED\020\001\022\016\n\nUNVERI" +
+      "FIED\020\002\"\304\013\n\013SyncMessage\022-\n\004sent\030\001 \001(\0132\037.s" +
+      "ignalservice.SyncMessage.Sent\0225\n\010contact" +
+      "s\030\002 \001(\0132#.signalservice.SyncMessage.Cont" +
+      "acts\0221\n\006groups\030\003 \001(\0132!.signalservice.Syn" +
+      "cMessage.Groups\0223\n\007request\030\004 \001(\0132\".signa" +
+      "lservice.SyncMessage.Request\022-\n\004read\030\005 \003",
+      "(\0132\037.signalservice.SyncMessage.Read\0223\n\007b" +
+      "locked\030\006 \001(\0132\".signalservice.SyncMessage" +
+      ".Blocked\022)\n\010verified\030\007 \001(\0132\027.signalservi" +
+      "ce.Verified\022?\n\rconfiguration\030\t \001(\0132(.sig" +
+      "nalservice.SyncMessage.Configuration\022\017\n\007" +
+      "padding\030\010 \001(\014\022M\n\024stickerPackOperation\030\n " +
+      "\003(\0132/.signalservice.SyncMessage.StickerP" +
+      "ackOperation\032\236\002\n\004Sent\022\023\n\013destination\030\001 \001" +
+      "(\t\022\021\n\ttimestamp\030\002 \001(\004\022+\n\007message\030\003 \001(\0132\032" +
+      ".signalservice.DataMessage\022 \n\030expiration",
+      "StartTimestamp\030\004 \001(\004\022V\n\022unidentifiedStat" +
+      "us\030\005 \003(\0132:.signalservice.SyncMessage.Sen" +
+      "t.UnidentifiedDeliveryStatus\032G\n\032Unidenti" +
+      "fiedDeliveryStatus\022\023\n\013destination\030\001 \001(\t\022" +
+      "\024\n\014unidentified\030\002 \001(\010\032S\n\010Contacts\022.\n\004blo" +
+      "b\030\001 \001(\0132 .signalservice.AttachmentPointe" +
+      "r\022\027\n\010complete\030\002 \001(\010:\005false\0328\n\006Groups\022.\n\004" +
+      "blob\030\001 \001(\0132 .signalservice.AttachmentPoi" +
+      "nter\032,\n\007Blocked\022\017\n\007numbers\030\001 \003(\t\022\020\n\010grou" +
+      "pIds\030\002 \003(\014\032\217\001\n\007Request\0225\n\004type\030\001 \001(\0162\'.s",
+      "ignalservice.SyncMessage.Request.Type\"M\n" +
+      "\004Type\022\013\n\007UNKNOWN\020\000\022\014\n\010CONTACTS\020\001\022\n\n\006GROU" +
+      "PS\020\002\022\013\n\007BLOCKED\020\003\022\021\n\rCONFIGURATION\020\004\032)\n\004" +
+      "Read\022\016\n\006sender\030\001 \001(\t\022\021\n\ttimestamp\030\002 \001(\004\032" +
+      "}\n\rConfiguration\022\024\n\014readReceipts\030\001 \001(\010\022&" +
+      "\n\036unidentifiedDeliveryIndicators\030\002 \001(\010\022\030" +
+      "\n\020typingIndicators\030\003 \001(\010\022\024\n\014linkPreviews" +
+      "\030\004 \001(\010\032\234\001\n\024StickerPackOperation\022\016\n\006packI" +
+      "d\030\001 \001(\014\022\017\n\007packKey\030\002 \001(\014\022B\n\004type\030\003 \001(\01624" +
+      ".signalservice.SyncMessage.StickerPackOp",
+      "eration.Type\"\037\n\004Type\022\013\n\007INSTALL\020\000\022\n\n\006REM" +
+      "OVE\020\001\"\337\001\n\021AttachmentPointer\022\n\n\002id\030\001 \001(\006\022" +
+      "\023\n\013contentType\030\002 \001(\t\022\013\n\003key\030\003 \001(\014\022\014\n\004siz" +
+      "e\030\004 \001(\r\022\021\n\tthumbnail\030\005 \001(\014\022\016\n\006digest\030\006 \001" +
+      "(\014\022\020\n\010fileName\030\007 \001(\t\022\r\n\005flags\030\010 \001(\r\022\r\n\005w" +
+      "idth\030\t \001(\r\022\016\n\006height\030\n \001(\r\022\017\n\007caption\030\013 " +
+      "\001(\t\"\032\n\005Flags\022\021\n\rVOICE_MESSAGE\020\001\"\345\001\n\014Grou" +
+      "pContext\022\n\n\002id\030\001 \001(\014\022.\n\004type\030\002 \001(\0162 .sig" +
+      "nalservice.GroupContext.Type\022\014\n\004name\030\003 \001" +
+      "(\t\022\017\n\007members\030\004 \003(\t\0220\n\006avatar\030\005 \001(\0132 .si",
+      "gnalservice.AttachmentPointer\"H\n\004Type\022\013\n" +
+      "\007UNKNOWN\020\000\022\n\n\006UPDATE\020\001\022\013\n\007DELIVER\020\002\022\010\n\004Q" +
+      "UIT\020\003\022\020\n\014REQUEST_INFO\020\004\"\207\002\n\016ContactDetai" +
+      "ls\022\016\n\006number\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\0224\n\006avat" +
+      "ar\030\003 \001(\0132$.signalservice.ContactDetails." +
+      "Avatar\022\r\n\005color\030\004 \001(\t\022)\n\010verified\030\005 \001(\0132" +
+      "\027.signalservice.Verified\022\022\n\nprofileKey\030\006" +
+      " \001(\014\022\017\n\007blocked\030\007 \001(\010\022\023\n\013expireTimer\030\010 \001" +
+      "(\r\032-\n\006Avatar\022\023\n\013contentType\030\001 \001(\t\022\016\n\006len" +
+      "gth\030\002 \001(\r\"\347\001\n\014GroupDetails\022\n\n\002id\030\001 \001(\014\022\014",
+      "\n\004name\030\002 \001(\t\022\017\n\007members\030\003 \003(\t\0222\n\006avatar\030" +
+      "\004 \001(\0132\".signalservice.GroupDetails.Avata" +
+      "r\022\024\n\006active\030\005 \001(\010:\004true\022\023\n\013expireTimer\030\006" +
+      " \001(\r\022\r\n\005color\030\007 \001(\t\022\017\n\007blocked\030\010 \001(\010\032-\n\006" +
+      "Avatar\022\023\n\013contentType\030\001 \001(\t\022\016\n\006length\030\002 " +
+      "\001(\r\"\"\n\016PublicChatInfo\022\020\n\010serverID\030\001 \001(\004B" +
+      "E\n.org.whispersystems.signalservice.inte" +
+      "rnal.pushB\023SignalServiceProtos"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -40706,7 +41369,7 @@ public final class SignalServiceProtos {
           internal_static_signalservice_DataMessage_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_DataMessage_descriptor,
-              new java.lang.String[] { "Body", "Attachments", "Group", "Flags", "ExpireTimer", "ProfileKey", "Timestamp", "Quote", "Contact", "Preview", "Sticker", "Profile", });
+              new java.lang.String[] { "Body", "Attachments", "Group", "Flags", "ExpireTimer", "ProfileKey", "Timestamp", "Quote", "Contact", "Preview", "Sticker", "Profile", "PublicChatInfo", });
           internal_static_signalservice_DataMessage_Quote_descriptor =
             internal_static_signalservice_DataMessage_descriptor.getNestedTypes().get(0);
           internal_static_signalservice_DataMessage_Quote_fieldAccessorTable = new
@@ -40893,6 +41556,12 @@ public final class SignalServiceProtos {
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_GroupDetails_Avatar_descriptor,
               new java.lang.String[] { "ContentType", "Length", });
+          internal_static_signalservice_PublicChatInfo_descriptor =
+            getDescriptor().getMessageTypes().get(16);
+          internal_static_signalservice_PublicChatInfo_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_signalservice_PublicChatInfo_descriptor,
+              new java.lang.String[] { "ServerID", });
           return null;
         }
       };
