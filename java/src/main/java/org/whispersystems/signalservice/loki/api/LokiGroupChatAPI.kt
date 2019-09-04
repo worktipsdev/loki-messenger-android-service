@@ -158,7 +158,6 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val x4 = x3["value"] as Map<*, *>
                                     val serverID = x1["id"] as? Long ?: (x1["id"] as Int).toLong()
                                     val hexEncodedPublicKey = x4["source"] as String
-                                    if (hexEncodedPublicKey == userHexEncodedPublicKey) return@mapNotNull null
                                     val displayName = x4["from"] as String
                                     @Suppress("NAME_SHADOWING") val body = x1["text"] as String
                                     val timestamp = x4["timestamp"] as Long
