@@ -8,6 +8,7 @@ import nl.komponents.kovenant.task
 import okhttp3.*
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.loki.utilities.Analytics
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import java.io.IOException
 import java.security.SecureRandom
@@ -74,7 +75,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
                                 try {
                                     deferred.resolve(randomSnodePool.random())
                                 } catch (exception: Exception) {
-                                    Log.d("Loki", "Got a random snode pool from: $target.")
+                                    Log.d("Loki", "Got an empty random snode pool from: $target.")
                                     deferred.reject(LokiAPI.Error.Generic)
                                 }
                             } else {
@@ -83,6 +84,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
                             }
                         }
                         else -> {
+                            Analytics.shared.track("Seed Node Failed")
                             Log.d("Loki", "Couldn't reach $target.")
                             deferred.reject(LokiAPI.Error.Generic)
                         }
@@ -90,6 +92,8 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
                 }
 
                 override fun onFailure(call: Call, exception: IOException) {
+                    Analytics.shared.track("Seed Node Failed")
+                    Log.d("Loki", "Couldn't reach $target.")
                     deferred.reject(exception)
                 }
             })

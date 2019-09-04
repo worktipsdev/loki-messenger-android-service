@@ -87,6 +87,7 @@ import org.whispersystems.signalservice.loki.messaging.LokiThreadFriendRequestSt
 import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
+import org.whispersystems.signalservice.loki.utilities.Analytics;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -1049,9 +1050,8 @@ public class SignalServiceMessageSender {
 
                 @Override
                 public Unit invoke(Map<?, ?> map) {
-                  if (isSuccess[0]) {
-                    return Unit.INSTANCE;
-                  } // Succeed as soon as the first promise succeeds
+                  if (isSuccess[0]) { return Unit.INSTANCE; } // Succeed as soon as the first promise succeeds
+                  Analytics.Companion.getShared().track("Sent Message Using Swarm API");
                   isSuccess[0] = true;
                   // Update the message and thread if needed
                   if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
@@ -1069,9 +1069,8 @@ public class SignalServiceMessageSender {
                 @Override
                 public Unit invoke(Exception exception) {
                   errorCount[0] += 1;
-                  if (errorCount[0] != promiseCount[0]) {
-                    return Unit.INSTANCE;
-                  } // Only error out if all promises failed
+                  if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
+                  Analytics.Companion.getShared().track("Failed to Send Message Using Swarm API");
                   // Update the message and thread if needed
                   if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
                     messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_FAILED);

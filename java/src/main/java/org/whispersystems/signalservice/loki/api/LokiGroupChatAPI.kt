@@ -11,6 +11,7 @@ import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.crypto.DiffieHellman
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol
+import org.whispersystems.signalservice.loki.utilities.Analytics
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
@@ -296,6 +297,10 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                 })
                 deferred.promise
             }.get()
+        }.success {
+            Analytics.shared.track("Group Message Sent")
+        }.fail {
+            Analytics.shared.track("Failed to Send Group Message")
         }
     }
 

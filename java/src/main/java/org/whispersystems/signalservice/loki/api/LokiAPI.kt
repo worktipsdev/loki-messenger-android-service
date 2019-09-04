@@ -12,6 +12,7 @@ import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.messaging.LokiMessageWrapper
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo
+import org.whispersystems.signalservice.loki.utilities.Analytics
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
@@ -87,6 +88,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             val newFailureCount = oldFailureCount + 1
             LokiSwarmAPI.failureCount[target] = newFailureCount
             Log.d("Loki", "Couldn't reach snode at $target; setting failure count to $newFailureCount.")
+            Analytics.shared.track("Unreachable Snode")
             if (newFailureCount >= LokiSwarmAPI.failureThreshold) {
                 Log.d("Loki", "Failure threshold reached for: $target; dropping it.")
                 LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
@@ -108,6 +110,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                     421 -> {
                         // The snode isn't associated with the given public key anymore
                         Log.d("Loki", "Invalidating swarm for: $hexEncodedPublicKey.")
+                        Analytics.shared.track("Migrated Snode")
                         LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey)
                         deferred.reject(Error.SnodeMigrated)
                     }
