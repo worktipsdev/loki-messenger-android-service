@@ -1,6 +1,6 @@
 package org.whispersystems.signalservice.loki.utilities
 
-final class Analytics {
+class Analytics {
     lateinit var trackImplementation: (String) -> Unit // Set in ApplicationContext.java
 
     companion object {
@@ -8,6 +8,6 @@ final class Analytics {
     }
 
     fun track(event: String) {
-        trackImplementation(event)
+        if (::trackImplementation.isInitialized) trackImplementation(event)
     }
 }
