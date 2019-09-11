@@ -989,8 +989,13 @@ public class SignalServiceMessageSender {
       String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
       if (displayName == null) displayName = "Anonymous";
       try {
-        String body = SignalServiceProtos.Content.parseFrom(content).getDataMessage().getBody();
-        LokiGroupMessage message = new LokiGroupMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiGroupChatAPI.getPublicChatMessageType());
+        SignalServiceProtos.DataMessage data = SignalServiceProtos.Content.parseFrom(content).getDataMessage();
+        String body = data.getBody();
+        LokiGroupMessage.Quote quote = null;
+        if (data.hasQuote()) {
+          quote = new LokiGroupMessage.Quote(data.getQuote().getId(), data.getQuote().getAuthor(), data.getQuote().getText());
+        }
+        LokiGroupMessage message = new LokiGroupMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiGroupChatAPI.getPublicChatMessageType(), quote);
         byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
         new LokiGroupChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatServerID(), LokiGroupChatAPI.getPublicChatServer()).success(new Function1<LokiGroupMessage, Unit>() {
 

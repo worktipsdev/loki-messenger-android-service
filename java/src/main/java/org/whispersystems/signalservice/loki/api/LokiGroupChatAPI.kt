@@ -154,6 +154,8 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                             val messages = messagesAsJSON.mapNotNull { messageAsJSON ->
                                 try {
                                     val x1 = messageAsJSON as Map<*, *>
+                                    val isDeleted = (x1["is_deleted"] as? Int == 1)
+                                    if (isDeleted) { return@mapNotNull null }
                                     val x2 = x1["annotations"] as List<*>
                                     val x3 = x2.first() as Map<*, *>
                                     val x4 = x3["value"] as Map<*, *>
@@ -164,7 +166,17 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val timestamp = x4["timestamp"] as Long
                                     @Suppress("NAME_SHADOWING") val lastMessageServerID = apiDatabase.getLastMessageServerID(group, server)
                                     if (serverID > lastMessageServerID ?: 0) { apiDatabase.setLastMessageServerID(group, server, serverID) }
-                                    LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType)
+                                    val quoteAsJSON = x4["quote"] as? Map<*, *>
+                                    val quotedMessageTimestamp = quoteAsJSON?.get("id") as? Long ?: (quoteAsJSON?.get("id") as? Int)?.toLong()
+                                    val quoteeHexEncodedPublicKey = quoteAsJSON?.get("author") as? String
+                                    val quotedMessageBody = quoteAsJSON?.get("text") as? String
+                                    val quote: LokiGroupMessage.Quote?
+                                    if (quotedMessageTimestamp != null && quoteeHexEncodedPublicKey != null && quotedMessageBody != null) {
+                                        quote = LokiGroupMessage.Quote(quotedMessageTimestamp, quoteeHexEncodedPublicKey, quotedMessageBody)
+                                    } else {
+                                        quote = null
+                                    }
+                                    LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote)
                                 } catch (exception: Exception) {
                                     Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
                                     return@mapNotNull null
@@ -272,7 +284,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
                                     val dateAsString = messageAsJSON["created_at"] as String
                                     val timestamp = format.parse(dateAsString).time
-                                    @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType)
+                                    @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote)
                                     deferred.resolve(message)
                                 } catch (exception: Exception) {
                                     Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server.")

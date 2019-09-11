@@ -6,14 +6,32 @@ public data class LokiGroupMessage(
     public val displayName: String,
     public val body: String,
     public val timestamp: Long,
-    public val type: String
+    public val type: String,
+    public val quote: Quote?
 ) {
 
-    constructor(hexEncodedPublicKey: String, displayName: String, body: String, timestamp: Long, type: String)
-        : this(null, hexEncodedPublicKey, displayName, body, timestamp, type)
+    public data class Quote(
+        public val quotedMessageTimestamp: Long,
+        public val quoteeHexEncodedPublicKey: String,
+        public val quotedMessageBody: String
+    ) {
+
+        internal fun toJSON(): String {
+            return "{ \"id\" : $quotedMessageTimestamp, \"author\" : $quoteeHexEncodedPublicKey, \"text\" : $quotedMessageBody }"
+        }
+    }
+
+    constructor(hexEncodedPublicKey: String, displayName: String, body: String, timestamp: Long, type: String, quote: Quote?)
+        : this(null, hexEncodedPublicKey, displayName, body, timestamp, type, quote)
 
     internal fun toJSON(): String {
-        val intermediate = "{ \"timestamp\" : $timestamp, \"from\" : \"$displayName\", \"source\" : \"$hexEncodedPublicKey\" }"
+        var intermediate = "{ "
+        intermediate += "\"timestamp\" : $timestamp, \"from\" : \"$displayName\", \"source\" : \"$hexEncodedPublicKey\""
+        if (quote != null) {
+            intermediate += ", "
+            intermediate += "\"quote\" : ${quote.toJSON()}"
+        }
+        intermediate += " }"
         return "{ \"text\" : \"$body\", \"annotations\" : [ { \"type\" : \"$type\", \"value\" : $intermediate } ] }"
     }
 }
