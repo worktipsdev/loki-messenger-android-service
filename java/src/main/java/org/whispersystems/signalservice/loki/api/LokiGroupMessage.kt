@@ -17,7 +17,7 @@ public data class LokiGroupMessage(
     ) {
 
         internal fun toJSON(): String {
-            return "{ \"id\" : $quotedMessageTimestamp, \"author\" : $quoteeHexEncodedPublicKey, \"text\" : $quotedMessageBody }"
+            return "{ \"id\" : $quotedMessageTimestamp, \"author\" : \"$quoteeHexEncodedPublicKey\", \"text\" : \"$quotedMessageBody\" }"
         }
     }
 
