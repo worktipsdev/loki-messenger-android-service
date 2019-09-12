@@ -38,6 +38,15 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         @JvmStatic
         public val publicChatServerID: Long = 1
         // endregion
+
+        // region Convenience
+        public fun isUserModerator(hexEncodedPublicKey: String, group: Long, server: String): Boolean {
+            if (moderators[server] != null && moderators[server]!![group] != null) {
+                return moderators[server]!![group]!!.contains(hexEncodedPublicKey)
+            }
+            return false
+        }
+        // endregion
     }
 
     // region Private API
@@ -352,7 +361,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         }
     }
 
-    fun getModerators(group: Long, server: String): Promise<Set<String>, Exception> {
+    public fun getModerators(group: Long, server: String): Promise<Set<String>, Exception> {
         val url = "$server/loki/v1/channel/$group/get_moderators"
         val request = Request.Builder().url(url)
         val connection = OkHttpClient()
@@ -392,11 +401,5 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         })
         return deferred.promise
     }
-
-    fun isUserModerator(hexEncodedPublicKey: String, group: Long, server: String): Boolean {
-        if (moderators[server] != null && moderators[server]!![group] != null) {
-            return moderators[server]!![group]!!.contains(hexEncodedPublicKey)
-        }
-        return false
-    }
+    // endregion
 }
