@@ -36,6 +36,61 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         @JvmStatic
         public val publicChatServerID: Long = 1
         // endregion
+
+        // region Moderator
+        private val moderators: HashMap<String, HashMap<Long, Set<String>>> = hashMapOf()
+        // endregion
+
+        fun getModerators(group: Long, server: String): Promise<Set<String>, Exception> {
+            val url = "$server/loki/v1/channel/$group/get_moderators"
+            val request = Request.Builder().url(url)
+            val connection = OkHttpClient()
+            val deferred = deferred<Set<String>, Exception>()
+            connection.newCall(request.build()).enqueue(object : Callback {
+
+                override fun onResponse(call: Call, response: Response) {
+                    when (response.code()) {
+                        200 -> {
+                            try {
+                                val bodyAsString = response.body()!!.string()
+                                @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
+                                @Suppress("UNCHECKED_CAST") val moderators = body["moderators"] as? List<String>
+
+                                // Cache
+                                val moderatorSet = moderators.orEmpty().toSet()
+                                if (Companion.moderators[server] != null) {
+                                    Companion.moderators[server]!![group] = moderatorSet
+                                } else {
+                                    Companion.moderators[server] = hashMapOf(Pair(group, moderatorSet))
+                                }
+
+                                deferred.resolve(moderatorSet)
+                            } catch (exception: Exception) {
+                                Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server.")
+                                deferred.reject(exception)
+                            }
+                        }
+                        else -> {
+                            Log.d("Loki", "Couldn't reach group chat server: $server.")
+                            deferred.reject(LokiAPI.Error.Generic)
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call, exception: IOException) {
+                    Log.d("Loki", "Couldn't reach group chat server: $server.")
+                    deferred.reject(exception)
+                }
+            })
+            return deferred.promise
+        }
+
+        fun isUserModerator(user: String, group: Long, server: String): Boolean {
+            if (moderators[server] != null && moderators[server]!![group] != null) {
+                return moderators[server]!![group]!!.contains(user)
+            }
+            return false
+        }
     }
 
     // region Private API
@@ -347,44 +402,6 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                 })
                 deferred.promise
             }.get()
-        }
-    }
-
-    public fun userHasModerationPermission(group: Long, server: String): Promise<Boolean, Exception> {
-        return getAuthToken(server).bind { token ->
-            val url = "$server/loki/v1/user_info"
-            val request = Request.Builder().url(url).header("Authorization", "Bearer $token").get()
-            val connection = OkHttpClient()
-            val deferred = deferred<Boolean, Exception>()
-            connection.newCall(request.build()).enqueue(object : Callback {
-
-                override fun onResponse(call: Call, response: Response) {
-                    when (response.code()) {
-                        200 -> {
-                            try {
-                                val bodyAsString = response.body()!!.string()
-                                @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
-                                val json = body["data"] as Map<*, *>
-                                val isModerator = json["moderator_status"] as? Boolean ?: false
-                                deferred.resolve(isModerator)
-                            } catch (exception: Exception) {
-                                Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server.")
-                                deferred.reject(exception)
-                            }
-                        }
-                        else -> {
-                            Log.d("Loki", "Couldn't reach group chat server: $server.")
-                            deferred.reject(LokiAPI.Error.Generic)
-                        }
-                    }
-                }
-
-                override fun onFailure(call: Call, exception: IOException) {
-                    Log.d("Loki", "Couldn't reach group chat server: $server.")
-                    deferred.reject(exception)
-                }
-            })
-            deferred.promise
         }
     }
 }
