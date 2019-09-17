@@ -16,7 +16,7 @@ data class LokiServicePreKeyBundleMessage(
     val signature: ByteArray
 ) {
 
-    constructor(preKeyBundle: PreKeyBundle): this(preKeyBundle.identityKey.serialize(), preKeyBundle.deviceId, preKeyBundle.preKeyId,
+    constructor(preKeyBundle: PreKeyBundle) : this(preKeyBundle.identityKey.serialize(), preKeyBundle.deviceId, preKeyBundle.preKeyId,
         preKeyBundle.signedPreKeyId, preKeyBundle.preKey.serialize(), preKeyBundle.signedPreKey.serialize(), preKeyBundle.signedPreKeySignature)
 
     fun getPreKeyBundle(registrationID: Int): PreKeyBundle {
