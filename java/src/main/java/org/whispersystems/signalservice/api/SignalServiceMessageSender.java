@@ -282,6 +282,7 @@ public class SignalServiceMessageSender {
       sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false);
     }
 
+    // Loki - Start session reset if needed
     if (message.isEndSession()) {
       sessionDatabase.archiveAllSessions(recipient.getNumber());
 
