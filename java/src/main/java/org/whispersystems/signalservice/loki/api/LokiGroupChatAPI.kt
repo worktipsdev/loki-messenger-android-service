@@ -27,7 +27,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
 
         // region Settings
         private val fallbackBatchCount = 20
-        private val maxRetryCount = 4
+        private val maxRetryCount = 8
         var isDebugMode = false
         // endregion
 

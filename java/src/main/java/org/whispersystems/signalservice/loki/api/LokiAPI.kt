@@ -29,7 +29,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
     // region Settings
     internal companion object {
         private val version = "v1"
-        private val maxRetryCount = 4
+        private val maxRetryCount = 8
         private val defaultTimeout: Long = 20
         private val longPollingTimeout: Long = 40
         internal val defaultMessageTTL = 24 * 60 * 60 * 1000
