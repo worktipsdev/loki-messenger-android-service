@@ -26,7 +26,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         private val moderators: HashMap<String, HashMap<Long, Set<String>>> = hashMapOf() // Server URL to (channel ID to set of moderator IDs)
 
         // region Settings
-        private val fallbackBatchCount = 40
+        private val fallbackBatchCount = 20
         private val maxRetryCount = 4
         var isDebugMode = false
         // endregion
