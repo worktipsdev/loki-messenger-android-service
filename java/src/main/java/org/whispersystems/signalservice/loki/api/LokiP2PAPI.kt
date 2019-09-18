@@ -29,7 +29,7 @@ class LokiP2PAPI private constructor(private val userHexEncodedPublicKey: String
          * Must be called before `LokiAPI` is used.
          */
         fun configure(userHexEncodedPublicKey: String, onPeerConnectionStatusChanged: (Boolean, String) -> Void, delegate: LokiP2PAPIDelegate) {
-            if (isConfigured) { throw Exception("It's illegal to call LokiP2PAPI.configure(...) more than once.") }
+            if (isConfigured) { return }
             shared = LokiP2PAPI(userHexEncodedPublicKey, onPeerConnectionStatusChanged, delegate)
             isConfigured = true
         }
