@@ -272,6 +272,8 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
     }
 
     public fun sendMessage(message: LokiGroupMessage, group: Long, server: String): Promise<LokiGroupMessage, Exception> {
+        // There's apparently a condition under which the promise below gets resolved multiple times, causing a crash. The
+        // !deferred.promise.isDone() checks are a quick workaround for this but obviously don't fix the underlying issue.
         return retryIfNeeded(maxRetryCount) {
             getAuthToken(server).bind { token ->
                 Log.d("Loki", "Sending message to group chat with ID: $group on server: $server.")
@@ -297,26 +299,27 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val dateAsString = messageAsJSON["created_at"] as String
                                     val timestamp = format.parse(dateAsString).time
                                     @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote)
-                                    deferred.resolve(message)
+                                    if (!deferred.promise.isDone()) { deferred.resolve(message) }
                                 } catch (exception: Exception) {
                                     Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server.")
-                                    deferred.reject(exception)
+                                    if (!deferred.promise.isDone()) { deferred.reject(exception) }
                                 }
                             }
                             401 -> {
                                 Log.d("Loki", "Group chat token for: $server expired; dropping it.")
                                 apiDatabase.setGroupChatAuthToken(server, null)
+                                if (!deferred.promise.isDone()) { deferred.reject(LokiAPI.Error.TokenExpired) }
                             }
                             else -> {
                                 Log.d("Loki", "Couldn't reach group chat server: $server.")
-                                deferred.reject(LokiAPI.Error.Generic)
+                                if (!deferred.promise.isDone()) { deferred.reject(LokiAPI.Error.Generic) }
                             }
                         }
                     }
 
                     override fun onFailure(call: Call, exception: IOException) {
                         Log.d("Loki", "Couldn't reach group chat server: $server.")
-                        deferred.reject(exception)
+                        if (!deferred.promise.isDone()) { deferred.reject(exception) }
                     }
                 })
                 deferred.promise

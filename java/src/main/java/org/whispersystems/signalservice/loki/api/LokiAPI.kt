@@ -47,6 +47,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         object MessageConversionFailed : Error("Failed to convert Signal message to Loki message.")
         object SnodeMigrated : Error("The snode previously associated with the given public key has migrated to a different swarm.")
         object InsufficientProofOfWork : Error("The proof of work is insufficient.")
+        object TokenExpired : Error("The auth token being used has expired.")
     }
     // endregion
 
