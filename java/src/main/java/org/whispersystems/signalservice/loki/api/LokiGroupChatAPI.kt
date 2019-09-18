@@ -193,7 +193,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server from: ${messageAsJSON?.prettifiedDescription() ?: "null"}.")
                                     return@mapNotNull null
                                 }
-                            }
+                            }.sortedBy { it.timestamp }
                             deferred.resolve(messages)
                         } catch (exception: Exception) {
                             Log.d("Loki", "Couldn't parse messages for group chat with ID: $group on server: $server.")
