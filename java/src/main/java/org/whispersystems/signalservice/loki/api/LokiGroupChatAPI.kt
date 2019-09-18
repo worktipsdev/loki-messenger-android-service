@@ -28,11 +28,12 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         // region Settings
         private val fallbackBatchCount = 40
         private val maxRetryCount = 4
+        var isDebugMode = false
         // endregion
 
         // region Public Chat
         @JvmStatic
-        public val publicChatServer = "https://chat.lokinet.org"
+        public val publicChatServer get() = if (isDebugMode) "https://chat-dev.lokinet.org" else "https://chat.lokinet.org"
         @JvmStatic
         public val publicChatMessageType = "network.loki.messenger.publicChat"
         @JvmStatic
