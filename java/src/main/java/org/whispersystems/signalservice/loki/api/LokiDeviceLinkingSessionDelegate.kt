@@ -1,6 +1,6 @@
 package org.whispersystems.signalservice.loki.api
 
 interface LokiDeviceLinkingSessionDelegate {
-  fun onDeviceLinkingRequestReceived(pubKey: String)
+  fun onDeviceLinkingRequestReceived(authorisation: LokiPairingAuthorisation)
   fun onDeviceLinkingTimeout()
 }
