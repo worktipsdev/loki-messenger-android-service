@@ -9,6 +9,7 @@ package org.whispersystems.signalservice.api.messages;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.messages.calls.SignalServiceCallMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.SignalServiceSyncMessage;
+import org.whispersystems.signalservice.loki.api.LokiPairingAuthorisation;
 import org.whispersystems.signalservice.loki.messaging.LokiServiceMessage;
 
 public class SignalServiceContent {
@@ -25,6 +26,7 @@ public class SignalServiceContent {
   private final Optional<SignalServiceTypingMessage>  typingMessage;
 
   // Loki
+  private final Optional<LokiPairingAuthorisation> pairingAuthorisation;
   public Optional<LokiServiceMessage> lokiMessage = Optional.absent();
   public Optional<String> senderDisplayName = Optional.absent();
 
@@ -39,6 +41,7 @@ public class SignalServiceContent {
     this.callMessage        = Optional.absent();
     this.readMessage        = Optional.absent();
     this.typingMessage      = Optional.absent();
+    this.pairingAuthorisation = Optional.absent();
   }
 
   public SignalServiceContent(SignalServiceSyncMessage synchronizeMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
@@ -52,6 +55,7 @@ public class SignalServiceContent {
     this.callMessage        = Optional.absent();
     this.readMessage        = Optional.absent();
     this.typingMessage      = Optional.absent();
+    this.pairingAuthorisation = Optional.absent();
   }
 
   public SignalServiceContent(SignalServiceCallMessage callMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
@@ -65,6 +69,7 @@ public class SignalServiceContent {
     this.callMessage        = Optional.of(callMessage);
     this.readMessage        = Optional.absent();
     this.typingMessage      = Optional.absent();
+    this.pairingAuthorisation = Optional.absent();
   }
 
   public SignalServiceContent(SignalServiceReceiptMessage receiptMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
@@ -78,6 +83,7 @@ public class SignalServiceContent {
     this.callMessage        = Optional.absent();
     this.readMessage        = Optional.of(receiptMessage);
     this.typingMessage      = Optional.absent();
+    this.pairingAuthorisation = Optional.absent();
   }
 
   public SignalServiceContent(SignalServiceTypingMessage typingMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
@@ -91,6 +97,21 @@ public class SignalServiceContent {
     this.callMessage        = Optional.absent();
     this.readMessage        = Optional.absent();
     this.typingMessage      = Optional.of(typingMessage);
+    this.pairingAuthorisation = Optional.absent();
+  }
+
+  public SignalServiceContent(LokiPairingAuthorisation authorisation, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+    this.sender       = sender;
+    this.senderDevice = senderDevice;
+    this.timestamp    = timestamp;
+    this.needsReceipt = needsReceipt;
+
+    this.message            = Optional.absent();
+    this.synchronizeMessage = Optional.absent();
+    this.callMessage        = Optional.absent();
+    this.readMessage        = Optional.absent();
+    this.typingMessage      = Optional.absent();
+    this.pairingAuthorisation = Optional.fromNullable(authorisation);
   }
 
   public Optional<SignalServiceDataMessage> getDataMessage() {
@@ -112,6 +133,8 @@ public class SignalServiceContent {
   public Optional<SignalServiceTypingMessage> getTypingMessage() {
     return typingMessage;
   }
+
+  public Optional<LokiPairingAuthorisation> getPairingAuthorisation() { return pairingAuthorisation; }
 
   public String getSender() {
     return sender;

@@ -75,6 +75,7 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMe
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.TypingMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Verified;
 import org.whispersystems.signalservice.internal.util.Base64;
+import org.whispersystems.signalservice.loki.api.LokiPairingAuthorisation;
 import org.whispersystems.signalservice.loki.messaging.LokiServiceAddressMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiServiceMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiServicePreKeyBundleMessage;
@@ -191,6 +192,21 @@ public class SignalServiceCipher {
         if (message.hasLokiAddressMessage()) {
           SignalServiceProtos.LokiAddressMessage addressMessage = message.getLokiAddressMessage();
           lokiAddressMessage = new LokiServiceAddressMessage(addressMessage.getPtpAddress(), addressMessage.getPtpPort());
+        }
+
+        if (message.hasPairingAuthorisation()) {
+          SignalServiceProtos.PairingAuthorisationMessage pairingAuthorisationMessage = message.getPairingAuthorisation();
+
+          LokiPairingAuthorisation authorisation = new LokiPairingAuthorisation(pairingAuthorisationMessage.getPrimaryDevicePubKey(),
+                  pairingAuthorisationMessage.getSecondaryDevicePubKey(),
+                  pairingAuthorisationMessage.getRequestSignature().toByteArray(),
+                  pairingAuthorisationMessage.getGrantSignature().toByteArray());
+
+          return new SignalServiceContent(authorisation,
+                  plaintext.getMetadata().getSender(),
+                  plaintext.getMetadata().getSenderDevice(),
+                  plaintext.getMetadata().getTimestamp(),
+                  plaintext.getMetadata().isNeedsReceipt());
         }
 
         if (message.hasDataMessage()) {
