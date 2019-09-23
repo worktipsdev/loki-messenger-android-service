@@ -1,36 +1,27 @@
 package org.whispersystems.signalservice.loki.api
 
-import java.util.*
-import kotlin.concurrent.schedule
+class LokiDeviceLinkingSession() {
+    companion object {
+        val shared = LokiDeviceLinkingSession()
+    }
 
-class LokiDeviceLinkingSession(private val delegate: LokiDeviceLinkingSessionDelegate) {
+    var isListeningForLinkingRequest: Boolean = false
+        private set
+    private val listeners = mutableListOf<LokiDeviceLinkingSessionListener>()
 
-    private val listeningTimeout: Long = 60 * 1000
-    private var timerTask: TimerTask? = null
-
-    val isListeningForLinkingRequest: Boolean
-        get() = timerTask != null
+    fun addListener(listener: LokiDeviceLinkingSessionListener) { listeners.add(listener) }
+    fun removeListener(listener: LokiDeviceLinkingSessionListener) { listeners.remove(listener) }
 
     fun startListeningForLinkingRequests() {
-        if (isListeningForLinkingRequest) {
-            return
-        }
-
-        timerTask = Timer("DeviceLinkingTimer").schedule(listeningTimeout) {
-            delegate.onDeviceLinkingTimeout()
-            stopListeningForLinkingRequests()
-        }
+        isListeningForLinkingRequest = true
     }
 
     fun receivedLinkingRequest(authorisation: LokiPairingAuthorisation) {
-        if (!isListeningForLinkingRequest) {
-            return
-        }
-        delegate.onDeviceLinkingRequestReceived(authorisation)
+        if (!isListeningForLinkingRequest) { return }
+        listeners.forEach { it.onDeviceLinkingRequestReceived(authorisation) }
     }
 
     fun stopListeningForLinkingRequests() {
-        timerTask?.cancel()
-        timerTask = null
+        isListeningForLinkingRequest = false
     }
 }
