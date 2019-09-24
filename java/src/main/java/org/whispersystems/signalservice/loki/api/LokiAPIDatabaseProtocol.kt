@@ -14,4 +14,7 @@ interface LokiAPIDatabaseProtocol {
     fun setLastMessageServerID(group: Long, server: String, newValue: Long)
     fun getLastDeletionServerID(group: Long, server: String): Long?
     fun setLastDeletionServerID(group: Long, server: String, newValue: Long)
+    fun getPairingAuthorisations(pubKey: String): List<LokiPairingAuthorisation>
+    fun insertOrUpdatePairingAuthorisation(authorisation: LokiPairingAuthorisation)
+    fun removePairingAuthorisations(pubKey: String)
 }
