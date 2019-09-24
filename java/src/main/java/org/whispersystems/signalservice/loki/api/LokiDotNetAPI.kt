@@ -29,7 +29,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
-                    200 -> {
+                    in 200..299 -> {
                         try {
                             val bodyAsString = response.body()!!.string()
                             @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
@@ -78,7 +78,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
-                    200 -> deferred.resolve(token)
+                    in 200..299 -> deferred.resolve(token)
                     else -> {
                         Log.d("Loki", "Couldn't reach server: $server.")
                         deferred.reject(LokiAPI.Error.HttpError(response.code()))
@@ -116,7 +116,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         connection.newCall(request).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
-                    200 -> deferred.resolve(response)
+                    in 200..299 -> deferred.resolve(response)
                     401 -> deferred.reject(LokiAPI.Error.TokenExpired)
                     else -> deferred.reject(LokiAPI.Error.HttpError(response.code()))
                 }
