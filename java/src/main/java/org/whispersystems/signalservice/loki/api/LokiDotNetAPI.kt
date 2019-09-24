@@ -19,7 +19,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     // region Token
     private fun requestNewAuthToken(server: String): Promise<String, Exception> {
-        Log.d("Loki", "Requesting group chat auth token for server: $server.")
+        Log.d("Loki", "Requesting auth token for server: $server.")
         val queryParameters = "pubKey=$userHexEncodedPublicKey"
         val url = "$server/loki/v1/get_challenge?$queryParameters"
         val request = Request.Builder().url(url).get()
@@ -47,19 +47,19 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                             val token = tokenAsData.toString(Charsets.UTF_8)
                             deferred.resolve(token)
                         } catch (exception: Exception) {
-                            Log.d("Loki", "Couldn't parse group chat auth token for server: $server.")
+                            Log.d("Loki", "Couldn't parse auth token for server: $server.")
                             deferred.reject(exception)
                         }
                     }
                     else -> {
-                        Log.d("Loki", "Couldn't reach group chat server: $server.")
-                        deferred.reject(LokiAPI.Error.Generic)
+                        Log.d("Loki", "Couldn't reach server: $server.")
+                        deferred.reject(LokiAPI.Error.HttpError(response.code()))
                     }
                 }
             }
 
             override fun onFailure(call: Call, exception: IOException) {
-                Log.d("Loki", "Couldn't reach group chat server: $server.")
+                Log.d("Loki", "Couldn't reach server: $server.")
                 deferred.reject(exception)
             }
         })
@@ -67,7 +67,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     }
 
     private fun submitToken(token: String, server: String): Promise<String, Exception> {
-        Log.d("Loki", "Submitting group chat auth token for server: $server.")
+        Log.d("Loki", "Submitting auth token for server: $server.")
         val url = "$server/loki/v1/submit_challenge"
         val parameters = "{ \"pubKey\" : \"$userHexEncodedPublicKey\", \"token\" : \"$token\" }"
         val body = RequestBody.create(MediaType.get("application/json"), parameters)
@@ -80,14 +80,14 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                 when (response.code()) {
                     200 -> deferred.resolve(token)
                     else -> {
-                        Log.d("Loki", "Couldn't reach group chat server: $server.")
-                        deferred.reject(LokiAPI.Error.Generic)
+                        Log.d("Loki", "Couldn't reach server: $server.")
+                        deferred.reject(LokiAPI.Error.HttpError(response.code()))
                     }
                 }
             }
 
             override fun onFailure(call: Call, exception: IOException) {
-                Log.d("Loki", "Couldn't reach group chat server: $server.")
+                Log.d("Loki", "Couldn't reach server: $server.")
                 deferred.reject(exception)
             }
         })
@@ -117,11 +117,13 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
                     200 -> deferred.resolve(response)
-                    else -> deferred.reject(LokiAPI.Error.Generic)
+                    401 -> deferred.reject(LokiAPI.Error.TokenExpired)
+                    else -> deferred.reject(LokiAPI.Error.HttpError(response.code()))
                 }
             }
 
             override fun onFailure(call: Call, exception: IOException) {
+                Log.d("Loki", "Couldn't reach dot net server: ${request.url()}.")
                 deferred.reject(exception)
             }
         })
@@ -133,13 +135,11 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         return getAuthToken(server).bind { token ->
             val builder = Request.Builder().header("Authorization", "Bearer $token")
             perform(requestBlock(builder))
-        }.then { response ->
-            if (response.code() == 401) {
+        }.fail { error ->
+            if (error is LokiAPI.Error.TokenExpired) {
                 apiDatabase.setGroupChatAuthToken(server, null)
-                throw LokiAPI.Error.TokenExpired
             }
-            response
-        }.fail { Log.d("Loki", "Couldn't reach dot net server: $server.")  }
+        }
     }
 
     internal fun get(server: String, endpoint: String, parameters: Map<String, Any> = mapOf()): Promise<Response, Exception> {
@@ -147,7 +147,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         var url = "$server/$endpoint"
         var completeUrl = if (queryParameters.isEmpty()) url else "$url?$queryParameters"
         val request = Request.Builder().url(completeUrl).get()
-        return perform(request.build()).fail { Log.d("Loki", "Couldn't reach dot net server: $server.")  }
+        return perform(request.build())
     }
 
     internal fun post(server: String, endpoint: String, parameters: String): Promise<Response, Exception> {
