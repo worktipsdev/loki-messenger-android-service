@@ -2,10 +2,14 @@ package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.deferred
+import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
+import nl.komponents.kovenant.toSuccessVoid
+import nl.komponents.kovenant.unwrap
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 
 class LokiStorageAPI(private val server: String, private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val database: LokiAPIDatabaseProtocol) {
 
@@ -83,22 +87,31 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
     }
   }
 
-  fun getDeviceMappings(pubKey: String): Promise<List<LokiPairingAuthorisation>, Exception> {
+  // Use this if we need information about failure (e.g http error etc)
+  fun fetchAndSaveDeviceMappings(pubKey: String): Promise<List<LokiPairingAuthorisation>, Exception> {
+    return fetchDeviceMappings(pubKey).success { authorisations ->
+      // Update database
+      database.removePairingAuthorisations(pubKey)
+      authorisations.forEach { database.insertOrUpdatePairingAuthorisation(it) }
+    }
+  }
+
+  // Fetch the device mapping from the server and cache it. If fetching fails then it will return the old mappings from the database.
+  fun getDeviceMappings(pubKey: String, skipCache: Boolean = false): Promise<List<LokiPairingAuthorisation>, Exception> {
     val databaseAuthorisations = database.getPairingAuthorisations(pubKey)
 
     val now = System.currentTimeMillis()
-    val hasCacheExpired = !lastFetchedCache.containsKey(pubKey) || (now - lastFetchedCache[pubKey]!!) > cacheTime
+    val hasCacheExpired = skipCache || !lastFetchedCache.containsKey(pubKey) || (now - lastFetchedCache[pubKey]!!) > cacheTime
+
+    // We should always keep track of our own mappings and not rely on the server
+    val isOurOwnPubKey = pubKey == userHexEncodedPublicKey
 
     // If our cache has expired then we need to fetch from the server
     // If that fails then give the user the authorisations in the database
-    if (hasCacheExpired) {
+    if (!isOurOwnPubKey && hasCacheExpired) {
       val deferred = deferred<List<LokiPairingAuthorisation>, Exception>()
 
-      fetchDeviceMappings(pubKey).success { authorisations ->
-        // Update database
-        database.removePairingAuthorisations(pubKey)
-        authorisations.forEach { database.insertOrUpdatePairingAuthorisation(it) }
-
+      fetchAndSaveDeviceMappings(pubKey).success { authorisations ->
         // Update cache time
         lastFetchedCache[pubKey] = now
 
@@ -126,5 +139,19 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
     return getDeviceMappings(primaryDevicePubKey).map { authorisations ->
       authorisations.filter { it.primaryDevicePubKey == primaryDevicePubKey }.map { it.secondaryDevicePubKey }
     }
+  }
+
+  fun updateOurDeviceMappings(): Promise<Unit, Exception> {
+    // 1. Get our own mappings
+    // 2. Check if we're primary
+    // 3. update the server
+    return getDeviceMappings(userHexEncodedPublicKey).bind { authorisations ->
+      // We are a primary device if an authorisation has us listed as one
+      val isPrimary = authorisations.find { it.primaryDevicePubKey == userHexEncodedPublicKey } != null
+      retryIfNeeded(maxRetryCount) {
+        TODO("convery authorisations to JSON array")
+        dotNetAPI.setSelfAnnotation(server, deviceMappingAnnotationKey, "JSON!")
+      }
+    }.unwrap().toSuccessVoid()
   }
 }
