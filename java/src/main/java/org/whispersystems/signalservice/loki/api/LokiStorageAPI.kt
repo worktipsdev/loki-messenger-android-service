@@ -53,9 +53,10 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
             (type != null && type == deviceMappingAnnotationKey)
         }
 
-        val authorisations = deviceMappingAnnotation!!["authorisations"] as List<Map<*,*>>
-        authorisations.mapNotNull { authorisation ->
+        val authorisations = deviceMappingAnnotation!!["authorisations"] as List<*>
+        authorisations.mapNotNull {
           try {
+            val authorisation = it as Map<*,*>
             val primaryDevicePubKey = authorisation["primaryDevicePubKey"] as String
             val secondaryDevicePubKey = authorisation["secondaryDevicePubKey"] as String
 
@@ -149,9 +150,14 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
       // We are a primary device if an authorisation has us listed as one
       val isPrimary = authorisations.find { it.primaryDevicePubKey == userHexEncodedPublicKey } != null
       retryIfNeeded(maxRetryCount) {
-        TODO("convery authorisations to JSON array")
-        dotNetAPI.setSelfAnnotation(server, deviceMappingAnnotationKey, "JSON!")
+        val authorisationsJson = authorisations.map { it.toJSON() }
+        val json = mapOf("isPrimary" to isPrimary.int, "authorisations" to authorisationsJson)
+        val value = if (authorisations.count() > 0) JsonUtil.toJson(json) else null
+        dotNetAPI.setSelfAnnotation(server, deviceMappingAnnotationKey, value)
       }
     }.unwrap().toSuccessVoid()
   }
 }
+
+val Boolean.int
+  get() = if (this) 1 else 0

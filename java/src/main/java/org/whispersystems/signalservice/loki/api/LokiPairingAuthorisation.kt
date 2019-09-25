@@ -3,6 +3,8 @@ package org.whispersystems.signalservice.loki.api
 import org.whispersystems.curve25519.Curve25519
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos
+import org.whispersystems.signalservice.internal.util.Base64
+import org.whispersystems.signalservice.internal.util.JsonUtil
 
 
 typealias LokiPairingAuthorisationType = SignalServiceProtos.PairingAuthorisationMessage.Type
@@ -43,6 +45,13 @@ data class LokiPairingAuthorisation(val primaryDevicePubKey: String, val seconda
             Log.w("LOKI", e.message)
             false
         }
+    }
+
+    fun toJSON(): String {
+        val map = mutableMapOf("primaryDevicePubKey" to primaryDevicePubKey, "secondaryDevicePubKey" to secondaryDevicePubKey)
+        if (requestSignature != null) { map["requestSignature"] = Base64.encodeBytes(requestSignature) }
+        if (grantSignature != null) { map["grantSignature"] = Base64.encodeBytes(grantSignature) }
+        return JsonUtil.toJson(map)
     }
 }
 

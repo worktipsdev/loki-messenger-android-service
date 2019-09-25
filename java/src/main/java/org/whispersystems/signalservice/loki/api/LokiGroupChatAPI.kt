@@ -52,7 +52,7 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
             parameters["count"] = fallbackBatchCount
         }
 
-        return get(server, "/channels/$group/messages", parameters).then { response ->
+        return get(server, "channels/$group/messages", parameters).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
@@ -135,7 +135,7 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
     public fun sendMessage(message: LokiGroupMessage, group: Long, server: String): Promise<LokiGroupMessage, Exception> {
         return retryIfNeeded(maxRetryCount) {
             Log.d("Loki", "Sending message to group chat with ID: $group on server: $server.")
-            post(server, "/channels/$group/messages", message.toJSON()).then { response ->
+            post(server, "channels/$group/messages", message.toJSON()).then { response ->
                 try {
                     val bodyAsString = response.body()!!.string()
                     @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
