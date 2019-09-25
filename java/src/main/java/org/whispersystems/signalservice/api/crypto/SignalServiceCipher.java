@@ -197,10 +197,12 @@ public class SignalServiceCipher {
         if (message.hasPairingAuthorisation()) {
           SignalServiceProtos.PairingAuthorisationMessage pairingAuthorisationMessage = message.getPairingAuthorisation();
 
+          byte[] requestSignature = pairingAuthorisationMessage.hasRequestSignature() ? pairingAuthorisationMessage.getRequestSignature().toByteArray() : null;
+          byte[] grantSignature = pairingAuthorisationMessage.hasGrantSignature() ? pairingAuthorisationMessage.getGrantSignature().toByteArray() : null;
           LokiPairingAuthorisation authorisation = new LokiPairingAuthorisation(pairingAuthorisationMessage.getPrimaryDevicePubKey(),
                   pairingAuthorisationMessage.getSecondaryDevicePubKey(),
-                  pairingAuthorisationMessage.getRequestSignature().toByteArray(),
-                  pairingAuthorisationMessage.getGrantSignature().toByteArray());
+                  requestSignature,
+                  grantSignature);
 
           return new SignalServiceContent(authorisation,
                   plaintext.getMetadata().getSender(),

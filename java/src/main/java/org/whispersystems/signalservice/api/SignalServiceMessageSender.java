@@ -77,6 +77,7 @@ import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
 import org.whispersystems.signalservice.loki.api.LokiGroupChatAPI;
 import org.whispersystems.signalservice.loki.api.LokiGroupMessage;
+import org.whispersystems.signalservice.loki.api.LokiPairingAuthorisation;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageFriendRequestStatus;
@@ -492,6 +493,19 @@ public class SignalServiceMessageSender {
               .setSignature(ByteString.copyFrom(preKeyBundle.getSignedPreKeySignature()))
               .setIdentityKey(ByteString.copyFrom(preKeyBundle.getIdentityKey().serialize()));
       container.setPreKeyBundleMessage(preKeyBuilder);
+    }
+
+    // Loki - Set the pairing authorisation
+    if (message.getPairingAuthorisation().isPresent()) {
+      LokiPairingAuthorisation authorisation = message.getPairingAuthorisation().get();
+      SignalServiceProtos.PairingAuthorisationMessage.Type type = authorisation.getType() == LokiPairingAuthorisation.Type.REQUEST ? SignalServiceProtos.PairingAuthorisationMessage.Type.REQUEST : SignalServiceProtos.PairingAuthorisationMessage.Type.GRANT;
+      SignalServiceProtos.PairingAuthorisationMessage.Builder builder = SignalServiceProtos.PairingAuthorisationMessage.newBuilder()
+              .setType(type)
+              .setPrimaryDevicePubKey(authorisation.getPrimaryDevicePubKey())
+              .setSecondaryDevicePubKey(authorisation.getSecondaryDevicePubKey());
+      if (authorisation.getRequestSignature() != null) { builder.setRequestSignature(ByteString.copyFrom(authorisation.getRequestSignature())); }
+      if (authorisation.getGrantSignature() != null) { builder.setRequestSignature(ByteString.copyFrom(authorisation.getGrantSignature())); }
+      container.setPairingAuthorisation(builder);
     }
 
     DataMessage.Builder builder = DataMessage.newBuilder();
