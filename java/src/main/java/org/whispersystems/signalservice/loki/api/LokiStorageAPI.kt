@@ -15,17 +15,15 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
 
   companion object {
     // region Initialization
-    private var isConfigured = false
-
-    lateinit var shared: LokiStorageAPI
+    // This could be configured later
+    var shared: LokiStorageAPI? = null
 
     /**
      * Must be called before `LokiAPI` is used.
      */
     fun configure(userHexEncodedPublicKey: String,  userPrivateKey: ByteArray, database: LokiAPIDatabaseProtocol) {
-      if (isConfigured) { return }
+      if (shared != null) { return }
       shared = LokiStorageAPI(serverUrl, userHexEncodedPublicKey, userPrivateKey, database)
-      isConfigured = true
     }
     // endregion
 

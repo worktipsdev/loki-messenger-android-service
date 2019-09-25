@@ -170,7 +170,12 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
 
     @kotlin.ExperimentalUnsignedTypes
     fun sendSignalMessage(message: SignalMessageInfo, onP2PSuccess: () -> Unit): Promise<Set<RawResponsePromise>, Exception> {
-        val storageAPI = LokiStorageAPI.shared
+        if (LokiStorageAPI.shared == null) {
+            Log.w("Loki", "LokiStorageAPI.shared is null!")
+            return internalSendSignalMessage(message, onP2PSuccess);
+        }
+
+        val storageAPI = LokiStorageAPI.shared!!
         var primaryDevice = message.recipientID
         var otherDevices = listOf<String>()
 

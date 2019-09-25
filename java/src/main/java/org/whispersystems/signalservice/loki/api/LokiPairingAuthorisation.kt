@@ -6,9 +6,6 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
 
-
-typealias LokiPairingAuthorisationType = SignalServiceProtos.PairingAuthorisationMessage.Type
-
 data class LokiPairingAuthorisation(val primaryDevicePubKey: String, val secondaryDevicePubKey: String, val requestSignature: ByteArray?, val grantSignature: ByteArray?) {
     constructor(message: SignalServiceProtos.PairingAuthorisationMessage) : this(
             message.primaryDevicePubKey,
@@ -26,6 +23,18 @@ data class LokiPairingAuthorisation(val primaryDevicePubKey: String, val seconda
         }
 
     private val curve = Curve25519.getInstance(Curve25519.BEST)
+
+    fun sign(type: Type, privateKey: ByteArray): LokiPairingAuthorisation? {
+        val target = if (type == Type.REQUEST) primaryDevicePubKey else secondaryDevicePubKey
+        val message = target.hexAsByteArray + ByteArray(1) { type.rawValue.toByte() }
+
+        return try {
+            val signature = curve.calculateSignature(privateKey, message)
+            if (type == Type.REQUEST) copy(requestSignature = signature) else copy(grantSignature = signature)
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     fun verify(): Boolean {
         // It's only valid if we have signatures!
