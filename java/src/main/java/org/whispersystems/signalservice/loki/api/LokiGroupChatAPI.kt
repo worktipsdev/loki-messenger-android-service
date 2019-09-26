@@ -189,11 +189,12 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
 
                                     var quote: LokiGroupMessage.Quote? = null
                                     if (annotationValue.hasNonNull("quote")) {
+                                        val replyTo = if (message.hasNonNull("reply_to")) message.get("reply_to").asLong() else null
                                         val quoteAnnotation = annotationValue.get("quote")
                                         val quoteTimestamp = quoteAnnotation.get("id").asLong()
                                         val author = quoteAnnotation.get("author").asText()
                                         val text = quoteAnnotation.get("text").asText()
-                                        quote = if (quoteTimestamp > 0L && author != null && text != null) null else LokiGroupMessage.Quote(quoteTimestamp, author, text)
+                                        quote = if (quoteTimestamp > 0L && author != null && text != null) LokiGroupMessage.Quote(quoteTimestamp, author, text, replyTo) else null
                                     }
                                     LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote)
                                 } catch (exception: Exception) {

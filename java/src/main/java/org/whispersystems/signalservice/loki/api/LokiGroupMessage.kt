@@ -15,7 +15,8 @@ public data class LokiGroupMessage(
     public data class Quote(
         public val quotedMessageTimestamp: Long,
         public val quoteeHexEncodedPublicKey: String,
-        public val quotedMessageBody: String
+        public val quotedMessageBody: String,
+        public val quotedMessageServerId: Long? = null
     ) {
         internal fun jsonMap(): Map<String, Any> {
             return mapOf("id" to quotedMessageTimestamp, "author" to quoteeHexEncodedPublicKey, "text" to quotedMessageBody)
@@ -29,7 +30,9 @@ public data class LokiGroupMessage(
         val annotationValue = mutableMapOf("timestamp" to timestamp, "from" to displayName, "source" to hexEncodedPublicKey)
         if (quote != null) { annotationValue["quote"] = quote.jsonMap() }
         val annotation = mapOf("type" to type, "value" to annotationValue)
-        val map = mapOf("text" to body, "annotations" to listOf(annotation))
+        val map = mutableMapOf("text" to body, "annotations" to listOf(annotation))
+
+        if (quote?.quotedMessageServerId != null) { map["reply_to"] = quote.quotedMessageServerId }
 
         return JsonUtil.toJson(map)
     }
