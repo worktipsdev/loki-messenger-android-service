@@ -21,6 +21,11 @@ class LokiDeviceLinkingSession() {
         listeners.forEach { it.onDeviceLinkingRequestReceived(authorisation) }
     }
 
+    fun acceptedLinkingRequest(authorisation: LokiPairingAuthorisation) {
+        if (!isListeningForLinkingRequest) { return }
+        listeners.forEach { it.onDeviceLinkRequestAccepted(authorisation) }
+    }
+
     fun stopListeningForLinkingRequests() {
         isListeningForLinkingRequest = false
     }
