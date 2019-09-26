@@ -1,5 +1,7 @@
 package org.whispersystems.signalservice.loki.api
 
+import org.whispersystems.signalservice.internal.util.JsonUtil
+
 public data class LokiGroupMessage(
     public val serverID: Long?,
     public val hexEncodedPublicKey: String,
@@ -17,7 +19,7 @@ public data class LokiGroupMessage(
     ) {
 
         internal fun toJSON(): String {
-            return "{ \"id\" : $quotedMessageTimestamp, \"author\" : \"$quoteeHexEncodedPublicKey\", \"text\" : \"$quotedMessageBody\" }"
+            return JsonUtil.toJson(mapOf("id" to quotedMessageTimestamp, "author" to quoteeHexEncodedPublicKey, "text" to quotedMessageBody))
         }
     }
 
@@ -25,13 +27,11 @@ public data class LokiGroupMessage(
         : this(null, hexEncodedPublicKey, displayName, body, timestamp, type, quote)
 
     internal fun toJSON(): String {
-        var intermediate = "{ "
-        intermediate += "\"timestamp\" : $timestamp, \"from\" : \"$displayName\", \"source\" : \"$hexEncodedPublicKey\""
-        if (quote != null) {
-            intermediate += ", "
-            intermediate += "\"quote\" : ${quote.toJSON()}"
-        }
-        intermediate += " }"
-        return "{ \"text\" : \"$body\", \"annotations\" : [ { \"type\" : \"$type\", \"value\" : $intermediate } ] }"
+        val annotationValue = mutableMapOf("timestamp" to timestamp, "from" to displayName, "source" to hexEncodedPublicKey)
+        if (quote != null) { annotationValue["quote"] = quote.toJSON() }
+        val annotation = mapOf("type" to type, "value" to annotationValue)
+        val map = mapOf("text" to body, "annotations" to listOf(annotation))
+
+        return JsonUtil.toJson(map)
     }
 }
