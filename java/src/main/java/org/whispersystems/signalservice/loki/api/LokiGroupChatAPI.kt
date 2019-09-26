@@ -12,6 +12,7 @@ import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.crypto.DiffieHellman
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol
 import org.whispersystems.signalservice.loki.utilities.Analytics
+import org.whispersystems.signalservice.loki.utilities.remove05PrefixIfNeeded
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -72,7 +73,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                             // Discard the "05" prefix if needed
                             if (serverPublicKey.count() == 33) {
                                 val hexEncodedServerPublicKey = Hex.toStringCondensed(serverPublicKey)
-                                serverPublicKey = Hex.fromStringCondensed(hexEncodedServerPublicKey.removePrefix("05"))
+                                serverPublicKey = Hex.fromStringCondensed(hexEncodedServerPublicKey.remove05PrefixIfNeeded())
                             }
                             // The challenge is prefixed by the 16 bit IV
                             val tokenAsData = DiffieHellman.decrypt(challenge, serverPublicKey, userPrivateKey)
@@ -174,11 +175,11 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     if (annotation == null) { return@mapNotNull null }
                                     val annotationValue = annotation.get("value")
 
-                                    // TODO: Verify signatures
+                                    val serverID = message.get("id").asLong()
+                                    val signature = annotationValue.get("sig").asText()
+                                    val signatureVersion = annotationValue.get("sigver").asInt()
 
                                     val user = message.get("user")
-
-                                    val serverID = message.get("id").asLong()
                                     val hexEncodedPublicKey = user.get("username").asText()
                                     val displayName = if (user.hasNonNull("name")) user.get("name").asText() else "Anonymous"
                                     @Suppress("NAME_SHADOWING") val body = message.get("text").asText()
@@ -196,7 +197,10 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                         val text = quoteAnnotation.get("text").asText()
                                         quote = if (quoteTimestamp > 0L && author != null && text != null) LokiGroupMessage.Quote(quoteTimestamp, author, text, replyTo) else null
                                     }
-                                    LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote)
+
+                                    // Verify the message
+                                    val groupMessage = LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, signature, signatureVersion)
+                                    if (groupMessage.verify()) groupMessage else null
                                 } catch (exception: Exception) {
                                     Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server from: ${JsonUtil.toJson(message)}. Exception: ${exception.message}")
                                     return@mapNotNull null
@@ -278,13 +282,15 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
     }
 
     public fun sendMessage(message: LokiGroupMessage, group: Long, server: String): Promise<LokiGroupMessage, Exception> {
+        val signed = message.sign(userPrivateKey) ?: return Promise.ofFail(LokiAPI.Error.SigningFailed)
+
         // There's apparently a condition under which the promise below gets resolved multiple times, causing a crash. The
         // !deferred.promise.isDone() checks are a quick workaround for this but obviously don't fix the underlying issue.
         return retryIfNeeded(maxRetryCount) {
             getAuthToken(server).bind { token ->
                 Log.d("Loki", "Sending message to group chat with ID: $group on server: $server.")
                 val url = "$server/channels/$group/messages"
-                val parameters = message.toJSON()
+                val parameters = signed.toJSON()
                 val body = RequestBody.create(MediaType.get("application/json"), parameters)
                 val request = Request.Builder().url(url).header("Authorization", "Bearer $token").post(body)
                 val connection = OkHttpClient()
@@ -304,7 +310,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
                                     val dateAsString = data.get("created_at").asText()
                                     val timestamp = format.parse(dateAsString).time
-                                    @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote)
+                                    @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote, signed.signature, signed.signatureVersion)
                                     if (!deferred.promise.isDone()) { deferred.resolve(message) }
                                 } catch (exception: Exception) {
                                     Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server.")
