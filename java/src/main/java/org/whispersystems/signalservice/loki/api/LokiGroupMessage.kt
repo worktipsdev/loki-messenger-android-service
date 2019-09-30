@@ -79,7 +79,7 @@ public data class LokiGroupMessage(
         val unsigned = copy(signature = null, signatureVersion = null)
         val objectToCompare = unsigned.jsonMap().toMutableMap()
         objectToCompare["version"] = signatureVersion
-        val json = JsonUtil.toJson(objectToCompare)
+        val json = JsonUtil.toJson(objectToCompare.toSortedMap())
 
         val pubKey = Hex.fromStringCondensed(hexEncodedPublicKey.remove05PrefixIfNeeded())
         return try {
