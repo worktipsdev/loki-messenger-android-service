@@ -994,10 +994,10 @@ public class SignalServiceMessageSender {
         String body = data.getBody();
         LokiGroupMessage.Quote quote = null;
         if (data.hasQuote()) {
-          long quoteId = data.getQuote().getId();
+          long quoteID = data.getQuote().getId();
           String author = data.getQuote().getAuthor();
-          long serverId = messageDatabase.getServerIDFromQuote(quoteId, author);
-          quote = new LokiGroupMessage.Quote(data.getQuote().getId(), data.getQuote().getAuthor(), data.getQuote().getText(), serverId);
+          long serverID = messageDatabase.getQuoteServerID(quoteID, author);
+          quote = new LokiGroupMessage.Quote(data.getQuote().getId(), data.getQuote().getAuthor(), data.getQuote().getText(), serverID);
         }
         LokiGroupMessage message = new LokiGroupMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiGroupChatAPI.getPublicChatMessageType(), quote);
         byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
