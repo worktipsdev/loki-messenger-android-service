@@ -40,6 +40,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
     // region Types
     sealed class Error(val description: String) : Exception() {
         object Generic : Error("An error occurred.")
+        object SigningFailed: Error("Signing failed.")
         /**
          * Only applicable to snode targets as proof of work isn't required for P2P messaging.
          */
