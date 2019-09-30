@@ -14,6 +14,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
@@ -47,6 +48,10 @@ public class JsonUtil {
       throws IOException
   {
     return objectMapper.readValue(json, clazz);
+  }
+
+  public  static JsonNode fromJson(String json) throws IOException {
+    return objectMapper.readTree(json);
   }
   
   public static class IdentityKeySerializer extends JsonSerializer<IdentityKey> {
