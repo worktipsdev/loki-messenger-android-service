@@ -50,11 +50,12 @@ public data class LokiGroupMessage(
             annotationValue["sigver"] = signatureVersion
         }
 
-        val annotation = mapOf("type" to type, "value" to annotationValue)
-        val map = mutableMapOf("text" to body, "annotations" to listOf(annotation))
+        val annotation = sortedMapOf("type" to type, "value" to annotationValue.toSortedMap())
+        val sortedList = listOf(annotation).sortedBy { it["type"] as? String }
+        val map = mutableMapOf("text" to body, "annotations" to sortedList)
 
         if (quote?.quotedMessageServerId != null) { map["reply_to"] = quote.quotedMessageServerId }
-        return map
+        return map.toSortedMap()
     }
 
     internal fun sign(privateKey: ByteArray): LokiGroupMessage? {
