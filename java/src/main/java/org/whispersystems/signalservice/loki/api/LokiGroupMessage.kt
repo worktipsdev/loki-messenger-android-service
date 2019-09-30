@@ -30,7 +30,7 @@ public data class LokiGroupMessage(
         public val quotedMessageServerId: Long? = null
     ) {
         internal fun jsonMap(): Map<String, Any> {
-            return mapOf("id" to quotedMessageTimestamp, "author" to quoteeHexEncodedPublicKey, "text" to quotedMessageBody)
+            return sortedMapOf("id" to quotedMessageTimestamp, "author" to quoteeHexEncodedPublicKey, "text" to quotedMessageBody)
         }
     }
 
