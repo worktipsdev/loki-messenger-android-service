@@ -92,7 +92,7 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
 
                         // Verify the message
                         val groupMessage = LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, signature, signatureVersion)
-                        if (groupMessage.verify()) groupMessage else null
+                        if (groupMessage.hasValidSignature()) groupMessage else null
                     } catch (exception: Exception) {
                         Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server from: ${JsonUtil.toJson(message)}. Exception: ${exception.message}")
                         return@mapNotNull null
@@ -142,11 +142,11 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
 
     public fun sendMessage(message: LokiGroupMessage, group: Long, server: String): Promise<LokiGroupMessage, Exception> {
         val signed = message.sign(userPrivateKey)
-            ?: return Promise.ofFail(LokiAPI.Error.SigningFailed)
+            ?: return Promise.ofFail(LokiAPI.Error.MessageSigningFailed)
 
         return retryIfNeeded(maxRetryCount) {
             Log.d("Loki", "Sending message to group chat with ID: $group on server: $server.")
-            post(server, "channels/$group/messages", message.toJSON()).then { response ->
+            post(server, "channels/$group/messages", message.toJSONString()).then { response ->
                 try {
                     val bodyAsString = response.body()!!.string()
                     val root = JsonUtil.fromJson(bodyAsString)

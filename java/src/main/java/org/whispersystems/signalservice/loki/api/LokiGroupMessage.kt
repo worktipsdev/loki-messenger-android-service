@@ -4,7 +4,7 @@ import org.whispersystems.curve25519.Curve25519
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
-import org.whispersystems.signalservice.loki.utilities.remove05PrefixIfNeeded
+import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 
 public data class LokiGroupMessage(
     public val serverID: Long?,
@@ -17,80 +17,99 @@ public data class LokiGroupMessage(
     public val signature: String?,
     public val signatureVersion: Int?
 ) {
+    private val curve = Curve25519.getInstance(Curve25519.BEST)
+
+    // region Settings
     companion object {
         private val signatureVersion = 1
     }
+    // endregion
 
-    private val curve = Curve25519.getInstance(Curve25519.BEST)
-
+    // region Types
     public data class Quote(
         public val quotedMessageTimestamp: Long,
         public val quoteeHexEncodedPublicKey: String,
         public val quotedMessageBody: String,
-        public val quotedMessageServerId: Long? = null
+        public val quotedMessageServerID: Long? = null
     ) {
-        internal fun jsonMap(): Map<String, Any> {
-            return sortedMapOf("id" to quotedMessageTimestamp, "author" to quoteeHexEncodedPublicKey, "text" to quotedMessageBody)
+        internal fun toJSON(): Map<String, Any> {
+            return mapOf( "id" to quotedMessageTimestamp, "author" to quoteeHexEncodedPublicKey, "text" to quotedMessageBody )
         }
     }
+    // endregion
 
+    // region Initialization
     constructor(hexEncodedPublicKey: String, displayName: String, body: String, timestamp: Long, type: String, quote: Quote?)
         : this(null, hexEncodedPublicKey, displayName, body, timestamp, type, quote, null, null)
 
     constructor(hexEncodedPublicKey: String, displayName: String, body: String, timestamp: Long, type: String, quote: Quote?, signature: String? = null, signatureVersion: Int? = null)
         : this(null, hexEncodedPublicKey, displayName, body, timestamp, type, quote, signature, signatureVersion)
+    // endregion
 
-    private fun jsonMap(): Map<String, Any> {
-        val annotationValue = mutableMapOf<String, Any>("timestamp" to timestamp)
-        if (quote != null) { annotationValue["quote"] = quote.jsonMap() }
-
-        // Add in signature and the version if we have it
-        if (signature != null && signatureVersion != null) {
-            annotationValue["sig"] = signature
-            annotationValue["sigver"] = signatureVersion
-        }
-
-        val annotation = sortedMapOf("type" to type, "value" to annotationValue.toSortedMap())
-        val sortedList = listOf(annotation).sortedBy { it["type"] as? String }
-        val map = mutableMapOf("text" to body, "annotations" to sortedList)
-
-        if (quote?.quotedMessageServerId != null) { map["reply_to"] = quote.quotedMessageServerId }
-        return map.toSortedMap()
-    }
-
+    // region Crypto
     internal fun sign(privateKey: ByteArray): LokiGroupMessage? {
-        val unsigned = copy(signature = null, signatureVersion = null)
-
-        val objectToSign = unsigned.jsonMap().toMutableMap()
+        val unsignedMessage = copy(signature = null, signatureVersion = null)
+        val objectToSign = unsignedMessage.toJSON().toMutableMap()
         objectToSign["version"] = Companion.signatureVersion
-
-        val unsignedJson = JsonUtil.toJson(objectToSign)
-        return try {
-            val signature = curve.calculateSignature(privateKey, unsignedJson.toByteArray())
-            copy(signature = Hex.toStringCondensed(signature), signatureVersion = Companion.signatureVersion)
+        val unsignedJSON = JsonUtil.toJson(sort(objectToSign))
+        try {
+            val signature = curve.calculateSignature(privateKey, unsignedJSON.toByteArray())
+            return copy(signature = Hex.toStringCondensed(signature), signatureVersion = Companion.signatureVersion)
         } catch(e: Exception) {
-            Log.w("Loki", "Failed to sign LokiGroupMessage. ${e.message}")
-            null
+            Log.w("Loki", "Failed to sign group chat message due to error: ${e.message}.")
+            return null
         }
     }
 
-    internal fun verify(): Boolean {
+    internal fun hasValidSignature(): Boolean {
         if (signature == null || signatureVersion == null) { return false }
-        val unsigned = copy(signature = null, signatureVersion = null)
-        val objectToCompare = unsigned.jsonMap().toMutableMap()
+        val unsignedMessage = copy(signature = null, signatureVersion = null)
+        val objectToCompare = unsignedMessage.toJSON().toMutableMap()
         objectToCompare["version"] = signatureVersion
-        val json = JsonUtil.toJson(objectToCompare.toSortedMap())
-
-        val pubKey = Hex.fromStringCondensed(hexEncodedPublicKey.remove05PrefixIfNeeded())
-        return try {
-            curve.verifySignature(pubKey, json.toByteArray(), Hex.fromStringCondensed(signature))
+        val json = JsonUtil.toJson(sort(objectToCompare))
+        val publicKey = Hex.fromStringCondensed(hexEncodedPublicKey.removing05PrefixIfNeeded())
+        try {
+            return curve.verifySignature(publicKey, json.toByteArray(), Hex.fromStringCondensed(signature))
         } catch(e: Exception) {
-            Log.w("Loki", "Failed to verify LokiGroupMessage. ${e.message}")
-            false
+            Log.w("Loki", "Failed to verify group chat message due to error: ${e.message}.")
+            return false
         }
     }
+    // endregion
 
-    internal fun toJSON(): String {
-        return JsonUtil.toJson(jsonMap())
+    // region Parsing
+    internal fun toJSON(): Map<String, Any> {
+        val annotationAsJSON = mutableMapOf<String, Any>( "timestamp" to timestamp )
+        if (quote != null) { annotationAsJSON["quote"] = quote.toJSON() }
+        if (signature != null && signatureVersion != null) {
+            annotationAsJSON["sig"] = signature
+            annotationAsJSON["sigver"] = signatureVersion
+        }
+        val annotation = mapOf( "type" to type, "value" to annotationAsJSON )
+        val annotations = listOf( annotation ).sortedBy { it["type"] as? String }
+        val json = mutableMapOf( "text" to body, "annotations" to annotations )
+        if (quote?.quotedMessageServerID != null) { json["reply_to"] = quote.quotedMessageServerID }
+        return json
+    }
+
+    internal fun toJSONString(): String {
+        return JsonUtil.toJson(toJSON())
+    }
+    // endregion
+}
+
+// region Sorting
+fun <T: Any> sort(item: T): T {
+    return try {
+        if (item is Map<*,*>) {
+            val map = item as Map<Comparable<Any>, Any>
+            return map.mapValues { sort(it.value) }.toSortedMap() as T
+        } else if (item is List<*>) {
+            return (item as List<Any>).map { sort(it) } as T
+        }
+        item
+    } catch (e: Exception) {
+        item
     }
 }
+// endregion

@@ -17,12 +17,12 @@ class LokiDeviceLinkingSession() {
     }
 
     fun receivedLinkingRequest(authorisation: LokiPairingAuthorisation) {
-        if (!isListeningForLinkingRequest) { return }
+        if (!isListeningForLinkingRequest || !authorisation.verify()) { return }
         listeners.forEach { it.onDeviceLinkingRequestReceived(authorisation) }
     }
 
     fun acceptedLinkingRequest(authorisation: LokiPairingAuthorisation) {
-        if (!isListeningForLinkingRequest) { return }
+        if (!isListeningForLinkingRequest || !authorisation.verify()) { return }
         listeners.forEach { it.onDeviceLinkRequestAccepted(authorisation) }
     }
 
