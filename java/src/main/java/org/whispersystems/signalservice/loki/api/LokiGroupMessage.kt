@@ -33,7 +33,7 @@ public data class LokiGroupMessage(
         public val quotedMessageServerID: Long? = null
     ) {
         internal fun toJSON(): Map<String, Any> {
-            return mapOf( "id" to quotedMessageTimestamp, "author" to quoteeHexEncodedPublicKey, "text" to quotedMessageBody ).toSortedMap()
+            return mapOf( "id" to quotedMessageTimestamp, "author" to quoteeHexEncodedPublicKey, "text" to quotedMessageBody )
         }
     }
     // endregion
@@ -51,7 +51,7 @@ public data class LokiGroupMessage(
         val unsignedMessage = copy(signature = null, signatureVersion = null)
         val objectToSign = unsignedMessage.toJSON().toMutableMap()
         objectToSign["version"] = Companion.signatureVersion
-        val unsignedJSON = JsonUtil.toJson(objectToSign)
+        val unsignedJSON = JsonUtil.toJson(sort(objectToSign))
         try {
             val signature = curve.calculateSignature(privateKey, unsignedJSON.toByteArray())
             return copy(signature = Hex.toStringCondensed(signature), signatureVersion = Companion.signatureVersion)
@@ -66,7 +66,7 @@ public data class LokiGroupMessage(
         val unsignedMessage = copy(signature = null, signatureVersion = null)
         val objectToCompare = unsignedMessage.toJSON().toMutableMap()
         objectToCompare["version"] = signatureVersion
-        val json = JsonUtil.toJson(objectToCompare.toSortedMap())
+        val json = JsonUtil.toJson(sort(objectToCompare))
         val publicKey = Hex.fromStringCondensed(hexEncodedPublicKey.removing05PrefixIfNeeded())
         try {
             return curve.verifySignature(publicKey, json.toByteArray(), Hex.fromStringCondensed(signature))
@@ -85,11 +85,11 @@ public data class LokiGroupMessage(
             annotationAsJSON["sig"] = signature
             annotationAsJSON["sigver"] = signatureVersion
         }
-        val annotation = mapOf( "type" to type, "value" to annotationAsJSON ).toSortedMap()
+        val annotation = mapOf( "type" to type, "value" to annotationAsJSON )
         val annotations = listOf( annotation ).sortedBy { it["type"] as? String }
         val json = mutableMapOf( "text" to body, "annotations" to annotations )
         if (quote?.quotedMessageServerID != null) { json["reply_to"] = quote.quotedMessageServerID }
-        return json.toSortedMap()
+        return json
     }
 
     internal fun toJSONString(): String {
@@ -97,3 +97,19 @@ public data class LokiGroupMessage(
     }
     // endregion
 }
+
+// region Sorting
+fun <T: Any> sort(item: T): T {
+    return try {
+        if (item is Map<*,*>) {
+            val map = item as Map<Comparable<Any>, Any>
+            return map.mapValues { sort(it.value) }.toSortedMap() as T
+        } else if (item is List<*>) {
+            return (item as List<Any>).map { sort(it) } as T
+        }
+        item
+    } catch (e: Exception) {
+        item
+    }
+}
+// endregion
