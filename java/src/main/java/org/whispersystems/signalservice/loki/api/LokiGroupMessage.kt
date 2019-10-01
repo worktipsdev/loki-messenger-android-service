@@ -99,17 +99,19 @@ public data class LokiGroupMessage(
 }
 
 // region Sorting
-fun <T: Any> sort(item: T): T {
-    return try {
-        if (item is Map<*,*>) {
-            val map = item as Map<Comparable<Any>, Any>
+@Suppress("UNCHECKED_CAST")
+private fun <T : Any> sort(x: T): T {
+    if (x is Map<*, *>) {
+        try {
+            val map = x as Map<Comparable<Any>, Any>
             return map.mapValues { sort(it.value) }.toSortedMap() as T
-        } else if (item is List<*>) {
-            return (item as List<Any>).map { sort(it) } as T
+        } catch (e: Exception) {
+            return x
         }
-        item
-    } catch (e: Exception) {
-        item
+    } else if (x is List<*>) {
+        return (x as List<Comparable<Any>>).map { sort(it) } as T
+    } else {
+        return x
     }
 }
 // endregion
