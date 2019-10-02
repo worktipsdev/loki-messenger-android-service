@@ -10,6 +10,7 @@ import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 import java.util.*
 
 data class LokiPairingAuthorisation(val primaryDevicePubKey: String, val secondaryDevicePubKey: String, val requestSignature: ByteArray?, val grantSignature: ByteArray?) {
+    constructor(primaryDevicePubKey: String, secondaryDevicePubKey: String): this(primaryDevicePubKey, secondaryDevicePubKey, null, null)
     constructor(message: SignalServiceProtos.PairingAuthorisationMessage) : this(
             message.primaryDevicePubKey,
             message.secondaryDevicePubKey,
@@ -29,7 +30,7 @@ data class LokiPairingAuthorisation(val primaryDevicePubKey: String, val seconda
 
     fun sign(type: Type, privateKey: ByteArray): LokiPairingAuthorisation? {
         val target = if (type == Type.REQUEST) primaryDevicePubKey else secondaryDevicePubKey
-        val message = target.hexAsByteArray + ByteArray(1) { type.rawValue.toByte() }
+        val message = Hex.fromStringCondensed(target) + ByteArray(1) { type.rawValue.toByte() }
 
         return try {
             val signature = curve.calculateSignature(privateKey, message)
