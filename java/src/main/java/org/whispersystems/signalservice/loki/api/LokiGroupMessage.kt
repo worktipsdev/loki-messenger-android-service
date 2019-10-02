@@ -3,7 +3,6 @@ package org.whispersystems.signalservice.loki.api
 import org.whispersystems.curve25519.Curve25519
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Hex
-import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 
 public data class LokiGroupMessage(
@@ -14,14 +13,13 @@ public data class LokiGroupMessage(
     public val timestamp: Long,
     public val type: String,
     public val quote: Quote?,
-    public val signature: String?,
-    public val signatureVersion: Int?
+    public val signature: Signature?
 ) {
-    private val curve = Curve25519.getInstance(Curve25519.BEST)
 
     // region Settings
     companion object {
-        private val signatureVersion = 1
+        private val curve = Curve25519.getInstance(Curve25519.BEST)
+        private val signatureVersion: Long = 1
     }
     // endregion
 
@@ -31,47 +29,44 @@ public data class LokiGroupMessage(
         public val quoteeHexEncodedPublicKey: String,
         public val quotedMessageBody: String,
         public val quotedMessageServerID: Long? = null
-    ) {
-        internal fun toJSON(): Map<String, Any> {
-            return mapOf( "id" to quotedMessageTimestamp, "author" to quoteeHexEncodedPublicKey, "text" to quotedMessageBody )
-        }
-    }
+    )
+
+    public data class Signature(
+        public val data: ByteArray,
+        public val version: Long
+    )
     // endregion
 
     // region Initialization
     constructor(hexEncodedPublicKey: String, displayName: String, body: String, timestamp: Long, type: String, quote: Quote?)
-        : this(null, hexEncodedPublicKey, displayName, body, timestamp, type, quote, null, null)
-
-    constructor(hexEncodedPublicKey: String, displayName: String, body: String, timestamp: Long, type: String, quote: Quote?, signature: String? = null, signatureVersion: Int? = null)
-        : this(null, hexEncodedPublicKey, displayName, body, timestamp, type, quote, signature, signatureVersion)
+        : this(null, hexEncodedPublicKey, displayName, body, timestamp, type, quote, null)
     // endregion
 
     // region Crypto
     internal fun sign(privateKey: ByteArray): LokiGroupMessage? {
-        val unsignedMessage = copy(signature = null, signatureVersion = null)
-        val objectToSign = unsignedMessage.toJSON().toMutableMap()
-        objectToSign["version"] = Companion.signatureVersion
-        val unsignedJSON = JsonUtil.toJson(sort(objectToSign))
+        val data = getValidationData()
+        if (data == null) {
+            Log.d("Loki", "Failed to sign group chat message.")
+            return null
+        }
         try {
-            val signature = curve.calculateSignature(privateKey, unsignedJSON.toByteArray())
-            return copy(signature = Hex.toStringCondensed(signature), signatureVersion = Companion.signatureVersion)
+            val signatureData = curve.calculateSignature(privateKey, data)
+            val signature = Signature(signatureData, signatureVersion)
+            return copy(signature = signature)
         } catch(e: Exception) {
-            Log.w("Loki", "Failed to sign group chat message due to error: ${e.message}.")
+            Log.d("Loki", "Failed to sign group chat message due to error: ${e.message}.")
             return null
         }
     }
 
     internal fun hasValidSignature(): Boolean {
-        if (signature == null || signatureVersion == null) { return false }
-        val unsignedMessage = copy(signature = null, signatureVersion = null)
-        val objectToCompare = unsignedMessage.toJSON().toMutableMap()
-        objectToCompare["version"] = signatureVersion
-        val json = JsonUtil.toJson(sort(objectToCompare))
+        if (signature == null) { return false }
+        val data = getValidationData() ?: return false
         val publicKey = Hex.fromStringCondensed(hexEncodedPublicKey.removing05PrefixIfNeeded())
         try {
-            return curve.verifySignature(publicKey, json.toByteArray(), Hex.fromStringCondensed(signature))
+            return curve.verifySignature(publicKey, data, signature.data)
         } catch(e: Exception) {
-            Log.w("Loki", "Failed to verify group chat message due to error: ${e.message}.")
+            Log.d("Loki", "Failed to verify group chat message due to error: ${e.message}.")
             return false
         }
     }
@@ -80,38 +75,37 @@ public data class LokiGroupMessage(
     // region Parsing
     internal fun toJSON(): Map<String, Any> {
         val value = mutableMapOf<String, Any>( "timestamp" to timestamp )
-        if (quote != null) { value["quote"] = quote.toJSON() }
-        if (signature != null && signatureVersion != null) {
-            value["sig"] = signature
-            value["sigver"] = signatureVersion
+        if (quote != null) {
+            value["quote"] = mapOf( "id" to quote.quotedMessageTimestamp, "author" to quote.quoteeHexEncodedPublicKey, "text" to quote.quotedMessageBody )
+        }
+        if (signature != null) {
+            value["sig"] = Hex.toStringCondensed(signature.data)
+            value["sigver"] = signature.version
         }
         val annotation = mapOf( "type" to type, "value" to value )
-        val annotations = listOf( annotation ).sortedBy { it["type"] as? String }
-        val json = mutableMapOf( "text" to body, "annotations" to annotations )
-        if (quote?.quotedMessageServerID != null) { json["reply_to"] = quote.quotedMessageServerID }
-        return json
+        val result = mutableMapOf( "text" to body, "annotations" to listOf( annotation ) )
+        if (quote?.quotedMessageServerID != null) {
+            result["reply_to"] = quote.quotedMessageServerID
+        }
+        return result
     }
+    // endregion
 
-    internal fun toJSONString(): String {
-        return JsonUtil.toJson(toJSON())
+    // region Convenience
+    private fun getValidationData(): ByteArray? {
+        var string = "${body.trim()}$timestamp)"
+        if (quote != null) {
+            string += "${quote.quotedMessageTimestamp}${quote.quoteeHexEncodedPublicKey}${quote.quotedMessageBody.trim()}"
+            if (quote.quotedMessageServerID != null) {
+                string += "${quote.quotedMessageServerID}"
+            }
+        }
+        string += "$signatureVersion"
+        try {
+            return string.toByteArray(Charsets.UTF_8)
+        } catch (exception: Exception) {
+            return null
+        }
     }
     // endregion
 }
-
-// region Sorting
-@Suppress("UNCHECKED_CAST")
-private fun <T : Any> sort(x: T): T {
-    if (x is Map<*, *>) {
-        try {
-            val map = x as Map<Comparable<Any>, Any>
-            return map.mapValues { sort(it.value) }.toSortedMap() as T
-        } catch (e: Exception) {
-            return x
-        }
-    } else if (x is List<*>) {
-        return (x as List<Comparable<Any>>).map { sort(it) } as T
-    } else {
-        return x
-    }
-}
-// endregion
