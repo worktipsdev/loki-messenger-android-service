@@ -10,6 +10,7 @@ import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.crypto.DiffieHellman
+import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 import java.io.IOException
 
 /**
@@ -40,7 +41,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                             // Discard the "05" prefix if needed
                             if (serverPublicKey.count() == 33) {
                                 val hexEncodedServerPublicKey = Hex.toStringCondensed(serverPublicKey)
-                                serverPublicKey = Hex.fromStringCondensed(hexEncodedServerPublicKey.removePrefix("05"))
+                                serverPublicKey = Hex.fromStringCondensed(hexEncodedServerPublicKey.removing05PrefixIfNeeded())
                             }
                             // The challenge is prefixed by the 16 bit IV
                             val tokenAsData = DiffieHellman.decrypt(challenge, serverPublicKey, userPrivateKey)

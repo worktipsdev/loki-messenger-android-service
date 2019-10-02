@@ -4,7 +4,10 @@ import org.whispersystems.curve25519.Curve25519
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos
 import org.whispersystems.signalservice.internal.util.Base64
+import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
+import java.util.*
 
 data class LokiPairingAuthorisation(val primaryDevicePubKey: String, val secondaryDevicePubKey: String, val requestSignature: ByteArray?, val grantSignature: ByteArray?) {
     constructor(message: SignalServiceProtos.PairingAuthorisationMessage) : this(
@@ -46,10 +49,10 @@ data class LokiPairingAuthorisation(val primaryDevicePubKey: String, val seconda
         val issuer = if (type == Type.REQUEST) secondaryDevicePubKey else primaryDevicePubKey
         val target = if (type == Type.REQUEST) primaryDevicePubKey else secondaryDevicePubKey
 
-        val data = target.hexAsByteArray + ByteArray(1) { type.rawValue.toByte() }
-
         return try {
-            curve.verifySignature(issuer.removePrefix("05").hexAsByteArray, data, signature)
+            val data = Hex.fromStringCondensed(target) + ByteArray(1) { type.rawValue.toByte() }
+            val issuerData = Hex.fromStringCondensed(issuer.removing05PrefixIfNeeded())
+            curve.verifySignature(issuerData, data, signature)
         } catch (e: Exception) {
             Log.w("LOKI", e.message)
             false
@@ -62,8 +65,13 @@ data class LokiPairingAuthorisation(val primaryDevicePubKey: String, val seconda
         if (grantSignature != null) { map["grantSignature"] = Base64.encodeBytes(grantSignature) }
         return JsonUtil.toJson(map)
     }
-}
 
-// region Helper
-val String.hexAsByteArray inline get() = this.chunked(2).map { it.toUpperCase().toInt(16).toByte() }.toByteArray()
-// endregion
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other?.javaClass != javaClass) return false
+
+        other as LokiPairingAuthorisation
+
+        return (primaryDevicePubKey == other.primaryDevicePubKey && secondaryDevicePubKey == other.secondaryDevicePubKey && Arrays.equals(requestSignature, other.requestSignature) && Arrays.equals(grantSignature, other.grantSignature))
+    }
+}
