@@ -192,7 +192,9 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                         val quotedMessageTimestamp = quoteAsJSON.get("id").asLong()
                                         val quoteeHexEncodedPublicKey = quoteAsJSON.get("author").asText()
                                         val quotedMessageBody = quoteAsJSON.get("text").asText()
-                                        quote = if (quotedMessageTimestamp > 0L && quoteeHexEncodedPublicKey != null && quotedMessageBody != null) LokiGroupMessage.Quote(quotedMessageTimestamp, quoteeHexEncodedPublicKey, quotedMessageBody, quotedMessageServerID) else null
+                                        if (quotedMessageTimestamp > 0L && quoteeHexEncodedPublicKey != null && quotedMessageBody != null) {
+                                            quote = LokiGroupMessage.Quote(quotedMessageTimestamp, quoteeHexEncodedPublicKey, quotedMessageBody, quotedMessageServerID)
+                                        }
                                     }
                                     val groupMessage = LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, signature)
                                     if (groupMessage.hasValidSignature()) groupMessage else null
@@ -297,12 +299,12 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
                                 try {
                                     val bodyAsString = response.body()!!.string()
                                     @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString)
-                                    val data = body.get("data")
-                                    val serverID = data.get("id").asLong()
+                                    val messageAsJSON = body.get("data")
+                                    val serverID = messageAsJSON.get("id").asLong()
                                     val displayName = userDatabase.getDisplayName(userHexEncodedPublicKey) ?: "Anonymous"
-                                    val text = data.get("text").asText()
+                                    val text = messageAsJSON.get("text").asText()
                                     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-                                    val dateAsString = data.get("created_at").asText()
+                                    val dateAsString = messageAsJSON.get("created_at").asText()
                                     val timestamp = format.parse(dateAsString).time
                                     @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, signedMessage.quote, signedMessage.signature)
                                     if (!deferred.promise.isDone()) { deferred.resolve(message) }
