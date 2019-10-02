@@ -79,13 +79,13 @@ public data class LokiGroupMessage(
 
     // region Parsing
     internal fun toJSON(): Map<String, Any> {
-        val annotationAsJSON = mutableMapOf<String, Any>( "timestamp" to timestamp )
-        if (quote != null) { annotationAsJSON["quote"] = quote.toJSON() }
+        val value = mutableMapOf<String, Any>( "timestamp" to timestamp )
+        if (quote != null) { value["quote"] = quote.toJSON() }
         if (signature != null && signatureVersion != null) {
-            annotationAsJSON["sig"] = signature
-            annotationAsJSON["sigver"] = signatureVersion
+            value["sig"] = signature
+            value["sigver"] = signatureVersion
         }
-        val annotation = mapOf( "type" to type, "value" to annotationAsJSON )
+        val annotation = mapOf( "type" to type, "value" to value )
         val annotations = listOf( annotation ).sortedBy { it["type"] as? String }
         val json = mutableMapOf( "text" to body, "annotations" to annotations )
         if (quote?.quotedMessageServerID != null) { json["reply_to"] = quote.quotedMessageServerID }
@@ -99,17 +99,19 @@ public data class LokiGroupMessage(
 }
 
 // region Sorting
-fun <T: Any> sort(item: T): T {
-    return try {
-        if (item is Map<*,*>) {
-            val map = item as Map<Comparable<Any>, Any>
+@Suppress("UNCHECKED_CAST")
+private fun <T : Any> sort(x: T): T {
+    if (x is Map<*, *>) {
+        try {
+            val map = x as Map<Comparable<Any>, Any>
             return map.mapValues { sort(it.value) }.toSortedMap() as T
-        } else if (item is List<*>) {
-            return (item as List<Any>).map { sort(it) } as T
+        } catch (e: Exception) {
+            return x
         }
-        item
-    } catch (e: Exception) {
-        item
+    } else if (x is List<*>) {
+        return (x as List<Comparable<Any>>).map { sort(it) } as T
+    } else {
+        return x
     }
 }
 // endregion
