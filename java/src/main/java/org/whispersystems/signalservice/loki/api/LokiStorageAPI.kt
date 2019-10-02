@@ -27,8 +27,8 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
     }
     // endregion
 
-    // TODO: In the future we should be able to switch servers
-    public val serverUrl = ""
+    public val serverUrl get() = if (isDebugMode) "https://file-dev.lokinet.org" else "https://file.lokinet.org"
+    var isDebugMode = false
 
     private val maxRetryCount = 8
     private val lastFetchedCache = hashMapOf<String, Long>()
