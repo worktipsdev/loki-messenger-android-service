@@ -38,4 +38,6 @@ public class SignalServiceReceiptMessage {
   public boolean isReadReceipt() {
     return type == Type.READ;
   }
+
+  public int getTTL() { return 24 * 60 * 60 * 1000; }
 }

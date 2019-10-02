@@ -210,7 +210,7 @@ public class SignalServiceMessageSender {
   {
     byte[] content = createReceiptContent(message);
 
-    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getWhen(), content, false);
+    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getWhen(), content, false, message.getTTL());
   }
 
   /**
@@ -229,7 +229,7 @@ public class SignalServiceMessageSender {
   {
     byte[] content = createTypingContent(message);
 
-    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true);
+    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true, message.getTTL());
   }
 
   public void sendTyping(long                                   messageID,
@@ -239,7 +239,7 @@ public class SignalServiceMessageSender {
       throws IOException
   {
     byte[] content = createTypingContent(message);
-    sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true);
+    sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true, message.getTTL());
   }
 
 
@@ -257,7 +257,7 @@ public class SignalServiceMessageSender {
       throws IOException, UntrustedIdentityException
   {
     byte[] content = createCallContent(message);
-    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), System.currentTimeMillis(), content, false);
+    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), System.currentTimeMillis(), content, false, message.getTTL());
   }
 
   /**
@@ -276,11 +276,11 @@ public class SignalServiceMessageSender {
   {
     byte[]            content   = createMessageContent(message);
     long              timestamp = message.getTimestamp();
-    SendMessageResult result    = sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.isFriendRequest());
+    SendMessageResult result    = sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL(), message.isFriendRequest());
 
     if ((result.getSuccess() != null && result.getSuccess().isNeedsSync()) || (unidentifiedAccess.isPresent() && isMultiDevice.get())) {
       byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.of(recipient), timestamp, Collections.singletonList(result));
-      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false);
+      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false, message.getTTL());
     }
 
     // Loki - Start session reset if needed
@@ -318,7 +318,7 @@ public class SignalServiceMessageSender {
   {
     byte[]                  content            = createMessageContent(message);
     long                    timestamp          = message.getTimestamp();
-    List<SendMessageResult> results            = sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false);
+    List<SendMessageResult> results            = sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL());
     boolean                 needsSyncInResults = false;
 
     for (SendMessageResult result : results) {
@@ -330,7 +330,7 @@ public class SignalServiceMessageSender {
 
     if (needsSyncInResults || (isMultiDevice.get())) {
       byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.<SignalServiceAddress>absent(), timestamp, results);
-      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false);
+      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false, message.getTTL());
     }
 
     return results;
@@ -363,7 +363,7 @@ public class SignalServiceMessageSender {
       throw new IOException("Unsupported sync message!");
     }
 
-    sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), System.currentTimeMillis(), content, false);
+    sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), System.currentTimeMillis(), content, false, message.getTTL());
   }
 
   public void setSoTimeoutMillis(long soTimeoutMillis) {
@@ -438,11 +438,11 @@ public class SignalServiceMessageSender {
                                      .build()
                                      .toByteArray();
 
-    SendMessageResult result = sendMessage(messageID, new SignalServiceAddress(message.getDestination()), getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, false);
+    SendMessageResult result = sendMessage(messageID, new SignalServiceAddress(message.getDestination()), getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, false, message.getTTL());
 
     if (result.getSuccess().isNeedsSync()) {
       byte[] syncMessage = createMultiDeviceVerifiedContent(message, nullMessage.toByteArray());
-      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), message.getTimestamp(), syncMessage, false);
+      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), message.getTimestamp(), syncMessage, false, message.getTTL());
     }
   }
 
@@ -954,7 +954,8 @@ public class SignalServiceMessageSender {
                                               List<Optional<UnidentifiedAccess>> unidentifiedAccess,
                                               long                               timestamp,
                                               byte[]                             content,
-                                              boolean                            online)
+                                              boolean                            online,
+                                              int                                ttl)
       throws IOException
   {
     List<SendMessageResult>                results                    = new LinkedList<SendMessageResult>();
@@ -965,7 +966,7 @@ public class SignalServiceMessageSender {
       SignalServiceAddress recipient = recipientIterator.next();
 
       try {
-        SendMessageResult result = sendMessage(messageID, recipient, unidentifiedAccessIterator.next(), timestamp, content, online);
+        SendMessageResult result = sendMessage(messageID, recipient, unidentifiedAccessIterator.next(), timestamp, content, online, ttl);
         results.add(result);
       } catch (UntrustedIdentityException e) {
         Log.w(TAG, e);
@@ -986,9 +987,10 @@ public class SignalServiceMessageSender {
                                         Optional<UnidentifiedAccess> unidentifiedAccess,
                                         long                         timestamp,
                                         byte[]                       content,
-                                        boolean                      online)
+                                        boolean                      online,
+                                        int                          ttl)
           throws UntrustedIdentityException, IOException {
-    return sendMessage(messageID, recipient, unidentifiedAccess, timestamp, content, online, false);
+    return sendMessage(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, false);
   }
 
   private SendMessageResult sendMessage(final long                   messageID,
@@ -997,6 +999,7 @@ public class SignalServiceMessageSender {
                                         long                         timestamp,
                                         byte[]                       content,
                                         boolean                      online,
+                                        int                          ttl,
                                         boolean                      isFriendRequest)
   {
     final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
@@ -1042,9 +1045,12 @@ public class SignalServiceMessageSender {
         OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
         OutgoingPushMessage message = messages.getMessages().get(0);
         final SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
-        // TODO: isPing
-        int day = 24 * 60 * 60 * 1000;
-        int ttl = isFriendRequest ? 4 * day : day;
+
+        // Make sure we have a valid ttl, otherwise default to a day
+        if (ttl <= 0) {
+          ttl = 24 * 60 * 60 * 1000;
+        }
+
         SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userHexEncodedPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
         // TODO: PoW
         // Update the message and thread if needed
