@@ -93,7 +93,7 @@ public data class LokiGroupMessage(
 
     // region Convenience
     private fun getValidationData(signatureVersion: Long): ByteArray? {
-        var string = "${body.trim()}$timestamp)"
+        var string = "${body.trim()}$timestamp"
         if (quote != null) {
             string += "${quote.quotedMessageTimestamp}${quote.quoteeHexEncodedPublicKey}${quote.quotedMessageBody.trim()}"
             if (quote.quotedMessageServerID != null) {
