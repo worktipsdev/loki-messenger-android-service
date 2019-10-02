@@ -79,13 +79,13 @@ public data class LokiGroupMessage(
 
     // region Parsing
     internal fun toJSON(): Map<String, Any> {
-        val annotationAsJSON = mutableMapOf<String, Any>( "timestamp" to timestamp )
-        if (quote != null) { annotationAsJSON["quote"] = quote.toJSON() }
+        val value = mutableMapOf<String, Any>( "timestamp" to timestamp )
+        if (quote != null) { value["quote"] = quote.toJSON() }
         if (signature != null && signatureVersion != null) {
-            annotationAsJSON["sig"] = signature
-            annotationAsJSON["sigver"] = signatureVersion
+            value["sig"] = signature
+            value["sigver"] = signatureVersion
         }
-        val annotation = mapOf( "type" to type, "value" to annotationAsJSON )
+        val annotation = mapOf( "type" to type, "value" to value )
         val annotations = listOf( annotation ).sortedBy { it["type"] as? String }
         val json = mutableMapOf( "text" to body, "annotations" to annotations )
         if (quote?.quotedMessageServerID != null) { json["reply_to"] = quote.quotedMessageServerID }
