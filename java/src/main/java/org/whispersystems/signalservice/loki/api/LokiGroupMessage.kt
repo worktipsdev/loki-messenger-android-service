@@ -44,7 +44,7 @@ public data class LokiGroupMessage(
 
     // region Crypto
     internal fun sign(privateKey: ByteArray): LokiGroupMessage? {
-        val data = getValidationData()
+        val data = getValidationData(signatureVersion)
         if (data == null) {
             Log.d("Loki", "Failed to sign group chat message.")
             return null
@@ -61,7 +61,7 @@ public data class LokiGroupMessage(
 
     internal fun hasValidSignature(): Boolean {
         if (signature == null) { return false }
-        val data = getValidationData() ?: return false
+        val data = getValidationData(signature.version) ?: return false
         val publicKey = Hex.fromStringCondensed(hexEncodedPublicKey.removing05PrefixIfNeeded())
         try {
             return curve.verifySignature(publicKey, data, signature.data)
@@ -92,7 +92,7 @@ public data class LokiGroupMessage(
     // endregion
 
     // region Convenience
-    private fun getValidationData(): ByteArray? {
+    private fun getValidationData(signatureVersion: Long): ByteArray? {
         var string = "${body.trim()}$timestamp)"
         if (quote != null) {
             string += "${quote.quotedMessageTimestamp}${quote.quoteeHexEncodedPublicKey}${quote.quotedMessageBody.trim()}"
