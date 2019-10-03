@@ -5,7 +5,6 @@ import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
-import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 import java.util.*
 
@@ -60,11 +59,11 @@ data class LokiPairingAuthorisation(val primaryDevicePubKey: String, val seconda
         }
     }
 
-    fun toJSON(): String {
+    fun toJSON(): Map<String, Any> {
         val map = mutableMapOf("primaryDevicePubKey" to primaryDevicePubKey, "secondaryDevicePubKey" to secondaryDevicePubKey)
         if (requestSignature != null) { map["requestSignature"] = Base64.encodeBytes(requestSignature) }
         if (grantSignature != null) { map["grantSignature"] = Base64.encodeBytes(grantSignature) }
-        return JsonUtil.toJson(map)
+        return map
     }
 
     override fun equals(other: Any?): Boolean {

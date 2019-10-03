@@ -43,29 +43,28 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
     return dotNetAPI.get(server, "users/@$pubKey", mapOf("include_user_annotations" to 1)).map { response ->
       try {
         val bodyAsString = response.body()!!.string()
-        val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
-        val data = body["data"] as Map<*, *>
-        val annotations = data["annotations"] as List<Map<*,*>>
+        val body = JsonUtil.fromJson(bodyAsString)
+        val data = body.get("data")
+        if (data.isNull) { return@map listOf<LokiPairingAuthorisation>() }
+
+        val annotations = data.get("annotations")
         val deviceMappingAnnotation = annotations.find { annotation ->
-            val type = annotation["type"] as? String
-            (type != null && type == deviceMappingAnnotationKey)
-        }
+            val type = annotation.get("type").asText()
+            (type == deviceMappingAnnotationKey)
+        } ?: return@map listOf<LokiPairingAuthorisation>()
 
-        val authorisations = deviceMappingAnnotation!!["authorisations"] as List<*>
-        authorisations.mapNotNull {
+        val deviceMappingAnnotationValue = deviceMappingAnnotation.get("value")
+        val authorisations = deviceMappingAnnotationValue.get("authorisations")
+        authorisations.mapNotNull { authorisation ->
           try {
-            val authorisation = it as Map<*,*>
-            val primaryDevicePubKey = authorisation["primaryDevicePubKey"] as String
-            val secondaryDevicePubKey = authorisation["secondaryDevicePubKey"] as String
-
-            val requestSignatureString = authorisation["requestSignature"] as? String
-            val grantSignatureString = authorisation["grantSignature"] as? String
+            val primaryDevicePubKey = authorisation.get("primaryDevicePubKey").asText()
+            val secondaryDevicePubKey = authorisation.get("secondaryDevicePubKey").asText()
 
             var requestSignature: ByteArray? = null
             var grantSignature: ByteArray? = null
 
-            if (requestSignatureString != null) { requestSignature = Base64.decode(requestSignatureString) }
-            if (grantSignatureString != null) { grantSignature = Base64.decode(grantSignatureString) }
+            if (authorisation.hasNonNull("requestSignature")) { requestSignature = Base64.decode(authorisation.get("requestSignature").asText()) }
+            if (authorisation.hasNonNull("grantSignature")) { grantSignature = Base64.decode(authorisation.get("grantSignature").asText()) }
 
             val pairing = LokiPairingAuthorisation(primaryDevicePubKey, secondaryDevicePubKey, requestSignature, grantSignature)
             if (!pairing.verify()) {
@@ -140,6 +139,12 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
     }
   }
 
+  fun getAllDevices(pubKey: String): Promise<Set<String>, Exception> {
+    return getDeviceMappings(pubKey).map { authorisations ->
+      authorisations.flatMap { listOf(it.primaryDevicePubKey, it.secondaryDevicePubKey) }.toSet()
+    }
+  }
+
   fun updateOurDeviceMappings(): Promise<Unit, Exception> {
     // 1. Get our own mappings
     // 2. Check if we're primary
@@ -149,8 +154,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
       val isPrimary = authorisations.find { it.primaryDevicePubKey == userHexEncodedPublicKey } != null
       retryIfNeeded(maxRetryCount) {
         val authorisationsJson = authorisations.map { it.toJSON() }
-        val json = mapOf("isPrimary" to isPrimary.int, "authorisations" to authorisationsJson)
-        val value = if (authorisations.count() > 0) JsonUtil.toJson(json) else null
+        val value = if (authorisations.count() > 0) mapOf("isPrimary" to isPrimary, "authorisations" to authorisationsJson) else null
         dotNetAPI.setSelfAnnotation(server, deviceMappingAnnotationKey, value)
       }
     }.unwrap().toSuccessVoid()

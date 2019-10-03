@@ -194,6 +194,8 @@ public class SignalServiceCipher {
           lokiAddressMessage = new LokiServiceAddressMessage(addressMessage.getPtpAddress(), addressMessage.getPtpPort());
         }
 
+      LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiAddressMessage);
+
         if (message.hasPairingAuthorisation()) {
           SignalServiceProtos.PairingAuthorisationMessage pairingAuthorisationMessage = message.getPairingAuthorisation();
 
@@ -204,14 +206,15 @@ public class SignalServiceCipher {
                   requestSignature,
                   grantSignature);
 
-          return new SignalServiceContent(authorisation,
+          SignalServiceContent content = new SignalServiceContent(authorisation,
                   plaintext.getMetadata().getSender(),
                   plaintext.getMetadata().getSenderDevice(),
                   plaintext.getMetadata().getTimestamp(),
                   plaintext.getMetadata().isNeedsReceipt());
-        }
+          content.setLokiMessage(lokiServiceMessage);
 
-        if (message.hasDataMessage()) {
+          return content;
+        } else if (message.hasDataMessage()) {
           DataMessage dataMessage = message.getDataMessage();
 
           SignalServiceContent content = new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), dataMessage),
@@ -220,7 +223,7 @@ public class SignalServiceCipher {
                   plaintext.getMetadata().getTimestamp(),
                   plaintext.getMetadata().isNeedsReceipt());
 
-          LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiAddressMessage);
+
           content.setLokiMessage(lokiServiceMessage);
 
           if (dataMessage.hasProfile()) {

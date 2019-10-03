@@ -504,7 +504,7 @@ public class SignalServiceMessageSender {
               .setPrimaryDevicePubKey(authorisation.getPrimaryDevicePubKey())
               .setSecondaryDevicePubKey(authorisation.getSecondaryDevicePubKey());
       if (authorisation.getRequestSignature() != null) { builder.setRequestSignature(ByteString.copyFrom(authorisation.getRequestSignature())); }
-      if (authorisation.getGrantSignature() != null) { builder.setRequestSignature(ByteString.copyFrom(authorisation.getGrantSignature())); }
+      if (authorisation.getGrantSignature() != null) { builder.setGrantSignature(ByteString.copyFrom(authorisation.getGrantSignature())); }
       container.setPairingAuthorisation(builder);
     }
 

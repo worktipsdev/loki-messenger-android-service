@@ -174,8 +174,8 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         }
     }
 
-    internal fun setSelfAnnotation(server: String, type: String, value: String?): Promise<Response, Exception> {
-        val annotation = mutableMapOf("type" to type)
+    internal fun setSelfAnnotation(server: String, type: String, value: Any?): Promise<Response, Exception> {
+        val annotation = mutableMapOf<String, Any>("type" to type)
         if (value != null) { annotation["value"] = value }
         val json = mutableMapOf("annotations" to listOf(annotation))
         val parameter = JsonUtil.toJson(json)
