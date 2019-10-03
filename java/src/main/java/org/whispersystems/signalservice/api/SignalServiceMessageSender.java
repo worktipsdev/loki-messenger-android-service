@@ -287,7 +287,7 @@ public class SignalServiceMessageSender {
     if (message.isEndSession()) {
       sessionDatabase.archiveAllSessions(recipient.getNumber());
 
-      long threadID = threadDatabase.getThreadID(messageID);
+      long threadID = threadDatabase.getThreadID(recipient.getNumber());
       LokiThreadSessionResetStatus sessionResetStatus = threadDatabase.getSessionResetStatus(threadID);
 
       if (sessionResetStatus != LokiThreadSessionResetStatus.REQUEST_RECEIVED) {
@@ -994,7 +994,7 @@ public class SignalServiceMessageSender {
   }
 
   private SendMessageResult sendMessage(final long                   messageID,
-                                        SignalServiceAddress         recipient,
+                                        final SignalServiceAddress         recipient,
                                         Optional<UnidentifiedAccess> unidentifiedAccess,
                                         long                         timestamp,
                                         byte[]                       content,
@@ -1056,7 +1056,7 @@ public class SignalServiceMessageSender {
         // Update the message and thread if needed
         if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
           messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING);
-          long threadID = threadDatabase.getThreadID(messageID);
+          long threadID = threadDatabase.getThreadID(recipient.getNumber());
           threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENDING);
         }
         LokiAPI api = new LokiAPI(userHexEncodedPublicKey, apiDatabase);
@@ -1086,7 +1086,7 @@ public class SignalServiceMessageSender {
                   if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
                     messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_PENDING);
                     // TODO: Expiration
-                    long threadID = threadDatabase.getThreadID(messageID);
+                    long threadID = threadDatabase.getThreadID(recipient.getNumber());
                     threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENT);
                   }
                   @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
@@ -1103,7 +1103,7 @@ public class SignalServiceMessageSender {
                   // Update the message and thread if needed
                   if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
                     messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_FAILED);
-                    long threadID = threadDatabase.getThreadID(messageID);
+                    long threadID = threadDatabase.getThreadID(recipient.getNumber());
                     threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
                   }
                   @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
@@ -1121,7 +1121,7 @@ public class SignalServiceMessageSender {
             // Update the message and thread if needed
             if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
               messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_FAILED);
-              long threadID = threadDatabase.getThreadID(messageID);
+              long threadID = threadDatabase.getThreadID(recipient.getNumber());
               threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
             }
             @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
