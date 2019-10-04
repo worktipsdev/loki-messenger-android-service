@@ -171,51 +171,6 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
 
     @kotlin.ExperimentalUnsignedTypes
     fun sendSignalMessage(message: SignalMessageInfo, onP2PSuccess: () -> Unit): Promise<Set<RawResponsePromise>, Exception> {
-        if (LokiStorageAPI.shared == null) {
-            Log.w("Loki", "LokiStorageAPI.shared is null!")
-            return internalSendSignalMessage(message, onP2PSuccess);
-        }
-
-        val storageAPI = LokiStorageAPI.shared!!
-        var primaryDevice = message.recipientID
-        var otherDevices = listOf<String>()
-
-        // Get the primary device for this recipient
-        val promise = storageAPI.getPrimaryDevice(message.recipientID).bind { parentDevice ->
-            // Get all the secondary devices
-            primaryDevice = parentDevice ?: message.recipientID
-            storageAPI.getSecondaryDevices(primaryDevice)
-        }.bind { secondaryDevices ->
-            val isSecondaryDevice = primaryDevice != message.recipientID
-            otherDevices = secondaryDevices
-
-            // If recipient is a secondary device and they're not in the secondary device list
-            // it means that the primary device probably revoked them
-            // We should send the message directly to them
-            if (isSecondaryDevice && !secondaryDevices.contains(message.recipientID)) {
-                primaryDevice = message.recipientID
-                otherDevices = listOf()
-            }
-
-            // Now we use a best attempt approach
-            // First we send to the primary device
-            val firstMessage = message.copy(recipientID = primaryDevice)
-            internalSendSignalMessage(firstMessage, onP2PSuccess)
-        }
-
-        // If that succeeds then we send to all the secondary devices and hope the message sending succeeds
-        promise.success {
-            otherDevices.forEach { device ->
-                val newMessage = message.copy(recipientID = device)
-                internalSendSignalMessage(newMessage) {}
-            }
-        }
-
-        return promise
-    }
-
-    @kotlin.ExperimentalUnsignedTypes
-    private fun internalSendSignalMessage(message: SignalMessageInfo, onP2PSuccess: () -> Unit): Promise<Set<RawResponsePromise>, Exception> {
         val lokiMessage = LokiMessage.from(message) ?: return task { throw Error.MessageConversionFailed }
         val destination = lokiMessage.destination
         fun sendLokiMessage(lokiMessage: LokiMessage, target: LokiAPITarget): RawResponsePromise {
