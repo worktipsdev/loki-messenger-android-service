@@ -418,7 +418,7 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         Log.d("Loki", "Updating display name on server: $server.")
         return getAuthToken(server).bind { token ->
             val url = "$server/users/me"
-            val parameters = "{ \"name\" : ${newDisplayName ?: ""} }"
+            val parameters = if (newDisplayName != null) "{ \"name\" : \"$newDisplayName\" }" else "{ \"name\" : \"\" }"
             val body = RequestBody.create(MediaType.get("application/json"), parameters)
             val request = Request.Builder().url(url).header("Authorization", "Bearer $token").patch(body)
             val connection = OkHttpClient()
