@@ -413,5 +413,35 @@ public class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, priva
         })
         return deferred.promise
     }
+
+    public fun setDisplayName(newDisplayName: String?, server: String): Promise<Unit, Exception> {
+        Log.d("Loki", "Updating display name on server: $server.")
+        return getAuthToken(server).bind { token ->
+            val url = "$server/users/me"
+            val parameters = "{ \"name\" : ${newDisplayName ?: ""} }"
+            val body = RequestBody.create(MediaType.get("application/json"), parameters)
+            val request = Request.Builder().url(url).header("Authorization", "Bearer $token").patch(body)
+            val connection = OkHttpClient()
+            val deferred = deferred<Unit, Exception>()
+            connection.newCall(request.build()).enqueue(object : Callback {
+
+                override fun onResponse(call: Call, response: Response) {
+                    when (response.code()) {
+                        200 -> deferred.resolve(Unit)
+                        else -> {
+                            Log.d("Loki", "Couldn't update display name due to error: ${response.code()}.")
+                            deferred.reject(LokiAPI.Error.Generic)
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call, exception: IOException) {
+                    Log.d("Loki", "Couldn't update display name due to error: $exception.")
+                    deferred.reject(exception)
+                }
+            })
+            deferred.promise
+        }
+    }
     // endregion
 }
