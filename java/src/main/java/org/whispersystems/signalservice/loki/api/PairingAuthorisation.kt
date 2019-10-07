@@ -59,4 +59,11 @@ data class PairingAuthorisation(val primaryDevicePublicKey: String, val secondar
         return (primaryDevicePublicKey == other.primaryDevicePublicKey && secondaryDevicePublicKey == other.secondaryDevicePublicKey
             && Arrays.equals(requestSignature, other.requestSignature) && Arrays.equals(grantSignature, other.grantSignature))
     }
+
+    override fun hashCode(): Int {
+        var hash = primaryDevicePublicKey.hashCode() xor secondaryDevicePublicKey.hashCode()
+        if (requestSignature != null) { hash = hash xor requestSignature.hashCode() }
+        if (grantSignature != null) { hash = hash xor grantSignature.hashCode() }
+        return hash
+    }
 }
