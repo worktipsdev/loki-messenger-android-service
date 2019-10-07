@@ -12,7 +12,7 @@ import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.text.SimpleDateFormat
 import java.util.*
 
-class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val apiDatabase: LokiAPIDatabaseProtocol, private val userDatabase: LokiUserDatabaseProtocol): LokiDotNetAPI(userHexEncodedPublicKey, userPrivateKey, apiDatabase) {
+class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val apiDatabase: LokiAPIDatabaseProtocol, private val userDatabase: LokiUserDatabaseProtocol) : LokiDotNetAPI(userHexEncodedPublicKey, userPrivateKey, apiDatabase) {
 
     companion object {
         private val moderators: HashMap<String, HashMap<Long, Set<String>>> = hashMapOf() // Server URL to (channel ID to set of moderator IDs)
@@ -45,54 +45,48 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
     // region Public API
     public fun getMessages(group: Long, server: String): Promise<List<LokiGroupMessage>, Exception> {
         Log.d("Loki", "Getting messages for group chat with ID: $group on server: $server.")
-        var parameters = mutableMapOf<String, Any>("include_annotations" to 1)
+        val parameters = mutableMapOf<String, Any>("include_annotations" to 1)
         val lastMessageServerID = apiDatabase.getLastMessageServerID(group, server)
         if (lastMessageServerID != null) {
             parameters["since_id"] = lastMessageServerID
         } else {
             parameters["count"] = fallbackBatchCount
         }
-
         return execute(HTTPVerb.GET, server, "channels/$group/messages", false, parameters).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
-                val root = JsonUtil.fromJson(bodyAsString)
-
-                val data = root.get("data")
+                val body = JsonUtil.fromJson(bodyAsString)
+                val data = body.get("data")
                 val messages = data.mapNotNull { message ->
                     try {
                         val isDeleted = message.has("is_deleted") && message.get("is_deleted").asBoolean(false)
                         if (isDeleted) { return@mapNotNull null }
-
-                        // Ignore messages with no annotations
+                        // Ignore messages without annotations
                         if (!message.hasNonNull("annotations")) { return@mapNotNull null }
-                        val annotation = message.get("annotations").find { it.get("type").asText("") == publicChatMessageType && it.hasNonNull("value") } ?: return@mapNotNull null
-                        val annotationValue = annotation.get("value")
-
+                        val annotation = message.get("annotations").find {
+                            (it.get("type").asText("") == publicChatMessageType) && it.hasNonNull("value")
+                        } ?: return@mapNotNull null
+                        val value = annotation.get("value")
                         val serverID = message.get("id").asLong()
-                        val signatureString = annotationValue.get("sig").asText()
-                        val signatureVersion = annotationValue.get("sigver").asLong()
-                        val signature = LokiGroupMessage.Signature(Hex.fromStringCondensed(signatureString), signatureVersion)
-
+                        val hexEncodedSignature = value.get("sig").asText()
+                        val signatureVersion = value.get("sigver").asLong()
+                        val signature = LokiGroupMessage.Signature(Hex.fromStringCondensed(hexEncodedSignature), signatureVersion)
                         val user = message.get("user")
                         val hexEncodedPublicKey = user.get("username").asText()
                         val displayName = if (user.hasNonNull("name")) user.get("name").asText() else "Anonymous"
                         @Suppress("NAME_SHADOWING") val body = message.get("text").asText()
-                        val timestamp = annotationValue.get("timestamp").asLong()
-
+                        val timestamp = value.get("timestamp").asLong()
                         @Suppress("NAME_SHADOWING") val lastMessageServerID = apiDatabase.getLastMessageServerID(group, server)
                         if (serverID > lastMessageServerID ?: 0) { apiDatabase.setLastMessageServerID(group, server, serverID) }
-
                         var quote: LokiGroupMessage.Quote? = null
-                        if (annotationValue.hasNonNull("quote")) {
+                        if (value.hasNonNull("quote")) {
                             val replyTo = if (message.hasNonNull("reply_to")) message.get("reply_to").asLong() else null
-                            val quoteAnnotation = annotationValue.get("quote")
+                            val quoteAnnotation = value.get("quote")
                             val quoteTimestamp = quoteAnnotation.get("id").asLong()
                             val author = quoteAnnotation.get("author").asText()
                             val text = quoteAnnotation.get("text").asText()
                             quote = if (quoteTimestamp > 0L && author != null && text != null) LokiGroupMessage.Quote(quoteTimestamp, author, text, replyTo) else null
                         }
-
                         // Verify the message
                         val groupMessage = LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, signature)
                         if (groupMessage.hasValidSignature()) groupMessage else null
@@ -118,12 +112,11 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
         } else {
             parameters["count"] = fallbackBatchCount
         }
-
         return execute(HTTPVerb.GET, server, "loki/v1/channel/$group/deletes", false, parameters).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
-                val root = JsonUtil.fromJson(bodyAsString)
-                val deletedMessageServerIDs = root.get("data").mapNotNull { deletion ->
+                val body = JsonUtil.fromJson(bodyAsString)
+                val deletedMessageServerIDs = body.get("data").mapNotNull { deletion ->
                     try {
                         val serverID = deletion.get("id").asLong()
                         val messageServerID = deletion.get("message_id").asLong()
@@ -144,20 +137,17 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
     }
 
     public fun sendMessage(message: LokiGroupMessage, group: Long, server: String): Promise<LokiGroupMessage, Exception> {
-        val signedMessage = message.sign(userPrivateKey)
-            ?: return Promise.ofFail(LokiAPI.Error.MessageSigningFailed)
-
+        val signedMessage = message.sign(userPrivateKey) ?: return Promise.ofFail(LokiAPI.Error.MessageSigningFailed)
         return retryIfNeeded(maxRetryCount) {
             Log.d("Loki", "Sending message to group chat with ID: $group on server: $server.")
             val parameters = signedMessage.toJSON()
             execute(HTTPVerb.POST, server, "channels/$group/messages", parameters = parameters).then { response ->
                 try {
                     val bodyAsString = response.body()!!.string()
-                    val root = JsonUtil.fromJson(bodyAsString)
-                    val data = root.get("data")
+                    val body = JsonUtil.fromJson(bodyAsString)
+                    val data = body.get("data")
                     val serverID = data.get("id").asLong()
-                    val displayName = userDatabase.getDisplayName(userHexEncodedPublicKey)
-                        ?: "Anonymous"
+                    val displayName = userDatabase.getDisplayName(userHexEncodedPublicKey) ?: "Anonymous"
                     val text = data.get("text").asText()
                     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
                     val dateAsString = data.get("created_at").asText()
@@ -205,7 +195,7 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
                 Log.d("Loki", "Couldn't parse moderators for group chat with ID: $group on server: $server.")
                 throw exception
             }
-    }
+        }
     }
 
     public fun setDisplayName(newDisplayName: String?, server: String): Promise<Unit, Exception> {

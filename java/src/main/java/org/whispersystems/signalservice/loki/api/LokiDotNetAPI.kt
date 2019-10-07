@@ -21,12 +21,12 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     internal enum class HTTPVerb { GET, PUT, POST, DELETE, PATCH }
 
     protected fun getAuthToken(server: String): Promise<String, Exception> {
-        val token = apiDatabase.getGroupChatAuthToken(server)
+        val token = apiDatabase.getAuthToken(server)
         if (token != null) {
             return Promise.of(token)
         } else {
             return requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { token ->
-                apiDatabase.setGroupChatAuthToken(server, token)
+                apiDatabase.setAuthToken(server, token)
                 token
             }
         }
@@ -144,7 +144,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                     when (response.code()) {
                         in 200..299 -> deferred.resolve(response)
                         401 -> {
-                            apiDatabase.setGroupChatAuthToken(server, null)
+                            apiDatabase.setAuthToken(server, null)
                             deferred.reject(LokiAPI.Error.TokenExpired)
                         }
                         else -> deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
