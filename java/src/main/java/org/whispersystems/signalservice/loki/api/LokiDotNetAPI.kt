@@ -54,7 +54,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                     }
                     else -> {
                         Log.d("Loki", "Couldn't reach server: $server.")
-                        deferred.reject(LokiAPI.Error.HttpError(response.code()))
+                        deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
                     }
                 }
             }
@@ -82,7 +82,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                     in 200..299 -> deferred.resolve(token)
                     else -> {
                         Log.d("Loki", "Couldn't reach server: $server.")
-                        deferred.reject(LokiAPI.Error.HttpError(response.code()))
+                        deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
                     }
                 }
             }
@@ -119,7 +119,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                 when (response.code()) {
                     in 200..299 -> deferred.resolve(response)
                     401 -> deferred.reject(LokiAPI.Error.TokenExpired)
-                    else -> deferred.reject(LokiAPI.Error.HttpError(response.code()))
+                    else -> deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
                 }
             }
 

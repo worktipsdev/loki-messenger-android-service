@@ -9,7 +9,7 @@ package org.whispersystems.signalservice.api.messages;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.messages.calls.SignalServiceCallMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.SignalServiceSyncMessage;
-import org.whispersystems.signalservice.loki.api.LokiPairingAuthorisation;
+import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
 import org.whispersystems.signalservice.loki.messaging.LokiServiceMessage;
 
 public class SignalServiceContent {
@@ -26,8 +26,8 @@ public class SignalServiceContent {
   private final Optional<SignalServiceTypingMessage>  typingMessage;
 
   // Loki
-  private final Optional<LokiPairingAuthorisation> pairingAuthorisation;
-  public Optional<LokiServiceMessage> lokiMessage = Optional.absent();
+  private final Optional<PairingAuthorisation> pairingAuthorisation;
+  public Optional<LokiServiceMessage> lokiServiceMessage = Optional.absent();
   public Optional<String> senderDisplayName = Optional.absent();
 
   public SignalServiceContent(LokiServiceMessage lokiServiceMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
@@ -36,13 +36,13 @@ public class SignalServiceContent {
     this.timestamp    = timestamp;
     this.needsReceipt = needsReceipt;
 
-    this.message            = Optional.absent();
-    this.synchronizeMessage = Optional.absent();
-    this.callMessage        = Optional.absent();
-    this.readMessage        = Optional.absent();
-    this.typingMessage      = Optional.absent();
+    this.message              = Optional.absent();
+    this.synchronizeMessage   = Optional.absent();
+    this.callMessage          = Optional.absent();
+    this.readMessage          = Optional.absent();
+    this.typingMessage        = Optional.absent();
     this.pairingAuthorisation = Optional.absent();
-    this.lokiMessage = Optional.fromNullable(lokiServiceMessage);
+    this.lokiServiceMessage   = Optional.fromNullable(lokiServiceMessage);
   }
 
   public SignalServiceContent(SignalServiceDataMessage message, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
@@ -115,7 +115,7 @@ public class SignalServiceContent {
     this.pairingAuthorisation = Optional.absent();
   }
 
-  public SignalServiceContent(LokiPairingAuthorisation authorisation, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+  public SignalServiceContent(PairingAuthorisation authorisation, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
     this.sender       = sender;
     this.senderDevice = senderDevice;
     this.timestamp    = timestamp;
@@ -149,7 +149,7 @@ public class SignalServiceContent {
     return typingMessage;
   }
 
-  public Optional<LokiPairingAuthorisation> getPairingAuthorisation() { return pairingAuthorisation; }
+  public Optional<PairingAuthorisation> getPairingAuthorisation() { return pairingAuthorisation; }
 
   public String getSender() {
     return sender;
@@ -168,6 +168,6 @@ public class SignalServiceContent {
   }
 
   // Loki
-  public void setLokiMessage(LokiServiceMessage message) { lokiMessage = Optional.fromNullable(message); }
+  public void setLokiServiceMessage(LokiServiceMessage lokiServiceMessage) { this.lokiServiceMessage = Optional.fromNullable(lokiServiceMessage); }
   public void setSenderDisplayName(String displayName) { senderDisplayName = Optional.fromNullable(displayName); }
 }

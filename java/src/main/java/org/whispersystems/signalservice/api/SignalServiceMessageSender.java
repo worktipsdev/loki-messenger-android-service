@@ -77,7 +77,7 @@ import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
 import org.whispersystems.signalservice.loki.api.LokiGroupChatAPI;
 import org.whispersystems.signalservice.loki.api.LokiGroupMessage;
-import org.whispersystems.signalservice.loki.api.LokiPairingAuthorisation;
+import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageFriendRequestStatus;
@@ -495,10 +495,10 @@ public class SignalServiceMessageSender {
       container.setPreKeyBundleMessage(preKeyBuilder);
     }
 
-    // Loki - Set the pairing authorisation
+    // Loki - Set the pairing authorisation if needed
     if (message.getPairingAuthorisation().isPresent()) {
-      LokiPairingAuthorisation authorisation = message.getPairingAuthorisation().get();
-      SignalServiceProtos.PairingAuthorisationMessage.Type type = authorisation.getType() == LokiPairingAuthorisation.Type.REQUEST ? SignalServiceProtos.PairingAuthorisationMessage.Type.REQUEST : SignalServiceProtos.PairingAuthorisationMessage.Type.GRANT;
+      PairingAuthorisation authorisation = message.getPairingAuthorisation().get();
+      SignalServiceProtos.PairingAuthorisationMessage.Type type = authorisation.getType() == PairingAuthorisation.Type.REQUEST ? SignalServiceProtos.PairingAuthorisationMessage.Type.REQUEST : SignalServiceProtos.PairingAuthorisationMessage.Type.GRANT;
       SignalServiceProtos.PairingAuthorisationMessage.Builder builder = SignalServiceProtos.PairingAuthorisationMessage.newBuilder()
               .setType(type)
               .setPrimaryDevicePubKey(authorisation.getPrimaryDevicePublicKey())
@@ -994,7 +994,7 @@ public class SignalServiceMessageSender {
   }
 
   private SendMessageResult sendMessage(final long                   messageID,
-                                        final SignalServiceAddress         recipient,
+                                        final SignalServiceAddress   recipient,
                                         Optional<UnidentifiedAccess> unidentifiedAccess,
                                         long                         timestamp,
                                         byte[]                       content,
@@ -1045,12 +1045,8 @@ public class SignalServiceMessageSender {
         OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
         OutgoingPushMessage message = messages.getMessages().get(0);
         final SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
-
-        // Make sure we have a valid ttl, otherwise default to a day
-        if (ttl <= 0) {
-          ttl = 24 * 60 * 60 * 1000;
-        }
-
+        // Make sure we have a valid ttl; otherwise default to a day
+        if (ttl <= 0) { ttl = 24 * 60 * 60 * 1000; }
         SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userHexEncodedPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
         // TODO: PoW
         // Update the message and thread if needed

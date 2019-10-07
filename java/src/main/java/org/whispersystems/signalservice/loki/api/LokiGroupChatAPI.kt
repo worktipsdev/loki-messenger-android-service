@@ -4,11 +4,10 @@ import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.then
 import nl.komponents.kovenant.toSuccessVoid
 import org.whispersystems.libsignal.logging.Log
+import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol
 import org.whispersystems.signalservice.loki.utilities.Analytics
-import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
-import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.text.SimpleDateFormat
 import java.util.*
@@ -73,7 +72,7 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
                         val serverID = message.get("id").asLong()
                         val signatureString = annotationValue.get("sig").asText()
                         val signatureVersion = annotationValue.get("sigver").asLong()
-                        val signature = LokiGroupMessage.Signature(signatureString, signatureVersion)
+                        val signature = LokiGroupMessage.Signature(Hex.fromStringCondensed(signatureString), signatureVersion)
 
                         val user = message.get("user")
                         val hexEncodedPublicKey = user.get("username").asText()

@@ -34,9 +34,7 @@ public data class LokiGroupMessage(
     public data class Signature(
         public val data: ByteArray,
         public val version: Long
-    ) {
-        constructor(hexData: String, version: Long): this(Hex.fromStringCondensed(hexData), version)
-    }
+    )
     // endregion
 
     // region Initialization

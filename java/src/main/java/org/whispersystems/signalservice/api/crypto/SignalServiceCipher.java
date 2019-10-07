@@ -75,7 +75,7 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMe
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.TypingMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Verified;
 import org.whispersystems.signalservice.internal.util.Base64;
-import org.whispersystems.signalservice.loki.api.LokiPairingAuthorisation;
+import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
 import org.whispersystems.signalservice.loki.messaging.LokiServiceAddressMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiServiceMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiServicePreKeyBundleMessage;
@@ -183,25 +183,17 @@ public class SignalServiceCipher {
           lokiAddressMessage = new LokiServiceAddressMessage(addressMessage.getPtpAddress(), addressMessage.getPtpPort());
         }
 
-      LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiAddressMessage);
-
+        LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiAddressMessage);
         if (message.hasPairingAuthorisation()) {
           SignalServiceProtos.PairingAuthorisationMessage pairingAuthorisationMessage = message.getPairingAuthorisation();
-
+          String primaryDevicePublicKey = pairingAuthorisationMessage.getPrimaryDevicePubKey();
+          String secondaryDevicePublicKey = pairingAuthorisationMessage.getSecondaryDevicePubKey();
           byte[] requestSignature = pairingAuthorisationMessage.hasRequestSignature() ? pairingAuthorisationMessage.getRequestSignature().toByteArray() : null;
           byte[] grantSignature = pairingAuthorisationMessage.hasGrantSignature() ? pairingAuthorisationMessage.getGrantSignature().toByteArray() : null;
-          LokiPairingAuthorisation authorisation = new LokiPairingAuthorisation(pairingAuthorisationMessage.getPrimaryDevicePubKey(),
-                  pairingAuthorisationMessage.getSecondaryDevicePubKey(),
-                  requestSignature,
-                  grantSignature);
-
-          SignalServiceContent content = new SignalServiceContent(authorisation,
-                  plaintext.getMetadata().getSender(),
-                  plaintext.getMetadata().getSenderDevice(),
-                  plaintext.getMetadata().getTimestamp(),
-                  false);
-          content.setLokiMessage(lokiServiceMessage);
-
+          PairingAuthorisation authorisation = new PairingAuthorisation(primaryDevicePublicKey, secondaryDevicePublicKey, requestSignature, grantSignature);
+          SignalServiceCipher.Metadata metadata = plaintext.getMetadata();
+          SignalServiceContent content = new SignalServiceContent(authorisation, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false);
+          content.setLokiServiceMessage(lokiServiceMessage);
           return content;
         } else if (message.hasDataMessage()) {
           DataMessage dataMessage = message.getDataMessage();
@@ -212,8 +204,7 @@ public class SignalServiceCipher {
                   plaintext.getMetadata().getTimestamp(),
                   plaintext.getMetadata().isNeedsReceipt());
 
-
-          content.setLokiMessage(lokiServiceMessage);
+          content.setLokiServiceMessage(lokiServiceMessage);
 
           if (dataMessage.hasProfile()) {
             content.setSenderDisplayName(dataMessage.getProfile().getDisplayName());
@@ -253,14 +244,11 @@ public class SignalServiceCipher {
                                           false);
         }
 
-      // Check if we have any of the loki specific data set, if so then return that content
-      // This will be triggered on desktop friend request background messages
+      // Check if we have any of the Loki specific data set. If so then return that content.
+      // This will be triggered on desktop friend request background messages.
       if (lokiServiceMessage.isValid()) {
-        return new SignalServiceContent(lokiServiceMessage,
-                plaintext.getMetadata().getSender(),
-                plaintext.getMetadata().getSenderDevice(),
-                plaintext.getMetadata().getTimestamp(),
-                false);
+        SignalServiceCipher.Metadata metadata = plaintext.getMetadata();
+        return new SignalServiceContent(lokiServiceMessage, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false);
       }
 
       // No content is set at all, return null

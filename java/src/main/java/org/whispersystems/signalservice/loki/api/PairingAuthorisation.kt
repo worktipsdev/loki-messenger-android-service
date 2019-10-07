@@ -7,7 +7,7 @@ import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 import java.util.*
 
-data class LokiPairingAuthorisation(val primaryDevicePublicKey: String, val secondaryDevicePublicKey: String, val requestSignature: ByteArray?, val grantSignature: ByteArray?) {
+data class PairingAuthorisation(val primaryDevicePublicKey: String, val secondaryDevicePublicKey: String, val requestSignature: ByteArray?, val grantSignature: ByteArray?) {
     private val curve = Curve25519.getInstance(Curve25519.BEST)
 
     val type: Type
@@ -20,7 +20,7 @@ data class LokiPairingAuthorisation(val primaryDevicePublicKey: String, val seco
 
     constructor(primaryDevicePubKey: String, secondaryDevicePubKey: String) : this(primaryDevicePubKey, secondaryDevicePubKey, null, null)
 
-    fun sign(type: Type, privateKey: ByteArray): LokiPairingAuthorisation? {
+    fun sign(type: Type, privateKey: ByteArray): PairingAuthorisation? {
         val target = if (type == Type.REQUEST) primaryDevicePublicKey else secondaryDevicePublicKey
         val data = Hex.fromStringCondensed(target) + ByteArray(1) { type.rawValue.toByte() }
         try {
@@ -55,7 +55,7 @@ data class LokiPairingAuthorisation(val primaryDevicePublicKey: String, val seco
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (!(other is LokiPairingAuthorisation)) return false
+        if (!(other is PairingAuthorisation)) return false
         return (primaryDevicePublicKey == other.primaryDevicePublicKey && secondaryDevicePublicKey == other.secondaryDevicePublicKey
             && Arrays.equals(requestSignature, other.requestSignature) && Arrays.equals(grantSignature, other.grantSignature))
     }

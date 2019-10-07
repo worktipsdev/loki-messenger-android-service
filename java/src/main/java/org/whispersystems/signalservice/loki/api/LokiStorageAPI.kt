@@ -39,19 +39,19 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
 
   private val dotNetAPI = LokiDotNetAPI(userHexEncodedPublicKey, userPrivateKey, database)
 
-  private fun fetchDeviceMappings(pubKey: String): Promise<List<LokiPairingAuthorisation>, Exception> {
+  private fun fetchDeviceMappings(pubKey: String): Promise<List<PairingAuthorisation>, Exception> {
     return dotNetAPI.get(server, "users/@$pubKey", mapOf("include_user_annotations" to 1)).map { response ->
       try {
         val bodyAsString = response.body()!!.string()
         val body = JsonUtil.fromJson(bodyAsString)
         val data = body.get("data")
-        if (data.isNull) { return@map listOf<LokiPairingAuthorisation>() }
+        if (data.isNull) { return@map listOf<PairingAuthorisation>() }
 
         val annotations = data.get("annotations")
         val deviceMappingAnnotation = annotations.find { annotation ->
             val type = annotation.get("type").asText()
             (type == deviceMappingAnnotationKey)
-        } ?: return@map listOf<LokiPairingAuthorisation>()
+        } ?: return@map listOf<PairingAuthorisation>()
 
         val deviceMappingAnnotationValue = deviceMappingAnnotation.get("value")
         val authorisations = deviceMappingAnnotationValue.get("authorisations")
@@ -66,7 +66,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
             if (authorisation.hasNonNull("requestSignature")) { requestSignature = Base64.decode(authorisation.get("requestSignature").asText()) }
             if (authorisation.hasNonNull("grantSignature")) { grantSignature = Base64.decode(authorisation.get("grantSignature").asText()) }
 
-            val pairing = LokiPairingAuthorisation(primaryDevicePubKey, secondaryDevicePubKey, requestSignature, grantSignature)
+            val pairing = PairingAuthorisation(primaryDevicePubKey, secondaryDevicePubKey, requestSignature, grantSignature)
             if (!pairing.verify()) {
               Log.d("Loki", "Invalid authorisation received: $authorisation")
               return@mapNotNull null
@@ -86,7 +86,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
   }
 
   // Use this if we need information about failure (e.g http error etc)
-  fun fetchAndSaveDeviceMappings(pubKey: String): Promise<List<LokiPairingAuthorisation>, Exception> {
+  fun fetchAndSaveDeviceMappings(pubKey: String): Promise<List<PairingAuthorisation>, Exception> {
     return fetchDeviceMappings(pubKey).success { authorisations ->
       // Update database
       database.removePairingAuthorisations(pubKey)
@@ -95,7 +95,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
   }
 
   // Fetch the device mapping from the server and cache it. If fetching fails then it will return the old mappings from the database.
-  fun getDeviceMappings(pubKey: String, skipCache: Boolean = false): Promise<List<LokiPairingAuthorisation>, Exception> {
+  fun getDeviceMappings(pubKey: String, skipCache: Boolean = false): Promise<List<PairingAuthorisation>, Exception> {
     val databaseAuthorisations = database.getPairingAuthorisations(pubKey)
 
     val now = System.currentTimeMillis()
@@ -107,7 +107,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
     // If our cache has expired then we need to fetch from the server
     // If that fails then give the user the authorisations in the database
     if (!isOurOwnPubKey && hasCacheExpired) {
-      val deferred = deferred<List<LokiPairingAuthorisation>, Exception>()
+      val deferred = deferred<List<PairingAuthorisation>, Exception>()
 
       fetchAndSaveDeviceMappings(pubKey).success { authorisations ->
         // Update cache time

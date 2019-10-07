@@ -10,7 +10,7 @@ import org.whispersystems.libsignal.state.PreKeyBundle;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.messages.shared.SharedContact;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
-import org.whispersystems.signalservice.loki.api.LokiPairingAuthorisation;
+import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -36,7 +36,7 @@ public class SignalServiceDataMessage {
   // Loki
   private final boolean                                 isFriendRequest;
   private final Optional<PreKeyBundle>                  preKeyBundle;
-  private final Optional<LokiPairingAuthorisation>      pairingAuthorisation;
+  private final Optional<PairingAuthorisation>      pairingAuthorisation;
 
   /**
    * Construct a SignalServiceDataMessage with a body and no attachments.
@@ -150,7 +150,7 @@ public class SignalServiceDataMessage {
                                   String body, boolean endSession, int expiresInSeconds,
                                   boolean expirationUpdate, byte[] profileKey, boolean profileKeyUpdate,
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
-                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle, LokiPairingAuthorisation lokiPairingAuthorisation)
+                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle, PairingAuthorisation pairingAuthorisation)
   {
     this.timestamp             = timestamp;
     this.body                  = Optional.fromNullable(body);
@@ -164,7 +164,7 @@ public class SignalServiceDataMessage {
     this.sticker               = Optional.fromNullable(sticker);
     this.isFriendRequest       = isFriendRequest;
     this.preKeyBundle          = Optional.fromNullable(preKeyBundle);
-    this.pairingAuthorisation  = Optional.fromNullable(lokiPairingAuthorisation);
+    this.pairingAuthorisation  = Optional.fromNullable(pairingAuthorisation);
 
     if (attachments != null && !attachments.isEmpty()) {
       this.attachments = Optional.of(attachments);
@@ -262,14 +262,13 @@ public class SignalServiceDataMessage {
     return isFriendRequest;
   }
   public Optional<PreKeyBundle> getPreKeyBundle() { return preKeyBundle; }
-  public Optional<LokiPairingAuthorisation> getPairingAuthorisation() { return pairingAuthorisation; }
+  public Optional<PairingAuthorisation> getPairingAuthorisation() { return pairingAuthorisation; }
 
   public int getTTL() {
     int minute = 60 * 1000;
     int day = 24 * 60 * minute;
     if (pairingAuthorisation.isPresent()) { return 2 * minute; }
     if (isFriendRequest) { return 4 * day; }
-
     return day;
   }
 
@@ -291,7 +290,7 @@ public class SignalServiceDataMessage {
     private Sticker            sticker;
     private boolean            isFriendRequest;
     private PreKeyBundle       preKeyBundle;
-    private LokiPairingAuthorisation pairingAuthorisation;
+    private PairingAuthorisation pairingAuthorisation;
 
     private Builder() {}
 
@@ -388,7 +387,7 @@ public class SignalServiceDataMessage {
       return this;
     }
 
-    public Builder withPairingAuthorisation(LokiPairingAuthorisation pairingAuthorisation) {
+    public Builder withPairingAuthorisation(PairingAuthorisation pairingAuthorisation) {
       this.pairingAuthorisation = pairingAuthorisation;
       return this;
     }
