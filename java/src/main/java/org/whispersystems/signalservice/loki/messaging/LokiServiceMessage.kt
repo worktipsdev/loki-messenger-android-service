@@ -4,7 +4,11 @@ import org.whispersystems.libsignal.IdentityKey
 import org.whispersystems.libsignal.ecc.Curve
 import org.whispersystems.libsignal.state.PreKeyBundle
 
-data class LokiServiceMessage(val preKeyBundleMessage: LokiServicePreKeyBundleMessage?, val addressMessage: LokiServiceAddressMessage?)
+data class LokiServiceMessage(val preKeyBundleMessage: LokiServicePreKeyBundleMessage?, val addressMessage: LokiServiceAddressMessage?) {
+    fun isValid(): Boolean {
+        return preKeyBundleMessage != null || addressMessage != null
+    }
+}
 
 data class LokiServicePreKeyBundleMessage(
     val identityKey: ByteArray,

@@ -30,6 +30,21 @@ public class SignalServiceContent {
   public Optional<LokiServiceMessage> lokiMessage = Optional.absent();
   public Optional<String> senderDisplayName = Optional.absent();
 
+  public SignalServiceContent(LokiServiceMessage lokiServiceMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+    this.sender       = sender;
+    this.senderDevice = senderDevice;
+    this.timestamp    = timestamp;
+    this.needsReceipt = needsReceipt;
+
+    this.message            = Optional.absent();
+    this.synchronizeMessage = Optional.absent();
+    this.callMessage        = Optional.absent();
+    this.readMessage        = Optional.absent();
+    this.typingMessage      = Optional.absent();
+    this.pairingAuthorisation = Optional.absent();
+    this.lokiMessage = Optional.fromNullable(lokiServiceMessage);
+  }
+
   public SignalServiceContent(SignalServiceDataMessage message, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
     this.sender       = sender;
     this.senderDevice = senderDevice;

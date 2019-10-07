@@ -160,17 +160,6 @@ public class SignalServiceCipher {
 
   {
     try {
-      /*
-      if (envelope.hasLegacyMessage()) {
-        Plaintext plaintext = decrypt(envelope, envelope.getLegacyMessage());
-        DataMessage message = DataMessage.parseFrom(plaintext.getData());
-        return new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), message),
-                                        plaintext.getMetadata().getSender(),
-                                        plaintext.getMetadata().getSenderDevice(),
-                                        plaintext.getMetadata().getTimestamp(),
-                                        plaintext.getMetadata().isNeedsReceipt());
-      } else if (envelope.hasContent()) {
-       */
         Plaintext plaintext = decrypt(envelope, envelope.getContent());
         Content   message   = Content.parseFrom(plaintext.getData());
 
@@ -210,7 +199,7 @@ public class SignalServiceCipher {
                   plaintext.getMetadata().getSender(),
                   plaintext.getMetadata().getSenderDevice(),
                   plaintext.getMetadata().getTimestamp(),
-                  plaintext.getMetadata().isNeedsReceipt());
+                  false);
           content.setLokiMessage(lokiServiceMessage);
 
           return content;
@@ -263,8 +252,18 @@ public class SignalServiceCipher {
                                           plaintext.getMetadata().getTimestamp(),
                                           false);
         }
-//      }
 
+      // Check if we have any of the loki specific data set, if so then return that content
+      // This will be triggered on desktop friend request background messages
+      if (lokiServiceMessage.isValid()) {
+        return new SignalServiceContent(lokiServiceMessage,
+                plaintext.getMetadata().getSender(),
+                plaintext.getMetadata().getSenderDevice(),
+                plaintext.getMetadata().getTimestamp(),
+                false);
+      }
+
+      // No content is set at all, return null
       return null;
     } catch (InvalidProtocolBufferException e) {
       throw new InvalidMetadataMessageException(e);
