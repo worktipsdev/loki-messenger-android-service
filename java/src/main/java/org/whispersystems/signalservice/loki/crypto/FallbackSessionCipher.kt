@@ -2,6 +2,7 @@ package org.whispersystems.signalservice.loki.crypto
 
 import org.whispersystems.curve25519.Curve25519
 import org.whispersystems.libsignal.util.Hex
+import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 
 /**
  * A session cipher that uses the current user's private key along with a contact's public key to encrypt data.
@@ -10,10 +11,7 @@ class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val h
 
     // region Convenience
     private val contactPublicKey by lazy {
-        var hexEncodedContactPublicKey = hexEncodedContactPublicKey
-        if (hexEncodedContactPublicKey.length == 66) {
-            hexEncodedContactPublicKey = hexEncodedContactPublicKey.removePrefix("05")
-        }
+        val hexEncodedContactPublicKey = hexEncodedContactPublicKey.removing05PrefixIfNeeded()
         Hex.fromStringCondensed(hexEncodedContactPublicKey)
     }
 

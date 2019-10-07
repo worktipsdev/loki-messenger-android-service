@@ -10,6 +10,7 @@ import org.whispersystems.libsignal.state.PreKeyBundle;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.messages.shared.SharedContact;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
+import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -35,6 +36,7 @@ public class SignalServiceDataMessage {
   // Loki
   private final boolean                                 isFriendRequest;
   private final Optional<PreKeyBundle>                  preKeyBundle;
+  private final Optional<PairingAuthorisation>      pairingAuthorisation;
 
   /**
    * Construct a SignalServiceDataMessage with a body and no attachments.
@@ -128,7 +130,7 @@ public class SignalServiceDataMessage {
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
                                   Sticker sticker)
   {
-    this(timestamp, group, attachments, body, endSession, expiresInSeconds, expirationUpdate, profileKey, profileKeyUpdate, quote, sharedContacts, previews, sticker, false, null);
+    this(timestamp, group, attachments, body, endSession, expiresInSeconds, expirationUpdate, profileKey, profileKeyUpdate, quote, sharedContacts, previews, sticker, false, null, null);
   }
 
   /**
@@ -148,7 +150,7 @@ public class SignalServiceDataMessage {
                                   String body, boolean endSession, int expiresInSeconds,
                                   boolean expirationUpdate, byte[] profileKey, boolean profileKeyUpdate,
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
-                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle)
+                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle, PairingAuthorisation pairingAuthorisation)
   {
     this.timestamp             = timestamp;
     this.body                  = Optional.fromNullable(body);
@@ -162,6 +164,7 @@ public class SignalServiceDataMessage {
     this.sticker               = Optional.fromNullable(sticker);
     this.isFriendRequest       = isFriendRequest;
     this.preKeyBundle          = Optional.fromNullable(preKeyBundle);
+    this.pairingAuthorisation  = Optional.fromNullable(pairingAuthorisation);
 
     if (attachments != null && !attachments.isEmpty()) {
       this.attachments = Optional.of(attachments);
@@ -259,6 +262,15 @@ public class SignalServiceDataMessage {
     return isFriendRequest;
   }
   public Optional<PreKeyBundle> getPreKeyBundle() { return preKeyBundle; }
+  public Optional<PairingAuthorisation> getPairingAuthorisation() { return pairingAuthorisation; }
+
+  public int getTTL() {
+    int minute = 60 * 1000;
+    int day = 24 * 60 * minute;
+    if (pairingAuthorisation.isPresent()) { return 2 * minute; }
+    if (isFriendRequest) { return 4 * day; }
+    return day;
+  }
 
   public static class Builder {
 
@@ -278,6 +290,7 @@ public class SignalServiceDataMessage {
     private Sticker            sticker;
     private boolean            isFriendRequest;
     private PreKeyBundle       preKeyBundle;
+    private PairingAuthorisation pairingAuthorisation;
 
     private Builder() {}
 
@@ -374,12 +387,17 @@ public class SignalServiceDataMessage {
       return this;
     }
 
+    public Builder withPairingAuthorisation(PairingAuthorisation pairingAuthorisation) {
+      this.pairingAuthorisation = pairingAuthorisation;
+      return this;
+    }
+
     public SignalServiceDataMessage build() {
       if (timestamp == 0) timestamp = System.currentTimeMillis();
       return new SignalServiceDataMessage(timestamp, group, attachments, body, endSession,
                                           expiresInSeconds, expirationUpdate, profileKey,
                                           profileKeyUpdate, quote, sharedContacts, previews,
-                                          sticker, isFriendRequest, preKeyBundle);
+                                          sticker, isFriendRequest, preKeyBundle, pairingAuthorisation);
     }
   }
 

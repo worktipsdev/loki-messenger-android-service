@@ -1726,6 +1726,20 @@ public final class SignalServiceProtos {
      * <code>optional .signalservice.LokiAddressMessage lokiAddressMessage = 102;</code>
      */
     org.whispersystems.signalservice.internal.push.SignalServiceProtos.LokiAddressMessageOrBuilder getLokiAddressMessageOrBuilder();
+
+    // optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;
+    /**
+     * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+     */
+    boolean hasPairingAuthorisation();
+    /**
+     * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+     */
+    org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage getPairingAuthorisation();
+    /**
+     * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+     */
+    org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessageOrBuilder getPairingAuthorisationOrBuilder();
   }
   /**
    * Protobuf type {@code signalservice.Content}
@@ -1880,6 +1894,19 @@ public final class SignalServiceProtos {
                 lokiAddressMessage_ = subBuilder.buildPartial();
               }
               bitField0_ |= 0x00000080;
+              break;
+            }
+            case 826: {
+              org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Builder subBuilder = null;
+              if (((bitField0_ & 0x00000100) == 0x00000100)) {
+                subBuilder = pairingAuthorisation_.toBuilder();
+              }
+              pairingAuthorisation_ = input.readMessage(org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.PARSER, extensionRegistry);
+              if (subBuilder != null) {
+                subBuilder.mergeFrom(pairingAuthorisation_);
+                pairingAuthorisation_ = subBuilder.buildPartial();
+              }
+              bitField0_ |= 0x00000100;
               break;
             }
           }
@@ -2098,6 +2125,28 @@ public final class SignalServiceProtos {
       return lokiAddressMessage_;
     }
 
+    // optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;
+    public static final int PAIRINGAUTHORISATION_FIELD_NUMBER = 103;
+    private org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage pairingAuthorisation_;
+    /**
+     * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+     */
+    public boolean hasPairingAuthorisation() {
+      return ((bitField0_ & 0x00000100) == 0x00000100);
+    }
+    /**
+     * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+     */
+    public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage getPairingAuthorisation() {
+      return pairingAuthorisation_;
+    }
+    /**
+     * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+     */
+    public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessageOrBuilder getPairingAuthorisationOrBuilder() {
+      return pairingAuthorisation_;
+    }
+
     private void initFields() {
       dataMessage_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.DataMessage.getDefaultInstance();
       syncMessage_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMessage.getDefaultInstance();
@@ -2107,6 +2156,7 @@ public final class SignalServiceProtos {
       typingMessage_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.TypingMessage.getDefaultInstance();
       preKeyBundleMessage_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PrekeyBundleMessage.getDefaultInstance();
       lokiAddressMessage_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.LokiAddressMessage.getDefaultInstance();
+      pairingAuthorisation_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.getDefaultInstance();
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -2143,6 +2193,9 @@ public final class SignalServiceProtos {
       }
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
         output.writeMessage(102, lokiAddressMessage_);
+      }
+      if (((bitField0_ & 0x00000100) == 0x00000100)) {
+        output.writeMessage(103, pairingAuthorisation_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -2184,6 +2237,10 @@ public final class SignalServiceProtos {
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(102, lokiAddressMessage_);
+      }
+      if (((bitField0_ & 0x00000100) == 0x00000100)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeMessageSize(103, pairingAuthorisation_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -2301,6 +2358,7 @@ public final class SignalServiceProtos {
           getTypingMessageFieldBuilder();
           getPreKeyBundleMessageFieldBuilder();
           getLokiAddressMessageFieldBuilder();
+          getPairingAuthorisationFieldBuilder();
         }
       }
       private static Builder create() {
@@ -2357,6 +2415,12 @@ public final class SignalServiceProtos {
           lokiAddressMessageBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000080);
+        if (pairingAuthorisationBuilder_ == null) {
+          pairingAuthorisation_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.getDefaultInstance();
+        } else {
+          pairingAuthorisationBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000100);
         return this;
       }
 
@@ -2449,6 +2513,14 @@ public final class SignalServiceProtos {
         } else {
           result.lokiAddressMessage_ = lokiAddressMessageBuilder_.build();
         }
+        if (((from_bitField0_ & 0x00000100) == 0x00000100)) {
+          to_bitField0_ |= 0x00000100;
+        }
+        if (pairingAuthorisationBuilder_ == null) {
+          result.pairingAuthorisation_ = pairingAuthorisation_;
+        } else {
+          result.pairingAuthorisation_ = pairingAuthorisationBuilder_.build();
+        }
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -2488,6 +2560,9 @@ public final class SignalServiceProtos {
         }
         if (other.hasLokiAddressMessage()) {
           mergeLokiAddressMessage(other.getLokiAddressMessage());
+        }
+        if (other.hasPairingAuthorisation()) {
+          mergePairingAuthorisation(other.getPairingAuthorisation());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -3452,6 +3527,123 @@ public final class SignalServiceProtos {
         return lokiAddressMessageBuilder_;
       }
 
+      // optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;
+      private org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage pairingAuthorisation_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.getDefaultInstance();
+      private com.google.protobuf.SingleFieldBuilder<
+          org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Builder, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessageOrBuilder> pairingAuthorisationBuilder_;
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+       */
+      public boolean hasPairingAuthorisation() {
+        return ((bitField0_ & 0x00000100) == 0x00000100);
+      }
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+       */
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage getPairingAuthorisation() {
+        if (pairingAuthorisationBuilder_ == null) {
+          return pairingAuthorisation_;
+        } else {
+          return pairingAuthorisationBuilder_.getMessage();
+        }
+      }
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+       */
+      public Builder setPairingAuthorisation(org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage value) {
+        if (pairingAuthorisationBuilder_ == null) {
+          if (value == null) {
+            throw new NullPointerException();
+          }
+          pairingAuthorisation_ = value;
+          onChanged();
+        } else {
+          pairingAuthorisationBuilder_.setMessage(value);
+        }
+        bitField0_ |= 0x00000100;
+        return this;
+      }
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+       */
+      public Builder setPairingAuthorisation(
+          org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Builder builderForValue) {
+        if (pairingAuthorisationBuilder_ == null) {
+          pairingAuthorisation_ = builderForValue.build();
+          onChanged();
+        } else {
+          pairingAuthorisationBuilder_.setMessage(builderForValue.build());
+        }
+        bitField0_ |= 0x00000100;
+        return this;
+      }
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+       */
+      public Builder mergePairingAuthorisation(org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage value) {
+        if (pairingAuthorisationBuilder_ == null) {
+          if (((bitField0_ & 0x00000100) == 0x00000100) &&
+              pairingAuthorisation_ != org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.getDefaultInstance()) {
+            pairingAuthorisation_ =
+              org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.newBuilder(pairingAuthorisation_).mergeFrom(value).buildPartial();
+          } else {
+            pairingAuthorisation_ = value;
+          }
+          onChanged();
+        } else {
+          pairingAuthorisationBuilder_.mergeFrom(value);
+        }
+        bitField0_ |= 0x00000100;
+        return this;
+      }
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+       */
+      public Builder clearPairingAuthorisation() {
+        if (pairingAuthorisationBuilder_ == null) {
+          pairingAuthorisation_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.getDefaultInstance();
+          onChanged();
+        } else {
+          pairingAuthorisationBuilder_.clear();
+        }
+        bitField0_ = (bitField0_ & ~0x00000100);
+        return this;
+      }
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+       */
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Builder getPairingAuthorisationBuilder() {
+        bitField0_ |= 0x00000100;
+        onChanged();
+        return getPairingAuthorisationFieldBuilder().getBuilder();
+      }
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+       */
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessageOrBuilder getPairingAuthorisationOrBuilder() {
+        if (pairingAuthorisationBuilder_ != null) {
+          return pairingAuthorisationBuilder_.getMessageOrBuilder();
+        } else {
+          return pairingAuthorisation_;
+        }
+      }
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage pairingAuthorisation = 103;</code>
+       */
+      private com.google.protobuf.SingleFieldBuilder<
+          org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Builder, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessageOrBuilder> 
+          getPairingAuthorisationFieldBuilder() {
+        if (pairingAuthorisationBuilder_ == null) {
+          pairingAuthorisationBuilder_ = new com.google.protobuf.SingleFieldBuilder<
+              org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Builder, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessageOrBuilder>(
+                  pairingAuthorisation_,
+                  getParentForChildren(),
+                  isClean());
+          pairingAuthorisation_ = null;
+        }
+        return pairingAuthorisationBuilder_;
+      }
+
       // @@protoc_insertion_point(builder_scope:signalservice.Content)
     }
 
@@ -4013,6 +4205,982 @@ public final class SignalServiceProtos {
     }
 
     // @@protoc_insertion_point(class_scope:signalservice.LokiAddressMessage)
+  }
+
+  public interface PairingAuthorisationMessageOrBuilder
+      extends com.google.protobuf.MessageOrBuilder {
+
+    // optional string primaryDevicePubKey = 1;
+    /**
+     * <code>optional string primaryDevicePubKey = 1;</code>
+     */
+    boolean hasPrimaryDevicePubKey();
+    /**
+     * <code>optional string primaryDevicePubKey = 1;</code>
+     */
+    java.lang.String getPrimaryDevicePubKey();
+    /**
+     * <code>optional string primaryDevicePubKey = 1;</code>
+     */
+    com.google.protobuf.ByteString
+        getPrimaryDevicePubKeyBytes();
+
+    // optional string secondaryDevicePubKey = 2;
+    /**
+     * <code>optional string secondaryDevicePubKey = 2;</code>
+     */
+    boolean hasSecondaryDevicePubKey();
+    /**
+     * <code>optional string secondaryDevicePubKey = 2;</code>
+     */
+    java.lang.String getSecondaryDevicePubKey();
+    /**
+     * <code>optional string secondaryDevicePubKey = 2;</code>
+     */
+    com.google.protobuf.ByteString
+        getSecondaryDevicePubKeyBytes();
+
+    // optional bytes requestSignature = 3;
+    /**
+     * <code>optional bytes requestSignature = 3;</code>
+     */
+    boolean hasRequestSignature();
+    /**
+     * <code>optional bytes requestSignature = 3;</code>
+     */
+    com.google.protobuf.ByteString getRequestSignature();
+
+    // optional bytes grantSignature = 4;
+    /**
+     * <code>optional bytes grantSignature = 4;</code>
+     */
+    boolean hasGrantSignature();
+    /**
+     * <code>optional bytes grantSignature = 4;</code>
+     */
+    com.google.protobuf.ByteString getGrantSignature();
+
+    // optional .signalservice.PairingAuthorisationMessage.Type type = 5;
+    /**
+     * <code>optional .signalservice.PairingAuthorisationMessage.Type type = 5;</code>
+     */
+    boolean hasType();
+    /**
+     * <code>optional .signalservice.PairingAuthorisationMessage.Type type = 5;</code>
+     */
+    org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type getType();
+  }
+  /**
+   * Protobuf type {@code signalservice.PairingAuthorisationMessage}
+   */
+  public static final class PairingAuthorisationMessage extends
+      com.google.protobuf.GeneratedMessage
+      implements PairingAuthorisationMessageOrBuilder {
+    // Use PairingAuthorisationMessage.newBuilder() to construct.
+    private PairingAuthorisationMessage(com.google.protobuf.GeneratedMessage.Builder<?> builder) {
+      super(builder);
+      this.unknownFields = builder.getUnknownFields();
+    }
+    private PairingAuthorisationMessage(boolean noInit) { this.unknownFields = com.google.protobuf.UnknownFieldSet.getDefaultInstance(); }
+
+    private static final PairingAuthorisationMessage defaultInstance;
+    public static PairingAuthorisationMessage getDefaultInstance() {
+      return defaultInstance;
+    }
+
+    public PairingAuthorisationMessage getDefaultInstanceForType() {
+      return defaultInstance;
+    }
+
+    private final com.google.protobuf.UnknownFieldSet unknownFields;
+    @java.lang.Override
+    public final com.google.protobuf.UnknownFieldSet
+        getUnknownFields() {
+      return this.unknownFields;
+    }
+    private PairingAuthorisationMessage(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      initFields();
+      int mutable_bitField0_ = 0;
+      com.google.protobuf.UnknownFieldSet.Builder unknownFields =
+          com.google.protobuf.UnknownFieldSet.newBuilder();
+      try {
+        boolean done = false;
+        while (!done) {
+          int tag = input.readTag();
+          switch (tag) {
+            case 0:
+              done = true;
+              break;
+            default: {
+              if (!parseUnknownField(input, unknownFields,
+                                     extensionRegistry, tag)) {
+                done = true;
+              }
+              break;
+            }
+            case 10: {
+              bitField0_ |= 0x00000001;
+              primaryDevicePubKey_ = input.readBytes();
+              break;
+            }
+            case 18: {
+              bitField0_ |= 0x00000002;
+              secondaryDevicePubKey_ = input.readBytes();
+              break;
+            }
+            case 26: {
+              bitField0_ |= 0x00000004;
+              requestSignature_ = input.readBytes();
+              break;
+            }
+            case 34: {
+              bitField0_ |= 0x00000008;
+              grantSignature_ = input.readBytes();
+              break;
+            }
+            case 40: {
+              int rawValue = input.readEnum();
+              org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type value = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type.valueOf(rawValue);
+              if (value == null) {
+                unknownFields.mergeVarintField(5, rawValue);
+              } else {
+                bitField0_ |= 0x00000010;
+                type_ = value;
+              }
+              break;
+            }
+          }
+        }
+      } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+        throw e.setUnfinishedMessage(this);
+      } catch (java.io.IOException e) {
+        throw new com.google.protobuf.InvalidProtocolBufferException(
+            e.getMessage()).setUnfinishedMessage(this);
+      } finally {
+        this.unknownFields = unknownFields.build();
+        makeExtensionsImmutable();
+      }
+    }
+    public static final com.google.protobuf.Descriptors.Descriptor
+        getDescriptor() {
+      return org.whispersystems.signalservice.internal.push.SignalServiceProtos.internal_static_signalservice_PairingAuthorisationMessage_descriptor;
+    }
+
+    protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+        internalGetFieldAccessorTable() {
+      return org.whispersystems.signalservice.internal.push.SignalServiceProtos.internal_static_signalservice_PairingAuthorisationMessage_fieldAccessorTable
+          .ensureFieldAccessorsInitialized(
+              org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.class, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Builder.class);
+    }
+
+    public static com.google.protobuf.Parser<PairingAuthorisationMessage> PARSER =
+        new com.google.protobuf.AbstractParser<PairingAuthorisationMessage>() {
+      public PairingAuthorisationMessage parsePartialFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws com.google.protobuf.InvalidProtocolBufferException {
+        return new PairingAuthorisationMessage(input, extensionRegistry);
+      }
+    };
+
+    @java.lang.Override
+    public com.google.protobuf.Parser<PairingAuthorisationMessage> getParserForType() {
+      return PARSER;
+    }
+
+    /**
+     * Protobuf enum {@code signalservice.PairingAuthorisationMessage.Type}
+     */
+    public enum Type
+        implements com.google.protobuf.ProtocolMessageEnum {
+      /**
+       * <code>REQUEST = 1;</code>
+       */
+      REQUEST(0, 1),
+      /**
+       * <code>GRANT = 2;</code>
+       */
+      GRANT(1, 2),
+      /**
+       * <code>REVOKE = 3;</code>
+       */
+      REVOKE(2, 3),
+      ;
+
+      /**
+       * <code>REQUEST = 1;</code>
+       */
+      public static final int REQUEST_VALUE = 1;
+      /**
+       * <code>GRANT = 2;</code>
+       */
+      public static final int GRANT_VALUE = 2;
+      /**
+       * <code>REVOKE = 3;</code>
+       */
+      public static final int REVOKE_VALUE = 3;
+
+
+      public final int getNumber() { return value; }
+
+      public static Type valueOf(int value) {
+        switch (value) {
+          case 1: return REQUEST;
+          case 2: return GRANT;
+          case 3: return REVOKE;
+          default: return null;
+        }
+      }
+
+      public static com.google.protobuf.Internal.EnumLiteMap<Type>
+          internalGetValueMap() {
+        return internalValueMap;
+      }
+      private static com.google.protobuf.Internal.EnumLiteMap<Type>
+          internalValueMap =
+            new com.google.protobuf.Internal.EnumLiteMap<Type>() {
+              public Type findValueByNumber(int number) {
+                return Type.valueOf(number);
+              }
+            };
+
+      public final com.google.protobuf.Descriptors.EnumValueDescriptor
+          getValueDescriptor() {
+        return getDescriptor().getValues().get(index);
+      }
+      public final com.google.protobuf.Descriptors.EnumDescriptor
+          getDescriptorForType() {
+        return getDescriptor();
+      }
+      public static final com.google.protobuf.Descriptors.EnumDescriptor
+          getDescriptor() {
+        return org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.getDescriptor().getEnumTypes().get(0);
+      }
+
+      private static final Type[] VALUES = values();
+
+      public static Type valueOf(
+          com.google.protobuf.Descriptors.EnumValueDescriptor desc) {
+        if (desc.getType() != getDescriptor()) {
+          throw new java.lang.IllegalArgumentException(
+            "EnumValueDescriptor is not for this type.");
+        }
+        return VALUES[desc.getIndex()];
+      }
+
+      private final int index;
+      private final int value;
+
+      private Type(int index, int value) {
+        this.index = index;
+        this.value = value;
+      }
+
+      // @@protoc_insertion_point(enum_scope:signalservice.PairingAuthorisationMessage.Type)
+    }
+
+    private int bitField0_;
+    // optional string primaryDevicePubKey = 1;
+    public static final int PRIMARYDEVICEPUBKEY_FIELD_NUMBER = 1;
+    private java.lang.Object primaryDevicePubKey_;
+    /**
+     * <code>optional string primaryDevicePubKey = 1;</code>
+     */
+    public boolean hasPrimaryDevicePubKey() {
+      return ((bitField0_ & 0x00000001) == 0x00000001);
+    }
+    /**
+     * <code>optional string primaryDevicePubKey = 1;</code>
+     */
+    public java.lang.String getPrimaryDevicePubKey() {
+      java.lang.Object ref = primaryDevicePubKey_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          primaryDevicePubKey_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string primaryDevicePubKey = 1;</code>
+     */
+    public com.google.protobuf.ByteString
+        getPrimaryDevicePubKeyBytes() {
+      java.lang.Object ref = primaryDevicePubKey_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        primaryDevicePubKey_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // optional string secondaryDevicePubKey = 2;
+    public static final int SECONDARYDEVICEPUBKEY_FIELD_NUMBER = 2;
+    private java.lang.Object secondaryDevicePubKey_;
+    /**
+     * <code>optional string secondaryDevicePubKey = 2;</code>
+     */
+    public boolean hasSecondaryDevicePubKey() {
+      return ((bitField0_ & 0x00000002) == 0x00000002);
+    }
+    /**
+     * <code>optional string secondaryDevicePubKey = 2;</code>
+     */
+    public java.lang.String getSecondaryDevicePubKey() {
+      java.lang.Object ref = secondaryDevicePubKey_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          secondaryDevicePubKey_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string secondaryDevicePubKey = 2;</code>
+     */
+    public com.google.protobuf.ByteString
+        getSecondaryDevicePubKeyBytes() {
+      java.lang.Object ref = secondaryDevicePubKey_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        secondaryDevicePubKey_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
+    // optional bytes requestSignature = 3;
+    public static final int REQUESTSIGNATURE_FIELD_NUMBER = 3;
+    private com.google.protobuf.ByteString requestSignature_;
+    /**
+     * <code>optional bytes requestSignature = 3;</code>
+     */
+    public boolean hasRequestSignature() {
+      return ((bitField0_ & 0x00000004) == 0x00000004);
+    }
+    /**
+     * <code>optional bytes requestSignature = 3;</code>
+     */
+    public com.google.protobuf.ByteString getRequestSignature() {
+      return requestSignature_;
+    }
+
+    // optional bytes grantSignature = 4;
+    public static final int GRANTSIGNATURE_FIELD_NUMBER = 4;
+    private com.google.protobuf.ByteString grantSignature_;
+    /**
+     * <code>optional bytes grantSignature = 4;</code>
+     */
+    public boolean hasGrantSignature() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>optional bytes grantSignature = 4;</code>
+     */
+    public com.google.protobuf.ByteString getGrantSignature() {
+      return grantSignature_;
+    }
+
+    // optional .signalservice.PairingAuthorisationMessage.Type type = 5;
+    public static final int TYPE_FIELD_NUMBER = 5;
+    private org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type type_;
+    /**
+     * <code>optional .signalservice.PairingAuthorisationMessage.Type type = 5;</code>
+     */
+    public boolean hasType() {
+      return ((bitField0_ & 0x00000010) == 0x00000010);
+    }
+    /**
+     * <code>optional .signalservice.PairingAuthorisationMessage.Type type = 5;</code>
+     */
+    public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type getType() {
+      return type_;
+    }
+
+    private void initFields() {
+      primaryDevicePubKey_ = "";
+      secondaryDevicePubKey_ = "";
+      requestSignature_ = com.google.protobuf.ByteString.EMPTY;
+      grantSignature_ = com.google.protobuf.ByteString.EMPTY;
+      type_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type.REQUEST;
+    }
+    private byte memoizedIsInitialized = -1;
+    public final boolean isInitialized() {
+      byte isInitialized = memoizedIsInitialized;
+      if (isInitialized != -1) return isInitialized == 1;
+
+      memoizedIsInitialized = 1;
+      return true;
+    }
+
+    public void writeTo(com.google.protobuf.CodedOutputStream output)
+                        throws java.io.IOException {
+      getSerializedSize();
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        output.writeBytes(1, getPrimaryDevicePubKeyBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        output.writeBytes(2, getSecondaryDevicePubKeyBytes());
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        output.writeBytes(3, requestSignature_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        output.writeBytes(4, grantSignature_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        output.writeEnum(5, type_.getNumber());
+      }
+      getUnknownFields().writeTo(output);
+    }
+
+    private int memoizedSerializedSize = -1;
+    public int getSerializedSize() {
+      int size = memoizedSerializedSize;
+      if (size != -1) return size;
+
+      size = 0;
+      if (((bitField0_ & 0x00000001) == 0x00000001)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(1, getPrimaryDevicePubKeyBytes());
+      }
+      if (((bitField0_ & 0x00000002) == 0x00000002)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(2, getSecondaryDevicePubKeyBytes());
+      }
+      if (((bitField0_ & 0x00000004) == 0x00000004)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(3, requestSignature_);
+      }
+      if (((bitField0_ & 0x00000008) == 0x00000008)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(4, grantSignature_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeEnumSize(5, type_.getNumber());
+      }
+      size += getUnknownFields().getSerializedSize();
+      memoizedSerializedSize = size;
+      return size;
+    }
+
+    private static final long serialVersionUID = 0L;
+    @java.lang.Override
+    protected java.lang.Object writeReplace()
+        throws java.io.ObjectStreamException {
+      return super.writeReplace();
+    }
+
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return PARSER.parseFrom(data, extensionRegistry);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseDelimitedFrom(input, extensionRegistry);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input);
+    }
+    public static org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return PARSER.parseFrom(input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() { return Builder.create(); }
+    public Builder newBuilderForType() { return newBuilder(); }
+    public static Builder newBuilder(org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage prototype) {
+      return newBuilder().mergeFrom(prototype);
+    }
+    public Builder toBuilder() { return newBuilder(this); }
+
+    @java.lang.Override
+    protected Builder newBuilderForType(
+        com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+      Builder builder = new Builder(parent);
+      return builder;
+    }
+    /**
+     * Protobuf type {@code signalservice.PairingAuthorisationMessage}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessage.Builder<Builder>
+       implements org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessageOrBuilder {
+      public static final com.google.protobuf.Descriptors.Descriptor
+          getDescriptor() {
+        return org.whispersystems.signalservice.internal.push.SignalServiceProtos.internal_static_signalservice_PairingAuthorisationMessage_descriptor;
+      }
+
+      protected com.google.protobuf.GeneratedMessage.FieldAccessorTable
+          internalGetFieldAccessorTable() {
+        return org.whispersystems.signalservice.internal.push.SignalServiceProtos.internal_static_signalservice_PairingAuthorisationMessage_fieldAccessorTable
+            .ensureFieldAccessorsInitialized(
+                org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.class, org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Builder.class);
+      }
+
+      // Construct using org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.newBuilder()
+      private Builder() {
+        maybeForceBuilderInitialization();
+      }
+
+      private Builder(
+          com.google.protobuf.GeneratedMessage.BuilderParent parent) {
+        super(parent);
+        maybeForceBuilderInitialization();
+      }
+      private void maybeForceBuilderInitialization() {
+        if (com.google.protobuf.GeneratedMessage.alwaysUseFieldBuilders) {
+        }
+      }
+      private static Builder create() {
+        return new Builder();
+      }
+
+      public Builder clear() {
+        super.clear();
+        primaryDevicePubKey_ = "";
+        bitField0_ = (bitField0_ & ~0x00000001);
+        secondaryDevicePubKey_ = "";
+        bitField0_ = (bitField0_ & ~0x00000002);
+        requestSignature_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000004);
+        grantSignature_ = com.google.protobuf.ByteString.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000008);
+        type_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type.REQUEST;
+        bitField0_ = (bitField0_ & ~0x00000010);
+        return this;
+      }
+
+      public Builder clone() {
+        return create().mergeFrom(buildPartial());
+      }
+
+      public com.google.protobuf.Descriptors.Descriptor
+          getDescriptorForType() {
+        return org.whispersystems.signalservice.internal.push.SignalServiceProtos.internal_static_signalservice_PairingAuthorisationMessage_descriptor;
+      }
+
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage getDefaultInstanceForType() {
+        return org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.getDefaultInstance();
+      }
+
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage build() {
+        org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage result = buildPartial();
+        if (!result.isInitialized()) {
+          throw newUninitializedMessageException(result);
+        }
+        return result;
+      }
+
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage buildPartial() {
+        org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage result = new org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage(this);
+        int from_bitField0_ = bitField0_;
+        int to_bitField0_ = 0;
+        if (((from_bitField0_ & 0x00000001) == 0x00000001)) {
+          to_bitField0_ |= 0x00000001;
+        }
+        result.primaryDevicePubKey_ = primaryDevicePubKey_;
+        if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+          to_bitField0_ |= 0x00000002;
+        }
+        result.secondaryDevicePubKey_ = secondaryDevicePubKey_;
+        if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+          to_bitField0_ |= 0x00000004;
+        }
+        result.requestSignature_ = requestSignature_;
+        if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
+          to_bitField0_ |= 0x00000008;
+        }
+        result.grantSignature_ = grantSignature_;
+        if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
+          to_bitField0_ |= 0x00000010;
+        }
+        result.type_ = type_;
+        result.bitField0_ = to_bitField0_;
+        onBuilt();
+        return result;
+      }
+
+      public Builder mergeFrom(com.google.protobuf.Message other) {
+        if (other instanceof org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage) {
+          return mergeFrom((org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage)other);
+        } else {
+          super.mergeFrom(other);
+          return this;
+        }
+      }
+
+      public Builder mergeFrom(org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage other) {
+        if (other == org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.getDefaultInstance()) return this;
+        if (other.hasPrimaryDevicePubKey()) {
+          bitField0_ |= 0x00000001;
+          primaryDevicePubKey_ = other.primaryDevicePubKey_;
+          onChanged();
+        }
+        if (other.hasSecondaryDevicePubKey()) {
+          bitField0_ |= 0x00000002;
+          secondaryDevicePubKey_ = other.secondaryDevicePubKey_;
+          onChanged();
+        }
+        if (other.hasRequestSignature()) {
+          setRequestSignature(other.getRequestSignature());
+        }
+        if (other.hasGrantSignature()) {
+          setGrantSignature(other.getGrantSignature());
+        }
+        if (other.hasType()) {
+          setType(other.getType());
+        }
+        this.mergeUnknownFields(other.getUnknownFields());
+        return this;
+      }
+
+      public final boolean isInitialized() {
+        return true;
+      }
+
+      public Builder mergeFrom(
+          com.google.protobuf.CodedInputStream input,
+          com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+          throws java.io.IOException {
+        org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage parsedMessage = null;
+        try {
+          parsedMessage = PARSER.parsePartialFrom(input, extensionRegistry);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+          parsedMessage = (org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage) e.getUnfinishedMessage();
+          throw e;
+        } finally {
+          if (parsedMessage != null) {
+            mergeFrom(parsedMessage);
+          }
+        }
+        return this;
+      }
+      private int bitField0_;
+
+      // optional string primaryDevicePubKey = 1;
+      private java.lang.Object primaryDevicePubKey_ = "";
+      /**
+       * <code>optional string primaryDevicePubKey = 1;</code>
+       */
+      public boolean hasPrimaryDevicePubKey() {
+        return ((bitField0_ & 0x00000001) == 0x00000001);
+      }
+      /**
+       * <code>optional string primaryDevicePubKey = 1;</code>
+       */
+      public java.lang.String getPrimaryDevicePubKey() {
+        java.lang.Object ref = primaryDevicePubKey_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          primaryDevicePubKey_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string primaryDevicePubKey = 1;</code>
+       */
+      public com.google.protobuf.ByteString
+          getPrimaryDevicePubKeyBytes() {
+        java.lang.Object ref = primaryDevicePubKey_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          primaryDevicePubKey_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string primaryDevicePubKey = 1;</code>
+       */
+      public Builder setPrimaryDevicePubKey(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        primaryDevicePubKey_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string primaryDevicePubKey = 1;</code>
+       */
+      public Builder clearPrimaryDevicePubKey() {
+        bitField0_ = (bitField0_ & ~0x00000001);
+        primaryDevicePubKey_ = getDefaultInstance().getPrimaryDevicePubKey();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string primaryDevicePubKey = 1;</code>
+       */
+      public Builder setPrimaryDevicePubKeyBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000001;
+        primaryDevicePubKey_ = value;
+        onChanged();
+        return this;
+      }
+
+      // optional string secondaryDevicePubKey = 2;
+      private java.lang.Object secondaryDevicePubKey_ = "";
+      /**
+       * <code>optional string secondaryDevicePubKey = 2;</code>
+       */
+      public boolean hasSecondaryDevicePubKey() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional string secondaryDevicePubKey = 2;</code>
+       */
+      public java.lang.String getSecondaryDevicePubKey() {
+        java.lang.Object ref = secondaryDevicePubKey_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          secondaryDevicePubKey_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string secondaryDevicePubKey = 2;</code>
+       */
+      public com.google.protobuf.ByteString
+          getSecondaryDevicePubKeyBytes() {
+        java.lang.Object ref = secondaryDevicePubKey_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          secondaryDevicePubKey_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string secondaryDevicePubKey = 2;</code>
+       */
+      public Builder setSecondaryDevicePubKey(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        secondaryDevicePubKey_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string secondaryDevicePubKey = 2;</code>
+       */
+      public Builder clearSecondaryDevicePubKey() {
+        bitField0_ = (bitField0_ & ~0x00000002);
+        secondaryDevicePubKey_ = getDefaultInstance().getSecondaryDevicePubKey();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string secondaryDevicePubKey = 2;</code>
+       */
+      public Builder setSecondaryDevicePubKeyBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+        secondaryDevicePubKey_ = value;
+        onChanged();
+        return this;
+      }
+
+      // optional bytes requestSignature = 3;
+      private com.google.protobuf.ByteString requestSignature_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes requestSignature = 3;</code>
+       */
+      public boolean hasRequestSignature() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional bytes requestSignature = 3;</code>
+       */
+      public com.google.protobuf.ByteString getRequestSignature() {
+        return requestSignature_;
+      }
+      /**
+       * <code>optional bytes requestSignature = 3;</code>
+       */
+      public Builder setRequestSignature(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+        requestSignature_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bytes requestSignature = 3;</code>
+       */
+      public Builder clearRequestSignature() {
+        bitField0_ = (bitField0_ & ~0x00000004);
+        requestSignature_ = getDefaultInstance().getRequestSignature();
+        onChanged();
+        return this;
+      }
+
+      // optional bytes grantSignature = 4;
+      private com.google.protobuf.ByteString grantSignature_ = com.google.protobuf.ByteString.EMPTY;
+      /**
+       * <code>optional bytes grantSignature = 4;</code>
+       */
+      public boolean hasGrantSignature() {
+        return ((bitField0_ & 0x00000008) == 0x00000008);
+      }
+      /**
+       * <code>optional bytes grantSignature = 4;</code>
+       */
+      public com.google.protobuf.ByteString getGrantSignature() {
+        return grantSignature_;
+      }
+      /**
+       * <code>optional bytes grantSignature = 4;</code>
+       */
+      public Builder setGrantSignature(com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000008;
+        grantSignature_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional bytes grantSignature = 4;</code>
+       */
+      public Builder clearGrantSignature() {
+        bitField0_ = (bitField0_ & ~0x00000008);
+        grantSignature_ = getDefaultInstance().getGrantSignature();
+        onChanged();
+        return this;
+      }
+
+      // optional .signalservice.PairingAuthorisationMessage.Type type = 5;
+      private org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type type_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type.REQUEST;
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage.Type type = 5;</code>
+       */
+      public boolean hasType() {
+        return ((bitField0_ & 0x00000010) == 0x00000010);
+      }
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage.Type type = 5;</code>
+       */
+      public org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type getType() {
+        return type_;
+      }
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage.Type type = 5;</code>
+       */
+      public Builder setType(org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type value) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        bitField0_ |= 0x00000010;
+        type_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional .signalservice.PairingAuthorisationMessage.Type type = 5;</code>
+       */
+      public Builder clearType() {
+        bitField0_ = (bitField0_ & ~0x00000010);
+        type_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.PairingAuthorisationMessage.Type.REQUEST;
+        onChanged();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:signalservice.PairingAuthorisationMessage)
+    }
+
+    static {
+      defaultInstance = new PairingAuthorisationMessage(true);
+      defaultInstance.initFields();
+    }
+
+    // @@protoc_insertion_point(class_scope:signalservice.PairingAuthorisationMessage)
   }
 
   public interface PrekeyBundleMessageOrBuilder
@@ -27584,6 +28752,16 @@ public final class SignalServiceProtos {
        * <code>optional bool complete = 2 [default = false];</code>
        */
       boolean getComplete();
+
+      // optional bytes data = 101;
+      /**
+       * <code>optional bytes data = 101;</code>
+       */
+      boolean hasData();
+      /**
+       * <code>optional bytes data = 101;</code>
+       */
+      com.google.protobuf.ByteString getData();
     }
     /**
      * Protobuf type {@code signalservice.SyncMessage.Contacts}
@@ -27652,6 +28830,11 @@ public final class SignalServiceProtos {
               case 16: {
                 bitField0_ |= 0x00000002;
                 complete_ = input.readBool();
+                break;
+              }
+              case 810: {
+                bitField0_ |= 0x00000004;
+                data_ = input.readBytes();
                 break;
               }
             }
@@ -27732,9 +28915,26 @@ public final class SignalServiceProtos {
         return complete_;
       }
 
+      // optional bytes data = 101;
+      public static final int DATA_FIELD_NUMBER = 101;
+      private com.google.protobuf.ByteString data_;
+      /**
+       * <code>optional bytes data = 101;</code>
+       */
+      public boolean hasData() {
+        return ((bitField0_ & 0x00000004) == 0x00000004);
+      }
+      /**
+       * <code>optional bytes data = 101;</code>
+       */
+      public com.google.protobuf.ByteString getData() {
+        return data_;
+      }
+
       private void initFields() {
         blob_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.AttachmentPointer.getDefaultInstance();
         complete_ = false;
+        data_ = com.google.protobuf.ByteString.EMPTY;
       }
       private byte memoizedIsInitialized = -1;
       public final boolean isInitialized() {
@@ -27754,6 +28954,9 @@ public final class SignalServiceProtos {
         if (((bitField0_ & 0x00000002) == 0x00000002)) {
           output.writeBool(2, complete_);
         }
+        if (((bitField0_ & 0x00000004) == 0x00000004)) {
+          output.writeBytes(101, data_);
+        }
         getUnknownFields().writeTo(output);
       }
 
@@ -27770,6 +28973,10 @@ public final class SignalServiceProtos {
         if (((bitField0_ & 0x00000002) == 0x00000002)) {
           size += com.google.protobuf.CodedOutputStream
             .computeBoolSize(2, complete_);
+        }
+        if (((bitField0_ & 0x00000004) == 0x00000004)) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeBytesSize(101, data_);
         }
         size += getUnknownFields().getSerializedSize();
         memoizedSerializedSize = size;
@@ -27896,6 +29103,8 @@ public final class SignalServiceProtos {
           bitField0_ = (bitField0_ & ~0x00000001);
           complete_ = false;
           bitField0_ = (bitField0_ & ~0x00000002);
+          data_ = com.google.protobuf.ByteString.EMPTY;
+          bitField0_ = (bitField0_ & ~0x00000004);
           return this;
         }
 
@@ -27936,6 +29145,10 @@ public final class SignalServiceProtos {
             to_bitField0_ |= 0x00000002;
           }
           result.complete_ = complete_;
+          if (((from_bitField0_ & 0x00000004) == 0x00000004)) {
+            to_bitField0_ |= 0x00000004;
+          }
+          result.data_ = data_;
           result.bitField0_ = to_bitField0_;
           onBuilt();
           return result;
@@ -27957,6 +29170,9 @@ public final class SignalServiceProtos {
           }
           if (other.hasComplete()) {
             setComplete(other.getComplete());
+          }
+          if (other.hasData()) {
+            setData(other.getData());
           }
           this.mergeUnknownFields(other.getUnknownFields());
           return this;
@@ -28131,6 +29347,42 @@ public final class SignalServiceProtos {
         public Builder clearComplete() {
           bitField0_ = (bitField0_ & ~0x00000002);
           complete_ = false;
+          onChanged();
+          return this;
+        }
+
+        // optional bytes data = 101;
+        private com.google.protobuf.ByteString data_ = com.google.protobuf.ByteString.EMPTY;
+        /**
+         * <code>optional bytes data = 101;</code>
+         */
+        public boolean hasData() {
+          return ((bitField0_ & 0x00000004) == 0x00000004);
+        }
+        /**
+         * <code>optional bytes data = 101;</code>
+         */
+        public com.google.protobuf.ByteString getData() {
+          return data_;
+        }
+        /**
+         * <code>optional bytes data = 101;</code>
+         */
+        public Builder setData(com.google.protobuf.ByteString value) {
+          if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000004;
+          data_ = value;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>optional bytes data = 101;</code>
+         */
+        public Builder clearData() {
+          bitField0_ = (bitField0_ & ~0x00000004);
+          data_ = getDefaultInstance().getData();
           onChanged();
           return this;
         }
@@ -36507,6 +37759,21 @@ public final class SignalServiceProtos {
      * <code>optional uint32 expireTimer = 8;</code>
      */
     int getExpireTimer();
+
+    // optional string nickname = 101;
+    /**
+     * <code>optional string nickname = 101;</code>
+     */
+    boolean hasNickname();
+    /**
+     * <code>optional string nickname = 101;</code>
+     */
+    java.lang.String getNickname();
+    /**
+     * <code>optional string nickname = 101;</code>
+     */
+    com.google.protobuf.ByteString
+        getNicknameBytes();
   }
   /**
    * Protobuf type {@code signalservice.ContactDetails}
@@ -36613,6 +37880,11 @@ public final class SignalServiceProtos {
             case 64: {
               bitField0_ |= 0x00000080;
               expireTimer_ = input.readUInt32();
+              break;
+            }
+            case 810: {
+              bitField0_ |= 0x00000100;
+              nickname_ = input.readBytes();
               break;
             }
           }
@@ -37428,6 +38700,49 @@ public final class SignalServiceProtos {
       return expireTimer_;
     }
 
+    // optional string nickname = 101;
+    public static final int NICKNAME_FIELD_NUMBER = 101;
+    private java.lang.Object nickname_;
+    /**
+     * <code>optional string nickname = 101;</code>
+     */
+    public boolean hasNickname() {
+      return ((bitField0_ & 0x00000100) == 0x00000100);
+    }
+    /**
+     * <code>optional string nickname = 101;</code>
+     */
+    public java.lang.String getNickname() {
+      java.lang.Object ref = nickname_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          nickname_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string nickname = 101;</code>
+     */
+    public com.google.protobuf.ByteString
+        getNicknameBytes() {
+      java.lang.Object ref = nickname_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        nickname_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
     private void initFields() {
       number_ = "";
       name_ = "";
@@ -37437,6 +38752,7 @@ public final class SignalServiceProtos {
       profileKey_ = com.google.protobuf.ByteString.EMPTY;
       blocked_ = false;
       expireTimer_ = 0;
+      nickname_ = "";
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -37473,6 +38789,9 @@ public final class SignalServiceProtos {
       }
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
         output.writeUInt32(8, expireTimer_);
+      }
+      if (((bitField0_ & 0x00000100) == 0x00000100)) {
+        output.writeBytes(101, getNicknameBytes());
       }
       getUnknownFields().writeTo(output);
     }
@@ -37514,6 +38833,10 @@ public final class SignalServiceProtos {
       if (((bitField0_ & 0x00000080) == 0x00000080)) {
         size += com.google.protobuf.CodedOutputStream
           .computeUInt32Size(8, expireTimer_);
+      }
+      if (((bitField0_ & 0x00000100) == 0x00000100)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(101, getNicknameBytes());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -37657,6 +38980,8 @@ public final class SignalServiceProtos {
         bitField0_ = (bitField0_ & ~0x00000040);
         expireTimer_ = 0;
         bitField0_ = (bitField0_ & ~0x00000080);
+        nickname_ = "";
+        bitField0_ = (bitField0_ & ~0x00000100);
         return this;
       }
 
@@ -37725,6 +39050,10 @@ public final class SignalServiceProtos {
           to_bitField0_ |= 0x00000080;
         }
         result.expireTimer_ = expireTimer_;
+        if (((from_bitField0_ & 0x00000100) == 0x00000100)) {
+          to_bitField0_ |= 0x00000100;
+        }
+        result.nickname_ = nickname_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -37770,6 +39099,11 @@ public final class SignalServiceProtos {
         }
         if (other.hasExpireTimer()) {
           setExpireTimer(other.getExpireTimer());
+        }
+        if (other.hasNickname()) {
+          bitField0_ |= 0x00000100;
+          nickname_ = other.nickname_;
+          onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -38352,6 +39686,80 @@ public final class SignalServiceProtos {
       public Builder clearExpireTimer() {
         bitField0_ = (bitField0_ & ~0x00000080);
         expireTimer_ = 0;
+        onChanged();
+        return this;
+      }
+
+      // optional string nickname = 101;
+      private java.lang.Object nickname_ = "";
+      /**
+       * <code>optional string nickname = 101;</code>
+       */
+      public boolean hasNickname() {
+        return ((bitField0_ & 0x00000100) == 0x00000100);
+      }
+      /**
+       * <code>optional string nickname = 101;</code>
+       */
+      public java.lang.String getNickname() {
+        java.lang.Object ref = nickname_;
+        if (!(ref instanceof java.lang.String)) {
+          java.lang.String s = ((com.google.protobuf.ByteString) ref)
+              .toStringUtf8();
+          nickname_ = s;
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string nickname = 101;</code>
+       */
+      public com.google.protobuf.ByteString
+          getNicknameBytes() {
+        java.lang.Object ref = nickname_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          nickname_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string nickname = 101;</code>
+       */
+      public Builder setNickname(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000100;
+        nickname_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string nickname = 101;</code>
+       */
+      public Builder clearNickname() {
+        bitField0_ = (bitField0_ & ~0x00000100);
+        nickname_ = getDefaultInstance().getNickname();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string nickname = 101;</code>
+       */
+      public Builder setNicknameBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000100;
+        nickname_ = value;
         onChanged();
         return this;
       }
@@ -40266,6 +41674,11 @@ public final class SignalServiceProtos {
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
       internal_static_signalservice_LokiAddressMessage_fieldAccessorTable;
   private static com.google.protobuf.Descriptors.Descriptor
+    internal_static_signalservice_PairingAuthorisationMessage_descriptor;
+  private static
+    com.google.protobuf.GeneratedMessage.FieldAccessorTable
+      internal_static_signalservice_PairingAuthorisationMessage_fieldAccessorTable;
+  private static com.google.protobuf.Descriptors.Descriptor
     internal_static_signalservice_PrekeyBundleMessage_descriptor;
   private static
     com.google.protobuf.GeneratedMessage.FieldAccessorTable
@@ -40479,7 +41892,7 @@ public final class SignalServiceProtos {
       "pe\022\013\n\007UNKNOWN\020\000\022\016\n\nCIPHERTEXT\020\001\022\020\n\014KEY_E" +
       "XCHANGE\020\002\022\021\n\rPREKEY_BUNDLE\020\003\022\013\n\007RECEIPT\020" +
       "\005\022\027\n\023UNIDENTIFIED_SENDER\020\006\022\022\n\016FRIEND_REQ",
-      "UEST\020e\"\271\003\n\007Content\022/\n\013dataMessage\030\001 \001(\0132" +
+      "UEST\020e\"\203\004\n\007Content\022/\n\013dataMessage\030\001 \001(\0132" +
       "\032.signalservice.DataMessage\022/\n\013syncMessa" +
       "ge\030\002 \001(\0132\032.signalservice.SyncMessage\022/\n\013" +
       "callMessage\030\003 \001(\0132\032.signalservice.CallMe" +
@@ -40490,151 +41903,160 @@ public final class SignalServiceProtos {
       "ge\022?\n\023preKeyBundleMessage\030e \001(\0132\".signal" +
       "service.PrekeyBundleMessage\022=\n\022lokiAddre",
       "ssMessage\030f \001(\0132!.signalservice.LokiAddr" +
-      "essMessage\"9\n\022LokiAddressMessage\022\022\n\nptpA" +
-      "ddress\030\001 \001(\t\022\017\n\007ptpPort\030\002 \001(\r\"\231\001\n\023Prekey" +
-      "BundleMessage\022\023\n\013identityKey\030\001 \001(\014\022\020\n\010de" +
-      "viceId\030\002 \001(\r\022\020\n\010preKeyId\030\003 \001(\r\022\023\n\013signed" +
-      "KeyId\030\004 \001(\r\022\016\n\006preKey\030\005 \001(\014\022\021\n\tsignedKey" +
-      "\030\006 \001(\014\022\021\n\tsignature\030\007 \001(\014\"\330\003\n\013CallMessag" +
-      "e\022/\n\005offer\030\001 \001(\0132 .signalservice.CallMes" +
-      "sage.Offer\0221\n\006answer\030\002 \001(\0132!.signalservi" +
-      "ce.CallMessage.Answer\0227\n\ticeUpdate\030\003 \003(\013",
-      "2$.signalservice.CallMessage.IceUpdate\0221" +
-      "\n\006hangup\030\004 \001(\0132!.signalservice.CallMessa" +
-      "ge.Hangup\022-\n\004busy\030\005 \001(\0132\037.signalservice." +
-      "CallMessage.Busy\032(\n\005Offer\022\n\n\002id\030\001 \001(\004\022\023\n" +
-      "\013description\030\002 \001(\t\032)\n\006Answer\022\n\n\002id\030\001 \001(\004" +
-      "\022\023\n\013description\030\002 \001(\t\032K\n\tIceUpdate\022\n\n\002id" +
-      "\030\001 \001(\004\022\016\n\006sdpMid\030\002 \001(\t\022\025\n\rsdpMLineIndex\030" +
-      "\003 \001(\r\022\013\n\003sdp\030\004 \001(\t\032\022\n\004Busy\022\n\n\002id\030\001 \001(\004\032\024" +
-      "\n\006Hangup\022\n\n\002id\030\001 \001(\004\"\217\020\n\013DataMessage\022\014\n\004" +
-      "body\030\001 \001(\t\0225\n\013attachments\030\002 \003(\0132 .signal",
-      "service.AttachmentPointer\022*\n\005group\030\003 \001(\013" +
-      "2\033.signalservice.GroupContext\022\r\n\005flags\030\004" +
-      " \001(\r\022\023\n\013expireTimer\030\005 \001(\r\022\022\n\nprofileKey\030" +
-      "\006 \001(\014\022\021\n\ttimestamp\030\007 \001(\004\022/\n\005quote\030\010 \001(\0132" +
-      " .signalservice.DataMessage.Quote\0223\n\007con" +
-      "tact\030\t \003(\0132\".signalservice.DataMessage.C" +
-      "ontact\0223\n\007preview\030\n \003(\0132\".signalservice." +
-      "DataMessage.Preview\0223\n\007sticker\030\013 \001(\0132\".s" +
-      "ignalservice.DataMessage.Sticker\022+\n\007prof" +
-      "ile\030e \001(\0132\032.signalservice.LokiProfile\032\351\001",
-      "\n\005Quote\022\n\n\002id\030\001 \001(\004\022\016\n\006author\030\002 \001(\t\022\014\n\004t" +
-      "ext\030\003 \001(\t\022F\n\013attachments\030\004 \003(\01321.signals" +
-      "ervice.DataMessage.Quote.QuotedAttachmen" +
-      "t\032n\n\020QuotedAttachment\022\023\n\013contentType\030\001 \001" +
-      "(\t\022\020\n\010fileName\030\002 \001(\t\0223\n\tthumbnail\030\003 \001(\0132" +
-      " .signalservice.AttachmentPointer\032\304\010\n\007Co" +
-      "ntact\0225\n\004name\030\001 \001(\0132\'.signalservice.Data" +
-      "Message.Contact.Name\0228\n\006number\030\003 \003(\0132(.s" +
-      "ignalservice.DataMessage.Contact.Phone\0227" +
-      "\n\005email\030\004 \003(\0132(.signalservice.DataMessag",
-      "e.Contact.Email\022A\n\007address\030\005 \003(\01320.signa" +
-      "lservice.DataMessage.Contact.PostalAddre" +
-      "ss\0229\n\006avatar\030\006 \001(\0132).signalservice.DataM" +
-      "essage.Contact.Avatar\022\024\n\014organization\030\007 " +
-      "\001(\t\032v\n\004Name\022\021\n\tgivenName\030\001 \001(\t\022\022\n\nfamily" +
-      "Name\030\002 \001(\t\022\016\n\006prefix\030\003 \001(\t\022\016\n\006suffix\030\004 \001" +
-      "(\t\022\022\n\nmiddleName\030\005 \001(\t\022\023\n\013displayName\030\006 " +
-      "\001(\t\032\226\001\n\005Phone\022\r\n\005value\030\001 \001(\t\022;\n\004type\030\002 \001" +
-      "(\0162-.signalservice.DataMessage.Contact.P" +
-      "hone.Type\022\r\n\005label\030\003 \001(\t\"2\n\004Type\022\010\n\004HOME",
-      "\020\001\022\n\n\006MOBILE\020\002\022\010\n\004WORK\020\003\022\n\n\006CUSTOM\020\004\032\226\001\n" +
-      "\005Email\022\r\n\005value\030\001 \001(\t\022;\n\004type\030\002 \001(\0162-.si" +
-      "gnalservice.DataMessage.Contact.Email.Ty" +
-      "pe\022\r\n\005label\030\003 \001(\t\"2\n\004Type\022\010\n\004HOME\020\001\022\n\n\006M" +
-      "OBILE\020\002\022\010\n\004WORK\020\003\022\n\n\006CUSTOM\020\004\032\201\002\n\rPostal" +
-      "Address\022C\n\004type\030\001 \001(\01625.signalservice.Da" +
-      "taMessage.Contact.PostalAddress.Type\022\r\n\005" +
-      "label\030\002 \001(\t\022\016\n\006street\030\003 \001(\t\022\r\n\005pobox\030\004 \001" +
-      "(\t\022\024\n\014neighborhood\030\005 \001(\t\022\014\n\004city\030\006 \001(\t\022\016" +
-      "\n\006region\030\007 \001(\t\022\020\n\010postcode\030\010 \001(\t\022\017\n\007coun",
-      "try\030\t \001(\t\"&\n\004Type\022\010\n\004HOME\020\001\022\010\n\004WORK\020\002\022\n\n" +
-      "\006CUSTOM\020\003\032M\n\006Avatar\0220\n\006avatar\030\001 \001(\0132 .si" +
-      "gnalservice.AttachmentPointer\022\021\n\tisProfi" +
-      "le\030\002 \001(\010\032V\n\007Preview\022\013\n\003url\030\001 \001(\t\022\r\n\005titl" +
-      "e\030\002 \001(\t\022/\n\005image\030\003 \001(\0132 .signalservice.A" +
-      "ttachmentPointer\032m\n\007Sticker\022\016\n\006packId\030\001 " +
-      "\001(\014\022\017\n\007packKey\030\002 \001(\014\022\021\n\tstickerId\030\003 \001(\r\022" +
-      ".\n\004data\030\004 \001(\0132 .signalservice.Attachment" +
-      "Pointer\"M\n\005Flags\022\017\n\013END_SESSION\020\001\022\033\n\027EXP" +
-      "IRATION_TIMER_UPDATE\020\002\022\026\n\022PROFILE_KEY_UP",
-      "DATE\020\004\"\"\n\013LokiProfile\022\023\n\013displayName\030\001 \001" +
-      "(\t\"\036\n\013NullMessage\022\017\n\007padding\030\001 \001(\014\"u\n\016Re" +
-      "ceiptMessage\0220\n\004type\030\001 \001(\0162\".signalservi" +
-      "ce.ReceiptMessage.Type\022\021\n\ttimestamp\030\002 \003(" +
-      "\004\"\036\n\004Type\022\014\n\010DELIVERY\020\000\022\010\n\004READ\020\001\"\214\001\n\rTy" +
-      "pingMessage\022\021\n\ttimestamp\030\001 \001(\004\0223\n\006action" +
-      "\030\002 \001(\0162#.signalservice.TypingMessage.Act" +
-      "ion\022\017\n\007groupId\030\003 \001(\014\"\"\n\006Action\022\013\n\007STARTE" +
-      "D\020\000\022\013\n\007STOPPED\020\001\"\253\001\n\010Verified\022\023\n\013destina" +
-      "tion\030\001 \001(\t\022\023\n\013identityKey\030\002 \001(\014\022,\n\005state",
-      "\030\003 \001(\0162\035.signalservice.Verified.State\022\023\n" +
-      "\013nullMessage\030\004 \001(\014\"2\n\005State\022\013\n\007DEFAULT\020\000" +
-      "\022\014\n\010VERIFIED\020\001\022\016\n\nUNVERIFIED\020\002\"\304\013\n\013SyncM" +
-      "essage\022-\n\004sent\030\001 \001(\0132\037.signalservice.Syn" +
-      "cMessage.Sent\0225\n\010contacts\030\002 \001(\0132#.signal" +
-      "service.SyncMessage.Contacts\0221\n\006groups\030\003" +
-      " \001(\0132!.signalservice.SyncMessage.Groups\022" +
-      "3\n\007request\030\004 \001(\0132\".signalservice.SyncMes" +
-      "sage.Request\022-\n\004read\030\005 \003(\0132\037.signalservi" +
-      "ce.SyncMessage.Read\0223\n\007blocked\030\006 \001(\0132\".s",
-      "ignalservice.SyncMessage.Blocked\022)\n\010veri" +
-      "fied\030\007 \001(\0132\027.signalservice.Verified\022?\n\rc" +
-      "onfiguration\030\t \001(\0132(.signalservice.SyncM" +
-      "essage.Configuration\022\017\n\007padding\030\010 \001(\014\022M\n" +
-      "\024stickerPackOperation\030\n \003(\0132/.signalserv" +
-      "ice.SyncMessage.StickerPackOperation\032\236\002\n" +
-      "\004Sent\022\023\n\013destination\030\001 \001(\t\022\021\n\ttimestamp\030" +
-      "\002 \001(\004\022+\n\007message\030\003 \001(\0132\032.signalservice.D" +
-      "ataMessage\022 \n\030expirationStartTimestamp\030\004" +
-      " \001(\004\022V\n\022unidentifiedStatus\030\005 \003(\0132:.signa",
-      "lservice.SyncMessage.Sent.UnidentifiedDe" +
-      "liveryStatus\032G\n\032UnidentifiedDeliveryStat" +
-      "us\022\023\n\013destination\030\001 \001(\t\022\024\n\014unidentified\030" +
-      "\002 \001(\010\032S\n\010Contacts\022.\n\004blob\030\001 \001(\0132 .signal" +
-      "service.AttachmentPointer\022\027\n\010complete\030\002 " +
-      "\001(\010:\005false\0328\n\006Groups\022.\n\004blob\030\001 \001(\0132 .sig" +
-      "nalservice.AttachmentPointer\032,\n\007Blocked\022" +
-      "\017\n\007numbers\030\001 \003(\t\022\020\n\010groupIds\030\002 \003(\014\032\217\001\n\007R" +
-      "equest\0225\n\004type\030\001 \001(\0162\'.signalservice.Syn" +
-      "cMessage.Request.Type\"M\n\004Type\022\013\n\007UNKNOWN",
-      "\020\000\022\014\n\010CONTACTS\020\001\022\n\n\006GROUPS\020\002\022\013\n\007BLOCKED\020" +
-      "\003\022\021\n\rCONFIGURATION\020\004\032)\n\004Read\022\016\n\006sender\030\001" +
-      " \001(\t\022\021\n\ttimestamp\030\002 \001(\004\032}\n\rConfiguration" +
-      "\022\024\n\014readReceipts\030\001 \001(\010\022&\n\036unidentifiedDe" +
-      "liveryIndicators\030\002 \001(\010\022\030\n\020typingIndicato" +
-      "rs\030\003 \001(\010\022\024\n\014linkPreviews\030\004 \001(\010\032\234\001\n\024Stick" +
-      "erPackOperation\022\016\n\006packId\030\001 \001(\014\022\017\n\007packK" +
-      "ey\030\002 \001(\014\022B\n\004type\030\003 \001(\01624.signalservice.S" +
-      "yncMessage.StickerPackOperation.Type\"\037\n\004" +
-      "Type\022\013\n\007INSTALL\020\000\022\n\n\006REMOVE\020\001\"\337\001\n\021Attach",
-      "mentPointer\022\n\n\002id\030\001 \001(\006\022\023\n\013contentType\030\002" +
-      " \001(\t\022\013\n\003key\030\003 \001(\014\022\014\n\004size\030\004 \001(\r\022\021\n\tthumb" +
-      "nail\030\005 \001(\014\022\016\n\006digest\030\006 \001(\014\022\020\n\010fileName\030\007" +
-      " \001(\t\022\r\n\005flags\030\010 \001(\r\022\r\n\005width\030\t \001(\r\022\016\n\006he" +
-      "ight\030\n \001(\r\022\017\n\007caption\030\013 \001(\t\"\032\n\005Flags\022\021\n\r" +
-      "VOICE_MESSAGE\020\001\"\345\001\n\014GroupContext\022\n\n\002id\030\001" +
-      " \001(\014\022.\n\004type\030\002 \001(\0162 .signalservice.Group" +
-      "Context.Type\022\014\n\004name\030\003 \001(\t\022\017\n\007members\030\004 " +
-      "\003(\t\0220\n\006avatar\030\005 \001(\0132 .signalservice.Atta" +
-      "chmentPointer\"H\n\004Type\022\013\n\007UNKNOWN\020\000\022\n\n\006UP",
-      "DATE\020\001\022\013\n\007DELIVER\020\002\022\010\n\004QUIT\020\003\022\020\n\014REQUEST" +
-      "_INFO\020\004\"\207\002\n\016ContactDetails\022\016\n\006number\030\001 \001" +
-      "(\t\022\014\n\004name\030\002 \001(\t\0224\n\006avatar\030\003 \001(\0132$.signa" +
-      "lservice.ContactDetails.Avatar\022\r\n\005color\030" +
-      "\004 \001(\t\022)\n\010verified\030\005 \001(\0132\027.signalservice." +
-      "Verified\022\022\n\nprofileKey\030\006 \001(\014\022\017\n\007blocked\030" +
-      "\007 \001(\010\022\023\n\013expireTimer\030\010 \001(\r\032-\n\006Avatar\022\023\n\013" +
-      "contentType\030\001 \001(\t\022\016\n\006length\030\002 \001(\r\"\347\001\n\014Gr" +
-      "oupDetails\022\n\n\002id\030\001 \001(\014\022\014\n\004name\030\002 \001(\t\022\017\n\007" +
-      "members\030\003 \003(\t\0222\n\006avatar\030\004 \001(\0132\".signalse",
-      "rvice.GroupDetails.Avatar\022\024\n\006active\030\005 \001(" +
-      "\010:\004true\022\023\n\013expireTimer\030\006 \001(\r\022\r\n\005color\030\007 " +
-      "\001(\t\022\017\n\007blocked\030\010 \001(\010\032-\n\006Avatar\022\023\n\013conten" +
-      "tType\030\001 \001(\t\022\016\n\006length\030\002 \001(\rBE\n.org.whisp" +
-      "ersystems.signalservice.internal.pushB\023S" +
-      "ignalServiceProtos"
+      "essMessage\022H\n\024pairingAuthorisation\030g \001(\013" +
+      "2*.signalservice.PairingAuthorisationMes" +
+      "sage\"9\n\022LokiAddressMessage\022\022\n\nptpAddress" +
+      "\030\001 \001(\t\022\017\n\007ptpPort\030\002 \001(\r\"\366\001\n\033PairingAutho" +
+      "risationMessage\022\033\n\023primaryDevicePubKey\030\001" +
+      " \001(\t\022\035\n\025secondaryDevicePubKey\030\002 \001(\t\022\030\n\020r" +
+      "equestSignature\030\003 \001(\014\022\026\n\016grantSignature\030" +
+      "\004 \001(\014\022=\n\004type\030\005 \001(\0162/.signalservice.Pair" +
+      "ingAuthorisationMessage.Type\"*\n\004Type\022\013\n\007",
+      "REQUEST\020\001\022\t\n\005GRANT\020\002\022\n\n\006REVOKE\020\003\"\231\001\n\023Pre" +
+      "keyBundleMessage\022\023\n\013identityKey\030\001 \001(\014\022\020\n" +
+      "\010deviceId\030\002 \001(\r\022\020\n\010preKeyId\030\003 \001(\r\022\023\n\013sig" +
+      "nedKeyId\030\004 \001(\r\022\016\n\006preKey\030\005 \001(\014\022\021\n\tsigned" +
+      "Key\030\006 \001(\014\022\021\n\tsignature\030\007 \001(\014\"\330\003\n\013CallMes" +
+      "sage\022/\n\005offer\030\001 \001(\0132 .signalservice.Call" +
+      "Message.Offer\0221\n\006answer\030\002 \001(\0132!.signalse" +
+      "rvice.CallMessage.Answer\0227\n\ticeUpdate\030\003 " +
+      "\003(\0132$.signalservice.CallMessage.IceUpdat" +
+      "e\0221\n\006hangup\030\004 \001(\0132!.signalservice.CallMe",
+      "ssage.Hangup\022-\n\004busy\030\005 \001(\0132\037.signalservi" +
+      "ce.CallMessage.Busy\032(\n\005Offer\022\n\n\002id\030\001 \001(\004" +
+      "\022\023\n\013description\030\002 \001(\t\032)\n\006Answer\022\n\n\002id\030\001 " +
+      "\001(\004\022\023\n\013description\030\002 \001(\t\032K\n\tIceUpdate\022\n\n" +
+      "\002id\030\001 \001(\004\022\016\n\006sdpMid\030\002 \001(\t\022\025\n\rsdpMLineInd" +
+      "ex\030\003 \001(\r\022\013\n\003sdp\030\004 \001(\t\032\022\n\004Busy\022\n\n\002id\030\001 \001(" +
+      "\004\032\024\n\006Hangup\022\n\n\002id\030\001 \001(\004\"\217\020\n\013DataMessage\022" +
+      "\014\n\004body\030\001 \001(\t\0225\n\013attachments\030\002 \003(\0132 .sig" +
+      "nalservice.AttachmentPointer\022*\n\005group\030\003 " +
+      "\001(\0132\033.signalservice.GroupContext\022\r\n\005flag",
+      "s\030\004 \001(\r\022\023\n\013expireTimer\030\005 \001(\r\022\022\n\nprofileK" +
+      "ey\030\006 \001(\014\022\021\n\ttimestamp\030\007 \001(\004\022/\n\005quote\030\010 \001" +
+      "(\0132 .signalservice.DataMessage.Quote\0223\n\007" +
+      "contact\030\t \003(\0132\".signalservice.DataMessag" +
+      "e.Contact\0223\n\007preview\030\n \003(\0132\".signalservi" +
+      "ce.DataMessage.Preview\0223\n\007sticker\030\013 \001(\0132" +
+      "\".signalservice.DataMessage.Sticker\022+\n\007p" +
+      "rofile\030e \001(\0132\032.signalservice.LokiProfile" +
+      "\032\351\001\n\005Quote\022\n\n\002id\030\001 \001(\004\022\016\n\006author\030\002 \001(\t\022\014" +
+      "\n\004text\030\003 \001(\t\022F\n\013attachments\030\004 \003(\01321.sign",
+      "alservice.DataMessage.Quote.QuotedAttach" +
+      "ment\032n\n\020QuotedAttachment\022\023\n\013contentType\030" +
+      "\001 \001(\t\022\020\n\010fileName\030\002 \001(\t\0223\n\tthumbnail\030\003 \001" +
+      "(\0132 .signalservice.AttachmentPointer\032\304\010\n" +
+      "\007Contact\0225\n\004name\030\001 \001(\0132\'.signalservice.D" +
+      "ataMessage.Contact.Name\0228\n\006number\030\003 \003(\0132" +
+      "(.signalservice.DataMessage.Contact.Phon" +
+      "e\0227\n\005email\030\004 \003(\0132(.signalservice.DataMes" +
+      "sage.Contact.Email\022A\n\007address\030\005 \003(\01320.si" +
+      "gnalservice.DataMessage.Contact.PostalAd",
+      "dress\0229\n\006avatar\030\006 \001(\0132).signalservice.Da" +
+      "taMessage.Contact.Avatar\022\024\n\014organization" +
+      "\030\007 \001(\t\032v\n\004Name\022\021\n\tgivenName\030\001 \001(\t\022\022\n\nfam" +
+      "ilyName\030\002 \001(\t\022\016\n\006prefix\030\003 \001(\t\022\016\n\006suffix\030" +
+      "\004 \001(\t\022\022\n\nmiddleName\030\005 \001(\t\022\023\n\013displayName" +
+      "\030\006 \001(\t\032\226\001\n\005Phone\022\r\n\005value\030\001 \001(\t\022;\n\004type\030" +
+      "\002 \001(\0162-.signalservice.DataMessage.Contac" +
+      "t.Phone.Type\022\r\n\005label\030\003 \001(\t\"2\n\004Type\022\010\n\004H" +
+      "OME\020\001\022\n\n\006MOBILE\020\002\022\010\n\004WORK\020\003\022\n\n\006CUSTOM\020\004\032" +
+      "\226\001\n\005Email\022\r\n\005value\030\001 \001(\t\022;\n\004type\030\002 \001(\0162-",
+      ".signalservice.DataMessage.Contact.Email" +
+      ".Type\022\r\n\005label\030\003 \001(\t\"2\n\004Type\022\010\n\004HOME\020\001\022\n" +
+      "\n\006MOBILE\020\002\022\010\n\004WORK\020\003\022\n\n\006CUSTOM\020\004\032\201\002\n\rPos" +
+      "talAddress\022C\n\004type\030\001 \001(\01625.signalservice" +
+      ".DataMessage.Contact.PostalAddress.Type\022" +
+      "\r\n\005label\030\002 \001(\t\022\016\n\006street\030\003 \001(\t\022\r\n\005pobox\030" +
+      "\004 \001(\t\022\024\n\014neighborhood\030\005 \001(\t\022\014\n\004city\030\006 \001(" +
+      "\t\022\016\n\006region\030\007 \001(\t\022\020\n\010postcode\030\010 \001(\t\022\017\n\007c" +
+      "ountry\030\t \001(\t\"&\n\004Type\022\010\n\004HOME\020\001\022\010\n\004WORK\020\002" +
+      "\022\n\n\006CUSTOM\020\003\032M\n\006Avatar\0220\n\006avatar\030\001 \001(\0132 ",
+      ".signalservice.AttachmentPointer\022\021\n\tisPr" +
+      "ofile\030\002 \001(\010\032V\n\007Preview\022\013\n\003url\030\001 \001(\t\022\r\n\005t" +
+      "itle\030\002 \001(\t\022/\n\005image\030\003 \001(\0132 .signalservic" +
+      "e.AttachmentPointer\032m\n\007Sticker\022\016\n\006packId" +
+      "\030\001 \001(\014\022\017\n\007packKey\030\002 \001(\014\022\021\n\tstickerId\030\003 \001" +
+      "(\r\022.\n\004data\030\004 \001(\0132 .signalservice.Attachm" +
+      "entPointer\"M\n\005Flags\022\017\n\013END_SESSION\020\001\022\033\n\027" +
+      "EXPIRATION_TIMER_UPDATE\020\002\022\026\n\022PROFILE_KEY" +
+      "_UPDATE\020\004\"\"\n\013LokiProfile\022\023\n\013displayName\030" +
+      "\001 \001(\t\"\036\n\013NullMessage\022\017\n\007padding\030\001 \001(\014\"u\n",
+      "\016ReceiptMessage\0220\n\004type\030\001 \001(\0162\".signalse" +
+      "rvice.ReceiptMessage.Type\022\021\n\ttimestamp\030\002" +
+      " \003(\004\"\036\n\004Type\022\014\n\010DELIVERY\020\000\022\010\n\004READ\020\001\"\214\001\n" +
+      "\rTypingMessage\022\021\n\ttimestamp\030\001 \001(\004\0223\n\006act" +
+      "ion\030\002 \001(\0162#.signalservice.TypingMessage." +
+      "Action\022\017\n\007groupId\030\003 \001(\014\"\"\n\006Action\022\013\n\007STA" +
+      "RTED\020\000\022\013\n\007STOPPED\020\001\"\253\001\n\010Verified\022\023\n\013dest" +
+      "ination\030\001 \001(\t\022\023\n\013identityKey\030\002 \001(\014\022,\n\005st" +
+      "ate\030\003 \001(\0162\035.signalservice.Verified.State" +
+      "\022\023\n\013nullMessage\030\004 \001(\014\"2\n\005State\022\013\n\007DEFAUL",
+      "T\020\000\022\014\n\010VERIFIED\020\001\022\016\n\nUNVERIFIED\020\002\"\322\013\n\013Sy" +
+      "ncMessage\022-\n\004sent\030\001 \001(\0132\037.signalservice." +
+      "SyncMessage.Sent\0225\n\010contacts\030\002 \001(\0132#.sig" +
+      "nalservice.SyncMessage.Contacts\0221\n\006group" +
+      "s\030\003 \001(\0132!.signalservice.SyncMessage.Grou" +
+      "ps\0223\n\007request\030\004 \001(\0132\".signalservice.Sync" +
+      "Message.Request\022-\n\004read\030\005 \003(\0132\037.signalse" +
+      "rvice.SyncMessage.Read\0223\n\007blocked\030\006 \001(\0132" +
+      "\".signalservice.SyncMessage.Blocked\022)\n\010v" +
+      "erified\030\007 \001(\0132\027.signalservice.Verified\022?",
+      "\n\rconfiguration\030\t \001(\0132(.signalservice.Sy" +
+      "ncMessage.Configuration\022\017\n\007padding\030\010 \001(\014" +
+      "\022M\n\024stickerPackOperation\030\n \003(\0132/.signals" +
+      "ervice.SyncMessage.StickerPackOperation\032" +
+      "\236\002\n\004Sent\022\023\n\013destination\030\001 \001(\t\022\021\n\ttimesta" +
+      "mp\030\002 \001(\004\022+\n\007message\030\003 \001(\0132\032.signalservic" +
+      "e.DataMessage\022 \n\030expirationStartTimestam" +
+      "p\030\004 \001(\004\022V\n\022unidentifiedStatus\030\005 \003(\0132:.si" +
+      "gnalservice.SyncMessage.Sent.Unidentifie" +
+      "dDeliveryStatus\032G\n\032UnidentifiedDeliveryS",
+      "tatus\022\023\n\013destination\030\001 \001(\t\022\024\n\014unidentifi" +
+      "ed\030\002 \001(\010\032a\n\010Contacts\022.\n\004blob\030\001 \001(\0132 .sig" +
+      "nalservice.AttachmentPointer\022\027\n\010complete" +
+      "\030\002 \001(\010:\005false\022\014\n\004data\030e \001(\014\0328\n\006Groups\022.\n" +
+      "\004blob\030\001 \001(\0132 .signalservice.AttachmentPo" +
+      "inter\032,\n\007Blocked\022\017\n\007numbers\030\001 \003(\t\022\020\n\010gro" +
+      "upIds\030\002 \003(\014\032\217\001\n\007Request\0225\n\004type\030\001 \001(\0162\'." +
+      "signalservice.SyncMessage.Request.Type\"M" +
+      "\n\004Type\022\013\n\007UNKNOWN\020\000\022\014\n\010CONTACTS\020\001\022\n\n\006GRO" +
+      "UPS\020\002\022\013\n\007BLOCKED\020\003\022\021\n\rCONFIGURATION\020\004\032)\n",
+      "\004Read\022\016\n\006sender\030\001 \001(\t\022\021\n\ttimestamp\030\002 \001(\004" +
+      "\032}\n\rConfiguration\022\024\n\014readReceipts\030\001 \001(\010\022" +
+      "&\n\036unidentifiedDeliveryIndicators\030\002 \001(\010\022" +
+      "\030\n\020typingIndicators\030\003 \001(\010\022\024\n\014linkPreview" +
+      "s\030\004 \001(\010\032\234\001\n\024StickerPackOperation\022\016\n\006pack" +
+      "Id\030\001 \001(\014\022\017\n\007packKey\030\002 \001(\014\022B\n\004type\030\003 \001(\0162" +
+      "4.signalservice.SyncMessage.StickerPackO" +
+      "peration.Type\"\037\n\004Type\022\013\n\007INSTALL\020\000\022\n\n\006RE" +
+      "MOVE\020\001\"\337\001\n\021AttachmentPointer\022\n\n\002id\030\001 \001(\006" +
+      "\022\023\n\013contentType\030\002 \001(\t\022\013\n\003key\030\003 \001(\014\022\014\n\004si",
+      "ze\030\004 \001(\r\022\021\n\tthumbnail\030\005 \001(\014\022\016\n\006digest\030\006 " +
+      "\001(\014\022\020\n\010fileName\030\007 \001(\t\022\r\n\005flags\030\010 \001(\r\022\r\n\005" +
+      "width\030\t \001(\r\022\016\n\006height\030\n \001(\r\022\017\n\007caption\030\013" +
+      " \001(\t\"\032\n\005Flags\022\021\n\rVOICE_MESSAGE\020\001\"\345\001\n\014Gro" +
+      "upContext\022\n\n\002id\030\001 \001(\014\022.\n\004type\030\002 \001(\0162 .si" +
+      "gnalservice.GroupContext.Type\022\014\n\004name\030\003 " +
+      "\001(\t\022\017\n\007members\030\004 \003(\t\0220\n\006avatar\030\005 \001(\0132 .s" +
+      "ignalservice.AttachmentPointer\"H\n\004Type\022\013" +
+      "\n\007UNKNOWN\020\000\022\n\n\006UPDATE\020\001\022\013\n\007DELIVER\020\002\022\010\n\004" +
+      "QUIT\020\003\022\020\n\014REQUEST_INFO\020\004\"\231\002\n\016ContactDeta",
+      "ils\022\016\n\006number\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\0224\n\006ava" +
+      "tar\030\003 \001(\0132$.signalservice.ContactDetails" +
+      ".Avatar\022\r\n\005color\030\004 \001(\t\022)\n\010verified\030\005 \001(\013" +
+      "2\027.signalservice.Verified\022\022\n\nprofileKey\030" +
+      "\006 \001(\014\022\017\n\007blocked\030\007 \001(\010\022\023\n\013expireTimer\030\010 " +
+      "\001(\r\022\020\n\010nickname\030e \001(\t\032-\n\006Avatar\022\023\n\013conte" +
+      "ntType\030\001 \001(\t\022\016\n\006length\030\002 \001(\r\"\347\001\n\014GroupDe" +
+      "tails\022\n\n\002id\030\001 \001(\014\022\014\n\004name\030\002 \001(\t\022\017\n\007membe" +
+      "rs\030\003 \003(\t\0222\n\006avatar\030\004 \001(\0132\".signalservice" +
+      ".GroupDetails.Avatar\022\024\n\006active\030\005 \001(\010:\004tr",
+      "ue\022\023\n\013expireTimer\030\006 \001(\r\022\r\n\005color\030\007 \001(\t\022\017" +
+      "\n\007blocked\030\010 \001(\010\032-\n\006Avatar\022\023\n\013contentType" +
+      "\030\001 \001(\t\022\016\n\006length\030\002 \001(\rBE\n.org.whispersys" +
+      "tems.signalservice.internal.pushB\023Signal" +
+      "ServiceProtos"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -40652,21 +42074,27 @@ public final class SignalServiceProtos {
           internal_static_signalservice_Content_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_Content_descriptor,
-              new java.lang.String[] { "DataMessage", "SyncMessage", "CallMessage", "NullMessage", "ReceiptMessage", "TypingMessage", "PreKeyBundleMessage", "LokiAddressMessage", });
+              new java.lang.String[] { "DataMessage", "SyncMessage", "CallMessage", "NullMessage", "ReceiptMessage", "TypingMessage", "PreKeyBundleMessage", "LokiAddressMessage", "PairingAuthorisation", });
           internal_static_signalservice_LokiAddressMessage_descriptor =
             getDescriptor().getMessageTypes().get(2);
           internal_static_signalservice_LokiAddressMessage_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_LokiAddressMessage_descriptor,
               new java.lang.String[] { "PtpAddress", "PtpPort", });
-          internal_static_signalservice_PrekeyBundleMessage_descriptor =
+          internal_static_signalservice_PairingAuthorisationMessage_descriptor =
             getDescriptor().getMessageTypes().get(3);
+          internal_static_signalservice_PairingAuthorisationMessage_fieldAccessorTable = new
+            com.google.protobuf.GeneratedMessage.FieldAccessorTable(
+              internal_static_signalservice_PairingAuthorisationMessage_descriptor,
+              new java.lang.String[] { "PrimaryDevicePubKey", "SecondaryDevicePubKey", "RequestSignature", "GrantSignature", "Type", });
+          internal_static_signalservice_PrekeyBundleMessage_descriptor =
+            getDescriptor().getMessageTypes().get(4);
           internal_static_signalservice_PrekeyBundleMessage_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_PrekeyBundleMessage_descriptor,
               new java.lang.String[] { "IdentityKey", "DeviceId", "PreKeyId", "SignedKeyId", "PreKey", "SignedKey", "Signature", });
           internal_static_signalservice_CallMessage_descriptor =
-            getDescriptor().getMessageTypes().get(4);
+            getDescriptor().getMessageTypes().get(5);
           internal_static_signalservice_CallMessage_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_CallMessage_descriptor,
@@ -40702,7 +42130,7 @@ public final class SignalServiceProtos {
               internal_static_signalservice_CallMessage_Hangup_descriptor,
               new java.lang.String[] { "Id", });
           internal_static_signalservice_DataMessage_descriptor =
-            getDescriptor().getMessageTypes().get(5);
+            getDescriptor().getMessageTypes().get(6);
           internal_static_signalservice_DataMessage_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_DataMessage_descriptor,
@@ -40768,37 +42196,37 @@ public final class SignalServiceProtos {
               internal_static_signalservice_DataMessage_Sticker_descriptor,
               new java.lang.String[] { "PackId", "PackKey", "StickerId", "Data", });
           internal_static_signalservice_LokiProfile_descriptor =
-            getDescriptor().getMessageTypes().get(6);
+            getDescriptor().getMessageTypes().get(7);
           internal_static_signalservice_LokiProfile_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_LokiProfile_descriptor,
               new java.lang.String[] { "DisplayName", });
           internal_static_signalservice_NullMessage_descriptor =
-            getDescriptor().getMessageTypes().get(7);
+            getDescriptor().getMessageTypes().get(8);
           internal_static_signalservice_NullMessage_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_NullMessage_descriptor,
               new java.lang.String[] { "Padding", });
           internal_static_signalservice_ReceiptMessage_descriptor =
-            getDescriptor().getMessageTypes().get(8);
+            getDescriptor().getMessageTypes().get(9);
           internal_static_signalservice_ReceiptMessage_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_ReceiptMessage_descriptor,
               new java.lang.String[] { "Type", "Timestamp", });
           internal_static_signalservice_TypingMessage_descriptor =
-            getDescriptor().getMessageTypes().get(9);
+            getDescriptor().getMessageTypes().get(10);
           internal_static_signalservice_TypingMessage_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_TypingMessage_descriptor,
               new java.lang.String[] { "Timestamp", "Action", "GroupId", });
           internal_static_signalservice_Verified_descriptor =
-            getDescriptor().getMessageTypes().get(10);
+            getDescriptor().getMessageTypes().get(11);
           internal_static_signalservice_Verified_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_Verified_descriptor,
               new java.lang.String[] { "Destination", "IdentityKey", "State", "NullMessage", });
           internal_static_signalservice_SyncMessage_descriptor =
-            getDescriptor().getMessageTypes().get(11);
+            getDescriptor().getMessageTypes().get(12);
           internal_static_signalservice_SyncMessage_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_SyncMessage_descriptor,
@@ -40820,7 +42248,7 @@ public final class SignalServiceProtos {
           internal_static_signalservice_SyncMessage_Contacts_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_SyncMessage_Contacts_descriptor,
-              new java.lang.String[] { "Blob", "Complete", });
+              new java.lang.String[] { "Blob", "Complete", "Data", });
           internal_static_signalservice_SyncMessage_Groups_descriptor =
             internal_static_signalservice_SyncMessage_descriptor.getNestedTypes().get(2);
           internal_static_signalservice_SyncMessage_Groups_fieldAccessorTable = new
@@ -40858,23 +42286,23 @@ public final class SignalServiceProtos {
               internal_static_signalservice_SyncMessage_StickerPackOperation_descriptor,
               new java.lang.String[] { "PackId", "PackKey", "Type", });
           internal_static_signalservice_AttachmentPointer_descriptor =
-            getDescriptor().getMessageTypes().get(12);
+            getDescriptor().getMessageTypes().get(13);
           internal_static_signalservice_AttachmentPointer_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_AttachmentPointer_descriptor,
               new java.lang.String[] { "Id", "ContentType", "Key", "Size", "Thumbnail", "Digest", "FileName", "Flags", "Width", "Height", "Caption", });
           internal_static_signalservice_GroupContext_descriptor =
-            getDescriptor().getMessageTypes().get(13);
+            getDescriptor().getMessageTypes().get(14);
           internal_static_signalservice_GroupContext_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_GroupContext_descriptor,
               new java.lang.String[] { "Id", "Type", "Name", "Members", "Avatar", });
           internal_static_signalservice_ContactDetails_descriptor =
-            getDescriptor().getMessageTypes().get(14);
+            getDescriptor().getMessageTypes().get(15);
           internal_static_signalservice_ContactDetails_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_ContactDetails_descriptor,
-              new java.lang.String[] { "Number", "Name", "Avatar", "Color", "Verified", "ProfileKey", "Blocked", "ExpireTimer", });
+              new java.lang.String[] { "Number", "Name", "Avatar", "Color", "Verified", "ProfileKey", "Blocked", "ExpireTimer", "Nickname", });
           internal_static_signalservice_ContactDetails_Avatar_descriptor =
             internal_static_signalservice_ContactDetails_descriptor.getNestedTypes().get(0);
           internal_static_signalservice_ContactDetails_Avatar_fieldAccessorTable = new
@@ -40882,7 +42310,7 @@ public final class SignalServiceProtos {
               internal_static_signalservice_ContactDetails_Avatar_descriptor,
               new java.lang.String[] { "ContentType", "Length", });
           internal_static_signalservice_GroupDetails_descriptor =
-            getDescriptor().getMessageTypes().get(15);
+            getDescriptor().getMessageTypes().get(16);
           internal_static_signalservice_GroupDetails_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_GroupDetails_descriptor,

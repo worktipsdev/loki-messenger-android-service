@@ -39,6 +39,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
 
     // region Types
     sealed class Error(val description: String) : Exception() {
+        class HTTPRequestFailed(val code: Int) : Error("HTTP request failed with error code: $code.")
         object Generic : Error("An error occurred.")
         object MessageSigningFailed: Error("Failed to sign message.")
         /**

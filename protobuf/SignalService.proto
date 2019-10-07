@@ -46,11 +46,19 @@ message Content {
   optional TypingMessage  typingMessage  = 6;
   optional PrekeyBundleMessage preKeyBundleMessage = 101;
   optional LokiAddressMessage lokiAddressMessage = 102;
+  optional PairingAuthorisationMessage pairingAuthorisation = 103;
 }
 
 message LokiAddressMessage {
   optional string ptpAddress = 1;
   optional uint32 ptpPort = 2;
+}
+
+message PairingAuthorisationMessage {
+  optional string primaryDevicePublicKey   = 1;
+  optional string secondaryDevicePublicKey = 2;
+  optional bytes  requestSignature         = 3;
+  optional bytes  grantSignature           = 4;
 }
 
 message PrekeyBundleMessage {
@@ -269,6 +277,7 @@ message SyncMessage {
   message Contacts {
     optional AttachmentPointer blob     = 1;
     optional bool              complete = 2 [default = false];
+    optional bytes             data     = 101;
   }
 
   message Groups {
@@ -374,6 +383,7 @@ message ContactDetails {
   optional bytes    profileKey  = 6;
   optional bool     blocked     = 7;
   optional uint32   expireTimer = 8;
+  optional string   nickname    = 101;
 }
 
 message GroupDetails {

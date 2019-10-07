@@ -36,4 +36,6 @@ public class VerifiedMessage {
   public long getTimestamp() {
     return timestamp;
   }
+
+  public int getTTL() { return 24 * 60 * 60 * 1000; }
 }
