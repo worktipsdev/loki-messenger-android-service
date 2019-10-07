@@ -1,8 +1,10 @@
 package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
+import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
+import nl.komponents.kovenant.toSuccessVoid
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
@@ -108,10 +110,15 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
     val hasCacheExpired = !lastDeviceLinkUpdate.containsKey(hexEncodedPublicKey) || (now - lastDeviceLinkUpdate[hexEncodedPublicKey]!! > deviceMappingUpdateInterval)
     val isSelf = (hexEncodedPublicKey == userHexEncodedPublicKey) // Don't rely on the server for the user's own device mapping
     if (!isSelf && (hasCacheExpired || skipCache)) {
-      return fetchAndSaveDeviceMappings(hexEncodedPublicKey).map { authorisations ->
+      val deferred = deferred<List<PairingAuthorisation>, Exception>()
+      // Try and fetch the device mappings, otherwise fall back to database
+      fetchAndSaveDeviceMappings(hexEncodedPublicKey).success { authorisations ->
         lastDeviceLinkUpdate[hexEncodedPublicKey] = now
-        authorisations
+        deferred.resolve(authorisations)
+      }.fail {
+        deferred.resolve(databaseAuthorisations)
       }
+      return deferred.promise
     } else {
       return Promise.of(databaseAuthorisations)
     }
@@ -134,7 +141,6 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
     return getDeviceMappings(hexEncodedPublicKey).map { authorisations ->
       val publicKeys = authorisations.flatMap { listOf(it.primaryDevicePublicKey, it.secondaryDevicePublicKey) }.toSet()
       publicKeys.plus(hexEncodedPublicKey)
-      publicKeys
     }
   }
 
@@ -147,10 +153,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
         val value = if (authorisations.count() > 0) mapOf( "isPrimary" to isPrimary, "authorisations" to authorisationsAsJSON ) else null
         setSelfAnnotation(server, deviceMappingType, value).get()
       }
-    }.map { Unit }
+    }.toSuccessVoid()
   }
   // endregion
 }
-
-val Boolean.int
-  get() = if (this) 1 else 0
