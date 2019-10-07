@@ -2,10 +2,13 @@ package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.then
+import nl.komponents.kovenant.toSuccessVoid
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol
 import org.whispersystems.signalservice.loki.utilities.Analytics
+import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
+import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.text.SimpleDateFormat
 import java.util.*
@@ -68,8 +71,9 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
                         val annotationValue = annotation.get("value")
 
                         val serverID = message.get("id").asLong()
-                        val signature = annotationValue.get("sig").asText()
-                        val signatureVersion = annotationValue.get("sigver").asInt()
+                        val signatureString = annotationValue.get("sig").asText()
+                        val signatureVersion = annotationValue.get("sigver").asLong()
+                        val signature = LokiGroupMessage.Signature(signatureString, signatureVersion)
 
                         val user = message.get("user")
                         val hexEncodedPublicKey = user.get("username").asText()
@@ -91,7 +95,7 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
                         }
 
                         // Verify the message
-                        val groupMessage = LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, signature, signatureVersion)
+                        val groupMessage = LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, signature)
                         if (groupMessage.hasValidSignature()) groupMessage else null
                     } catch (exception: Exception) {
                         Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server from: ${JsonUtil.toJson(message)}. Exception: ${exception.message}")
@@ -141,12 +145,13 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
     }
 
     public fun sendMessage(message: LokiGroupMessage, group: Long, server: String): Promise<LokiGroupMessage, Exception> {
-        val signed = message.sign(userPrivateKey)
+        val signedMessage = message.sign(userPrivateKey)
             ?: return Promise.ofFail(LokiAPI.Error.MessageSigningFailed)
 
         return retryIfNeeded(maxRetryCount) {
             Log.d("Loki", "Sending message to group chat with ID: $group on server: $server.")
-            post(server, "channels/$group/messages", message.toJSONString()).then { response ->
+            val parameters = JsonUtil.toJson(signedMessage.toJSON())
+            post(server, "channels/$group/messages", parameters).then { response ->
                 try {
                     val bodyAsString = response.body()!!.string()
                     val root = JsonUtil.fromJson(bodyAsString)
@@ -158,7 +163,7 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
                     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
                     val dateAsString = data.get("created_at").asText()
                     val timestamp = format.parse(dateAsString).time
-                    @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote, signed.signature, signed.signatureVersion)
+                    @Suppress("NAME_SHADOWING") val message = LokiGroupMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote, signedMessage.signature)
                     message
                 } catch (exception: Exception) {
                     Log.d("Loki", "Couldn't parse message for group chat with ID: $group on server: $server.")
@@ -201,7 +206,13 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
                 Log.d("Loki", "Couldn't parse moderators for group chat with ID: $group on server: $server.")
                 throw exception
             }
-        }
+    }
+    }
+
+    public fun setDisplayName(newDisplayName: String?, server: String): Promise<Unit, Exception> {
+        Log.d("Loki", "Updating display name on server: $server.")
+        val parameters = mapOf("name" to (newDisplayName ?: ""))
+        return patch(server, "users/me", JsonUtil.toJson(parameters)).toSuccessVoid()
     }
     // endregion
 }
