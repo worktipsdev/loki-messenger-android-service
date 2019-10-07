@@ -1,8 +1,8 @@
 package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
+import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.then
-import nl.komponents.kovenant.toSuccessVoid
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
@@ -53,7 +53,7 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
             parameters["count"] = fallbackBatchCount
         }
 
-        return get(server, "channels/$group/messages", parameters).then { response ->
+        return execute(HTTPVerb.GET, server, "channels/$group/messages", false, parameters).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val root = JsonUtil.fromJson(bodyAsString)
@@ -111,15 +111,15 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
 
     public fun getDeletedMessageServerIDs(group: Long, server: String): Promise<List<Long>, Exception> {
         Log.d("Loki", "Getting deleted messages for group chat with ID: $group on server: $server.")
-        val queryParameters = mutableMapOf<String, Any>()
+        val parameters = mutableMapOf<String, Any>()
         val lastDeletionServerID = apiDatabase.getLastDeletionServerID(group, server)
         if (lastDeletionServerID != null) {
-            queryParameters["since_id"] = lastDeletionServerID
+            parameters["since_id"] = lastDeletionServerID
         } else {
-            queryParameters["count"] = fallbackBatchCount
+            parameters["count"] = fallbackBatchCount
         }
 
-        return get(server, "loki/v1/channel/$group/deletes", queryParameters).then { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/channel/$group/deletes", false, parameters).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val root = JsonUtil.fromJson(bodyAsString)
@@ -149,8 +149,8 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
 
         return retryIfNeeded(maxRetryCount) {
             Log.d("Loki", "Sending message to group chat with ID: $group on server: $server.")
-            val parameters = JsonUtil.toJson(signedMessage.toJSON())
-            post(server, "channels/$group/messages", parameters).then { response ->
+            val parameters = signedMessage.toJSON()
+            execute(HTTPVerb.POST, server, "channels/$group/messages", parameters = parameters).then { response ->
                 try {
                     val bodyAsString = response.body()!!.string()
                     val root = JsonUtil.fromJson(bodyAsString)
@@ -181,7 +181,7 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
             val isModerationRequest = !isSentByUser
             Log.d("Loki", "Deleting message with ID: $messageServerID from group chat with ID: $group on server: $server (isModerationRequest = $isModerationRequest).")
             val endpoint = if (isSentByUser) "channels/$group/messages/$messageServerID" else "loki/v1/moderation/message/$messageServerID"
-            delete(server, endpoint).then {
+            execute(HTTPVerb.DELETE, server, endpoint).then {
                 Log.d("Loki", "Deleted message with ID: $messageServerID on server: $server.")
                 messageServerID
             }.get()
@@ -189,7 +189,7 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
     }
 
     public fun getModerators(group: Long, server: String): Promise<Set<String>, Exception> {
-        return get(server, "loki/v1/channel/$group/get_moderators").then { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/channel/$group/get_moderators", false).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
@@ -210,8 +210,8 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
 
     public fun setDisplayName(newDisplayName: String?, server: String): Promise<Unit, Exception> {
         Log.d("Loki", "Updating display name on server: $server.")
-        val parameters = mapOf("name" to (newDisplayName ?: ""))
-        return patch(server, "users/me", JsonUtil.toJson(parameters)).toSuccessVoid()
+        val parameters = mapOf( "name" to (newDisplayName ?: "") )
+        return execute(HTTPVerb.PATCH, server, "users/me", parameters = parameters).map { Unit }
     }
     // endregion
 }

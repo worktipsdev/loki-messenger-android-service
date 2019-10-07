@@ -14,11 +14,24 @@ import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 import java.io.IOException
 
 /**
- * This is meant to be used as an Abstract Base Class
+ * Abstract base class that provides utilities for .NET based APIs.
  */
 open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val apiDatabase: LokiAPIDatabaseProtocol) {
 
-    // region Token
+    internal enum class HTTPVerb { GET, PUT, POST, DELETE, PATCH }
+
+    protected fun getAuthToken(server: String): Promise<String, Exception> {
+        val token = apiDatabase.getGroupChatAuthToken(server)
+        if (token != null) {
+            return Promise.of(token)
+        } else {
+            return requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { token ->
+                apiDatabase.setGroupChatAuthToken(server, token)
+                token
+            }
+        }
+    }
+
     private fun requestNewAuthToken(server: String): Promise<String, Exception> {
         Log.d("Loki", "Requesting auth token for server: $server.")
         val queryParameters = "pubKey=$userHexEncodedPublicKey"
@@ -67,7 +80,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         return deferred.promise
     }
 
-    private fun submitToken(token: String, server: String): Promise<String, Exception> {
+    private fun submitAuthToken(token: String, server: String): Promise<String, Exception> {
         Log.d("Loki", "Submitting auth token for server: $server.")
         val url = "$server/loki/v1/submit_challenge"
         val parameters = "{ \"pubKey\" : \"$userHexEncodedPublicKey\", \"token\" : \"$token\" }"
@@ -95,91 +108,67 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         return deferred.promise
     }
 
-    protected fun getAuthToken(server: String): Promise<String, Exception> {
-        val token = apiDatabase.getGroupChatAuthToken(server)
-        if (token != null) {
-            return Promise.of(token)
-        } else {
-            return requestNewAuthToken(server).bind { submitToken(it, server) }.then { token ->
-                apiDatabase.setGroupChatAuthToken(server, token)
-                token
-            }
-        }
-    }
-    // endregion
-
-    // region Requests
-
-    private fun perform(request: Request): Promise<Response, Exception> {
-        val connection = OkHttpClient()
+    internal fun execute(verb: HTTPVerb, server: String, endpoint: String, isAuthRequired: Boolean = true, parameters: Map<String, Any> = mapOf()): Promise<Response, Exception> {
         val deferred = deferred<Response, Exception>()
-
-        connection.newCall(request).enqueue(object : Callback {
-            override fun onResponse(call: Call, response: Response) {
-                when (response.code()) {
-                    in 200..299 -> deferred.resolve(response)
-                    401 -> deferred.reject(LokiAPI.Error.TokenExpired)
-                    else -> deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
+        fun execute(token: String?) {
+            var url = "$server/$endpoint"
+            if (verb == HTTPVerb.GET) {
+                val queryParameters = parameters.map { "${it.key}=${it.value}" }.joinToString("&")
+                if (queryParameters.isNotEmpty()) {
+                    url += "?$queryParameters"
                 }
             }
-
-            override fun onFailure(call: Call, exception: IOException) {
-                Log.d("Loki", "Couldn't reach dot net server: ${request.url()}.")
-                deferred.reject(exception)
+            var request = Request.Builder().url(url)
+            if (isAuthRequired) {
+                if (token == null) { throw IllegalStateException() }
+                request = request.header("Authorization", "Bearer $token")
             }
-        })
+            when (verb) {
+                HTTPVerb.GET -> request = request.get()
+                HTTPVerb.DELETE -> request = request.delete()
+                else -> {
+                    val parametersAsJSON = JsonUtil.toJson(parameters)
+                    val body = RequestBody.create(MediaType.get("application/json"), parametersAsJSON)
+                    when (verb) {
+                        HTTPVerb.PUT -> request = request.put(body)
+                        HTTPVerb.POST -> request = request.post(body)
+                        HTTPVerb.PATCH -> request = request.patch(body)
+                        else -> throw IllegalStateException()
+                    }
+                }
+            }
+            val connection = OkHttpClient()
+            connection.newCall(request.build()).enqueue(object : Callback {
 
+                override fun onResponse(call: Call, response: Response) {
+                    when (response.code()) {
+                        in 200..299 -> deferred.resolve(response)
+                        401 -> {
+                            apiDatabase.setGroupChatAuthToken(server, null)
+                            deferred.reject(LokiAPI.Error.TokenExpired)
+                        }
+                        else -> deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
+                    }
+                }
+
+                override fun onFailure(call: Call, exception: IOException) {
+                    Log.d("Loki", "Couldn't reach server: $server.")
+                    deferred.reject(exception)
+                }
+            })
+        }
+        if (isAuthRequired) {
+            getAuthToken(server).success { execute(it) }.fail { deferred.reject(it) }
+        } else {
+            execute(null)
+        }
         return deferred.promise
     }
 
-    private fun performAuthorised(server: String, requestBlock: (Request.Builder) -> Request): Promise<Response, Exception> {
-        return getAuthToken(server).bind { token ->
-            val builder = Request.Builder().header("Authorization", "Bearer $token")
-            perform(requestBlock(builder))
-        }.fail { error ->
-            if (error is LokiAPI.Error.TokenExpired) {
-                apiDatabase.setGroupChatAuthToken(server, null)
-            }
-        }
+    internal fun setSelfAnnotation(server: String, type: String, newValue: Any?): Promise<Response, Exception> {
+        val annotation = mutableMapOf<String, Any>( "type" to type )
+        if (newValue != null) { annotation["value"] = newValue }
+        val parameters = mapOf( "annotations" to listOf( annotation ) )
+        return execute(HTTPVerb.PATCH, server, "users/me", true, parameters)
     }
-
-    internal fun get(server: String, endpoint: String, parameters: Map<String, Any> = mapOf()): Promise<Response, Exception> {
-        val queryParameters = parameters.map { "${it.key}=${it.value}" }.joinToString("&")
-        var url = "$server/$endpoint"
-        var completeUrl = if (queryParameters.isEmpty()) url else "$url?$queryParameters"
-        val request = Request.Builder().url(completeUrl).get()
-        return perform(request.build())
-    }
-
-    internal fun post(server: String, endpoint: String, parameters: String): Promise<Response, Exception> {
-        return performAuthorised(server) { builder ->
-            val url = "$server/$endpoint"
-            val body = RequestBody.create(MediaType.get("application/json"), parameters)
-            builder.url(url).post(body).build()
-        }
-    }
-
-    internal fun patch(server: String, endpoint: String, parameters: String): Promise<Response, Exception> {
-        return performAuthorised(server) { builder ->
-            val url = "$server/$endpoint"
-            val body = RequestBody.create(MediaType.get("application/json"), parameters)
-            builder.url(url).patch(body).build()
-        }
-    }
-
-    internal fun delete(server: String, endpoint: String): Promise<Response, Exception> {
-        return performAuthorised(server) { builder ->
-            val url = "$server/$endpoint"
-            builder.url(url).delete().build()
-        }
-    }
-
-    internal fun setSelfAnnotation(server: String, type: String, value: Any?): Promise<Response, Exception> {
-        val annotation = mutableMapOf<String, Any>("type" to type)
-        if (value != null) { annotation["value"] = value }
-        val json = mutableMapOf("annotations" to listOf(annotation))
-        val parameter = JsonUtil.toJson(json)
-        return patch(server, "users/me", parameter)
-    }
-    // endregion
 }
