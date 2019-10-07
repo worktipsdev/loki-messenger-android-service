@@ -4,7 +4,6 @@ import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
-import nl.komponents.kovenant.toSuccessVoid
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
@@ -38,6 +37,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
   // region Types
   sealed class Error(val description: String) : Exception() {
     object Generic : Error("An error occurred.")
+    object ParsingFailed : Error("Failed to parse object from JSON.")
   }
   // endregion
 
@@ -51,7 +51,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
         val data = body.get("data")
         if (data == null) {
           Log.d("Loki", "Couldn't parse device mappings for user: $hexEncodedPublicKey from: $rawResponse.")
-          throw Error.Generic
+          throw Error.ParsingFailed
         }
         val annotations = data.get("annotations")
         val deviceMappingAnnotation = annotations.find { annotation ->
@@ -59,7 +59,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
         }
         if (deviceMappingAnnotation == null) {
           Log.d("Loki", "Couldn't parse device mappings for user: $hexEncodedPublicKey from: $rawResponse.")
-          throw Error.Generic
+          throw Error.ParsingFailed
         }
         val value = deviceMappingAnnotation.get("value")
         val authorisationsAsJSON = value.get("authorisations")
@@ -91,7 +91,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
         }
       } catch (exception: Exception) {
         Log.d("Loki", "Failed to parse device mappings for: $hexEncodedPublicKey from $rawResponse due to error: $exception.")
-        throw exception
+        throw Error.ParsingFailed
       }
     }
   }
@@ -117,8 +117,8 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
         lastDeviceLinkUpdate[hexEncodedPublicKey] = now
         deferred.resolve(authorisations)
       }.fail {
-        // If we errored out after successfully fetching then we need to try again after the cache time
-        if (it is Error.Generic) { lastDeviceLinkUpdate[hexEncodedPublicKey] = now }
+        // If we errored out due to a parsing failure then don't immediately re-fetch
+        if (it is Error.ParsingFailed) { lastDeviceLinkUpdate[hexEncodedPublicKey] = now }
         deferred.resolve(databaseAuthorisations)
       }
       return deferred.promise
@@ -156,7 +156,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
         val value = if (authorisations.count() > 0) mapOf( "isPrimary" to isPrimary, "authorisations" to authorisationsAsJSON ) else null
         setSelfAnnotation(server, deviceMappingType, value).get()
       }
-    }.toSuccessVoid()
+    }.map { Unit }
   }
   // endregion
 }
