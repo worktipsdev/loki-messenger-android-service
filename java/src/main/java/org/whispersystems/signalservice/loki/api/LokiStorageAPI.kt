@@ -28,7 +28,8 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
      */
     fun configure(isDebugMode: Boolean, userHexEncodedPublicKey: String,  userPrivateKey: ByteArray, database: LokiAPIDatabaseProtocol) {
       if (::shared.isInitialized) { return }
-      val server = if (isDebugMode) "https://file-dev.lokinet.org" else "https://file.lokinet.org"
+      // TODO: Re-enable when we have dev file server
+      val server = if (false && isDebugMode) "https://file-dev.lokinet.org" else "https://file.lokinet.org"
       shared = LokiStorageAPI(server, userHexEncodedPublicKey, userPrivateKey, database)
     }
     // endregion
@@ -116,6 +117,8 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
         lastDeviceLinkUpdate[hexEncodedPublicKey] = now
         deferred.resolve(authorisations)
       }.fail {
+        // If we errored out after successfully fetching then we need to try again after the cache time
+        if (it is Error.Generic) { lastDeviceLinkUpdate[hexEncodedPublicKey] = now }
         deferred.resolve(databaseAuthorisations)
       }
       return deferred.promise
