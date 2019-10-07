@@ -128,20 +128,20 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
 
   fun getPrimaryDevice(secondaryDevicePubKey: String): Promise<String?, Exception> {
     return getDeviceMappings(secondaryDevicePubKey).map { authorisations ->
-      val pairing = authorisations.find { it.secondaryDevicePubKey == secondaryDevicePubKey }
-      pairing?.primaryDevicePubKey
+      val pairing = authorisations.find { it.secondaryDevicePublicKey == secondaryDevicePubKey }
+      pairing?.primaryDevicePublicKey
     }
   }
 
   fun getSecondaryDevices(primaryDevicePubKey: String): Promise<List<String>, Exception> {
     return getDeviceMappings(primaryDevicePubKey).map { authorisations ->
-      authorisations.filter { it.primaryDevicePubKey == primaryDevicePubKey }.map { it.secondaryDevicePubKey }
+      authorisations.filter { it.primaryDevicePublicKey == primaryDevicePubKey }.map { it.secondaryDevicePublicKey }
     }
   }
 
   fun getAllDevices(pubKey: String): Promise<Set<String>, Exception> {
     return getDeviceMappings(pubKey).map { authorisations ->
-      authorisations.flatMap { listOf(it.primaryDevicePubKey, it.secondaryDevicePubKey) }
+      authorisations.flatMap { listOf(it.primaryDevicePublicKey, it.secondaryDevicePublicKey) }
     }.map {
       val mappedDevices = it.toSet()
       // We need to add the pubkey to the device set incase there are no mappings for it
@@ -155,7 +155,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
     // 3. update the server
     return getDeviceMappings(userHexEncodedPublicKey).bind { authorisations ->
       // We are a primary device if an authorisation has us listed as one
-      val isPrimary = authorisations.find { it.primaryDevicePubKey == userHexEncodedPublicKey } != null
+      val isPrimary = authorisations.find { it.primaryDevicePublicKey == userHexEncodedPublicKey } != null
       retryIfNeeded(maxRetryCount) {
         val authorisationsJson = authorisations.map { it.toJSON() }
         val value = if (authorisations.count() > 0) mapOf("isPrimary" to isPrimary, "authorisations" to authorisationsJson) else null

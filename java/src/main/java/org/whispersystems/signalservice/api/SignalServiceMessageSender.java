@@ -501,8 +501,8 @@ public class SignalServiceMessageSender {
       SignalServiceProtos.PairingAuthorisationMessage.Type type = authorisation.getType() == LokiPairingAuthorisation.Type.REQUEST ? SignalServiceProtos.PairingAuthorisationMessage.Type.REQUEST : SignalServiceProtos.PairingAuthorisationMessage.Type.GRANT;
       SignalServiceProtos.PairingAuthorisationMessage.Builder builder = SignalServiceProtos.PairingAuthorisationMessage.newBuilder()
               .setType(type)
-              .setPrimaryDevicePubKey(authorisation.getPrimaryDevicePubKey())
-              .setSecondaryDevicePubKey(authorisation.getSecondaryDevicePubKey());
+              .setPrimaryDevicePubKey(authorisation.getPrimaryDevicePublicKey())
+              .setSecondaryDevicePubKey(authorisation.getSecondaryDevicePublicKey());
       if (authorisation.getRequestSignature() != null) { builder.setRequestSignature(ByteString.copyFrom(authorisation.getRequestSignature())); }
       if (authorisation.getGrantSignature() != null) { builder.setGrantSignature(ByteString.copyFrom(authorisation.getGrantSignature())); }
       container.setPairingAuthorisation(builder);
