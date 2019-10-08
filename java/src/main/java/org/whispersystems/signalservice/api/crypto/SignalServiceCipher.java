@@ -251,7 +251,7 @@ public class SignalServiceCipher {
         return new SignalServiceContent(lokiServiceMessage, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false);
       }
 
-      // No content is set at all, return null
+      // No content is set at all; return null
       return null;
     } catch (InvalidProtocolBufferException e) {
       throw new InvalidMetadataMessageException(e);

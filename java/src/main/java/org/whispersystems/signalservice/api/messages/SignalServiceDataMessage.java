@@ -36,7 +36,7 @@ public class SignalServiceDataMessage {
   // Loki
   private final boolean                                 isFriendRequest;
   private final Optional<PreKeyBundle>                  preKeyBundle;
-  private final Optional<PairingAuthorisation>      pairingAuthorisation;
+  private final Optional<PairingAuthorisation>          pairingAuthorisation;
 
   /**
    * Construct a SignalServiceDataMessage with a body and no attachments.
@@ -278,18 +278,18 @@ public class SignalServiceDataMessage {
     private List<SharedContact>           sharedContacts = new LinkedList<SharedContact>();
     private List<Preview>                 previews       = new LinkedList<Preview>();
 
-    private long               timestamp;
-    private SignalServiceGroup group;
-    private String             body;
-    private boolean            endSession;
-    private int                expiresInSeconds;
-    private boolean            expirationUpdate;
-    private byte[]             profileKey;
-    private boolean            profileKeyUpdate;
-    private Quote              quote;
-    private Sticker            sticker;
-    private boolean            isFriendRequest;
-    private PreKeyBundle       preKeyBundle;
+    private long                 timestamp;
+    private SignalServiceGroup   group;
+    private String               body;
+    private boolean              endSession;
+    private int                  expiresInSeconds;
+    private boolean              expirationUpdate;
+    private byte[]               profileKey;
+    private boolean              profileKeyUpdate;
+    private Quote                quote;
+    private Sticker              sticker;
+    private boolean              isFriendRequest;
+    private PreKeyBundle         preKeyBundle;
     private PairingAuthorisation pairingAuthorisation;
 
     private Builder() {}
