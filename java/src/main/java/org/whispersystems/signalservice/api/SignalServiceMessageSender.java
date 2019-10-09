@@ -75,6 +75,7 @@ import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture;
 import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
+import org.whispersystems.signalservice.loki.api.LokiGroupChat;
 import org.whispersystems.signalservice.loki.api.LokiGroupChatAPI;
 import org.whispersystems.signalservice.loki.api.LokiGroupMessage;
 import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
@@ -1003,7 +1004,11 @@ public class SignalServiceMessageSender {
                                         boolean                      isFriendRequest)
   {
     final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
-    if (recipient.getNumber().equals(LokiGroupChatAPI.getPublicChatServer())) {
+
+    // Check if we have a group chat mapping, if we do then send to that public server
+    long threadID = threadDatabase.getThreadID(recipient.getNumber());
+    LokiGroupChat groupChat = threadDatabase.getGroupChat(threadID);
+    if (groupChat != null) {
       String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
       if (displayName == null) displayName = "Anonymous";
       try {
@@ -1018,7 +1023,7 @@ public class SignalServiceMessageSender {
         }
         LokiGroupMessage message = new LokiGroupMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiGroupChatAPI.getPublicChatMessageType(), quote);
         byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
-        new LokiGroupChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, LokiGroupChatAPI.getPublicChatServerID(), LokiGroupChatAPI.getPublicChatServer()).success(new Function1<LokiGroupMessage, Unit>() {
+        new LokiGroupChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, groupChat.getChannel(), groupChat.getServer()).success(new Function1<LokiGroupMessage, Unit>() {
 
           @Override
           public Unit invoke(LokiGroupMessage message) {
@@ -1052,7 +1057,6 @@ public class SignalServiceMessageSender {
         // Update the message and thread if needed
         if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
           messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING);
-          long threadID = threadDatabase.getThreadID(recipient.getNumber());
           threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENDING);
         }
         LokiAPI api = new LokiAPI(userHexEncodedPublicKey, apiDatabase);

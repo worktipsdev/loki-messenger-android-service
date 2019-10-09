@@ -20,7 +20,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     internal enum class HTTPVerb { GET, PUT, POST, DELETE, PATCH }
 
-    protected fun getAuthToken(server: String): Promise<String, Exception> {
+    public fun getAuthToken(server: String): Promise<String, Exception> {
         val token = apiDatabase.getAuthToken(server)
         if (token != null) {
             return Promise.of(token)
@@ -110,8 +110,9 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     internal fun execute(verb: HTTPVerb, server: String, endpoint: String, isAuthRequired: Boolean = true, parameters: Map<String, Any> = mapOf()): Promise<Response, Exception> {
         val deferred = deferred<Response, Exception>()
+        val normalizedEndpoint = endpoint.removePrefix("/")
         fun execute(token: String?) {
-            var url = "$server/$endpoint"
+            var url = "$server/$normalizedEndpoint"
             if (verb == HTTPVerb.GET) {
                 val queryParameters = parameters.map { "${it.key}=${it.value}" }.joinToString("&")
                 if (queryParameters.isNotEmpty()) {

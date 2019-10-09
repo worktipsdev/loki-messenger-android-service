@@ -20,16 +20,12 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
         // region Settings
         private val fallbackBatchCount = 20
         private val maxRetryCount = 8
-        var isDebugMode = false
         // endregion
 
         // region Public Chat
         @JvmStatic
-        public val publicChatServer get() = if (isDebugMode) "https://chat-dev.lokinet.org" else "https://chat.lokinet.org"
-        @JvmStatic
         public val publicChatMessageType = "network.loki.messenger.publicChat"
-        @JvmStatic
-        public val publicChatServerID: Long = 1
+        private val appSettingsAnnotation = "net.patter-app.settings"
         // endregion
 
         // region Convenience
@@ -68,16 +64,11 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
                         } ?: return@mapNotNull null
                         val value = annotation.get("value")
                         val serverID = message.get("id").asLong()
-                        val hexEncodedSignature = value.get("sig").asText()
-                        val signatureVersion = value.get("sigver").asLong()
-                        val signature = LokiGroupMessage.Signature(Hex.fromStringCondensed(hexEncodedSignature), signatureVersion)
                         val user = message.get("user")
                         val hexEncodedPublicKey = user.get("username").asText()
                         val displayName = if (user.hasNonNull("name")) user.get("name").asText() else "Anonymous"
                         @Suppress("NAME_SHADOWING") val body = message.get("text").asText()
                         val timestamp = value.get("timestamp").asLong()
-                        @Suppress("NAME_SHADOWING") val lastMessageServerID = apiDatabase.getLastMessageServerID(group, server)
-                        if (serverID > lastMessageServerID ?: 0) { apiDatabase.setLastMessageServerID(group, server, serverID) }
                         var quote: LokiGroupMessage.Quote? = null
                         if (value.hasNonNull("quote")) {
                             val replyTo = if (message.hasNonNull("reply_to")) message.get("reply_to").asLong() else null
@@ -87,6 +78,12 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
                             val text = quoteAnnotation.get("text").asText()
                             quote = if (quoteTimestamp > 0L && author != null && text != null) LokiGroupMessage.Quote(quoteTimestamp, author, text, replyTo) else null
                         }
+                        // Save the last message here as if a message doesn't have any valid signatures, this function will keep being called over and over with the same message
+                        @Suppress("NAME_SHADOWING") val lastMessageServerID = apiDatabase.getLastMessageServerID(group, server)
+                        if (serverID > lastMessageServerID ?: 0) { apiDatabase.setLastMessageServerID(group, server, serverID) }
+                        val hexEncodedSignature = value.get("sig").asText()
+                        val signatureVersion = value.get("sigver").asLong()
+                        val signature = LokiGroupMessage.Signature(Hex.fromStringCondensed(hexEncodedSignature), signatureVersion)
                         // Verify the message
                         val groupMessage = LokiGroupMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, signature)
                         if (groupMessage.hasValidSignature()) groupMessage else null
@@ -193,6 +190,25 @@ class LokiGroupChatAPI(private val userHexEncodedPublicKey: String, private val 
                 moderatorsAsSet
             } catch (exception: Exception) {
                 Log.d("Loki", "Couldn't parse moderators for group chat with ID: $group on server: $server.")
+                throw exception
+            }
+        }
+    }
+
+    public fun getChannelInfo(group: Long, server: String): Promise<String, Exception> {
+        return execute(HTTPVerb.GET, server, "/channels/$group", false, mapOf("include_annotations" to 1)).then { response ->
+            try {
+                val bodyAsString = response.body()!!.string()
+                val body = JsonUtil.fromJson(bodyAsString)
+                val data = body.get("data")
+                val annotations = data.get("annotations")
+                val settings = annotations.find { it.get("type").asText("") == appSettingsAnnotation } ?: throw Error("Failed to find app settings annotation")
+                val settingsValue = settings.get("value")
+
+                // For now we'll just return the name
+                settingsValue.get("name").asText()
+            } catch (exception: Exception) {
+                Log.d("Loki", "Couldn't parse channel info for group channel with ID: $group on server: $server.")
                 throw exception
             }
         }
