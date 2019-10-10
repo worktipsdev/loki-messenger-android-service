@@ -51,7 +51,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             }
         }
 
-        fun getUserIDs(query: String, threadID: Long, userDatabase: LokiUserDatabaseProtocol): List<Tuple2<String, String>> {
+        fun getUsers(query: String, threadID: Long, userDatabase: LokiUserDatabaseProtocol): List<Tuple2<String, String>> {
             // Prepare
             val cache = userIDCache[threadID] ?: return listOf()
             // Gather candidates
@@ -64,9 +64,9 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             candidates.sortedBy { it.second }
             if (query.length >= 2) {
                 // Filter out any non-matching candidates
-                candidates = candidates.filter { it.second.contains(query) }
+                candidates = candidates.filter { it.second.toLowerCase().contains(query.toLowerCase()) }
                 // Sort based on where in the candidate the query occurs
-                candidates.sortedBy { it.second.indexOf(query) }
+                candidates.sortedBy { it.second.toLowerCase().indexOf(query.toLowerCase()) }
             }
             // Return
             return candidates
