@@ -57,6 +57,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             val serverID = LokiGroupChatAPI.publicChatServer + "." + LokiGroupChatAPI.publicChatServerID
             var candidates: List<Mention> = cache.mapNotNull { hexEncodedPublicKey ->
                 val displayName = userDatabase.getServerDisplayName(serverID, hexEncodedPublicKey) ?: return@mapNotNull null
+                if (displayName.startsWith("Anonymous")) { return@mapNotNull null }
                 Mention(hexEncodedPublicKey, displayName)
             }
             // Sort alphabetically first
