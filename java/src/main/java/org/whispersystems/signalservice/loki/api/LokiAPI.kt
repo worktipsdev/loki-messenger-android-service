@@ -1,7 +1,6 @@
 package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
-import nl.komponents.kovenant.combine.Tuple2
 import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
@@ -13,6 +12,7 @@ import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.messaging.LokiMessageWrapper
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol
+import org.whispersystems.signalservice.loki.messaging.Mention
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo
 import org.whispersystems.signalservice.loki.utilities.Analytics
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
@@ -29,44 +29,43 @@ import javax.net.ssl.X509TrustManager
 class LokiAPI(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
 
     companion object {
-        var userIDCache = mutableMapOf<Long, Set<String>>() // Thread ID to set of user hex encoded public keys
+        var userHexEncodedPublicKeyCache = mutableMapOf<Long, Set<String>>() // Thread ID to set of user hex encoded public keys
 
         // region Settings
         private val version = "v1"
         private val maxRetryCount = 8
         private val defaultTimeout: Long = 20
         private val longPollingTimeout: Long = 40
-        private val userIDScanLimit = 4096
         internal val defaultMessageTTL = 24 * 60 * 60 * 1000
         internal var powDifficulty = 40
         // endregion
 
         // region User ID Caching
-        fun cache(userHexEncodedPublicKey: String, threadID: Long) {
-            val cache = userIDCache[threadID]
+        fun cache(hexEncodedPublicKey: String, threadID: Long) {
+            val cache = userHexEncodedPublicKeyCache[threadID]
             if (cache != null) {
-                userIDCache[threadID] = cache.plus(userHexEncodedPublicKey)
+                userHexEncodedPublicKeyCache[threadID] = cache.plus(hexEncodedPublicKey)
             } else {
-                userIDCache[threadID] = setOf( userHexEncodedPublicKey )
+                userHexEncodedPublicKeyCache[threadID] = setOf( hexEncodedPublicKey )
             }
         }
 
-        fun getUsers(query: String, threadID: Long, userDatabase: LokiUserDatabaseProtocol): List<Tuple2<String, String>> {
+        fun getMentionCandidates(query: String, threadID: Long, userDatabase: LokiUserDatabaseProtocol): List<Mention> {
             // Prepare
-            val cache = userIDCache[threadID] ?: return listOf()
+            val cache = userHexEncodedPublicKeyCache[threadID] ?: return listOf()
             // Gather candidates
             val serverID = LokiGroupChatAPI.publicChatServer + "." + LokiGroupChatAPI.publicChatServerID
-            var candidates: List<Tuple2<String, String>> = cache.mapNotNull { id ->
-                val displayName = userDatabase.getServerDisplayName(serverID, id) ?: return@mapNotNull null
-                Tuple2(id, displayName)
+            var candidates: List<Mention> = cache.mapNotNull { hexEncodedPublicKey ->
+                val displayName = userDatabase.getServerDisplayName(serverID, hexEncodedPublicKey) ?: return@mapNotNull null
+                Mention(hexEncodedPublicKey, displayName)
             }
             // Sort alphabetically first
-            candidates.sortedBy { it.second }
+            candidates.sortedBy { it.displayName }
             if (query.length >= 2) {
                 // Filter out any non-matching candidates
-                candidates = candidates.filter { it.second.toLowerCase().contains(query.toLowerCase()) }
+                candidates = candidates.filter { it.displayName.toLowerCase().contains(query.toLowerCase()) }
                 // Sort based on where in the candidate the query occurs
-                candidates.sortedBy { it.second.toLowerCase().indexOf(query.toLowerCase()) }
+                candidates.sortedBy { it.displayName.toLowerCase().indexOf(query.toLowerCase()) }
             }
             // Return
             return candidates
