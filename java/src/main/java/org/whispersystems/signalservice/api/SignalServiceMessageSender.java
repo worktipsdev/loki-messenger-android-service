@@ -75,9 +75,9 @@ import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture;
 import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
-import org.whispersystems.signalservice.loki.api.LokiGroupChat;
-import org.whispersystems.signalservice.loki.api.LokiGroupChatAPI;
-import org.whispersystems.signalservice.loki.api.LokiGroupMessage;
+import org.whispersystems.signalservice.loki.api.LokiPublicChat;
+import org.whispersystems.signalservice.loki.api.LokiPublicChatAPI;
+import org.whispersystems.signalservice.loki.api.LokiPublicChatMessage;
 import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
@@ -1004,29 +1004,27 @@ public class SignalServiceMessageSender {
                                         boolean                      isFriendRequest)
   {
     final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
-
-    // Check if we have a group chat mapping, if we do then send to that public server
     long threadID = threadDatabase.getThreadID(recipient.getNumber());
-    LokiGroupChat groupChat = threadDatabase.getGroupChat(threadID);
-    if (groupChat != null) {
+    LokiPublicChat publicChat = threadDatabase.getPublicChat(threadID);
+    if (publicChat != null) {
       String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
       if (displayName == null) displayName = "Anonymous";
       try {
         SignalServiceProtos.DataMessage data = SignalServiceProtos.Content.parseFrom(content).getDataMessage();
         String body = data.getBody();
-        LokiGroupMessage.Quote quote = null;
+        LokiPublicChatMessage.Quote quote = null;
         if (data.hasQuote()) {
           long quoteID = data.getQuote().getId();
           String quoteeHexEncodedPublicKey = data.getQuote().getAuthor();
           long serverID = messageDatabase.getQuoteServerID(quoteID, quoteeHexEncodedPublicKey);
-          quote = new LokiGroupMessage.Quote(quoteID, quoteeHexEncodedPublicKey, data.getQuote().getText(), serverID);
+          quote = new LokiPublicChatMessage.Quote(quoteID, quoteeHexEncodedPublicKey, data.getQuote().getText(), serverID);
         }
-        LokiGroupMessage message = new LokiGroupMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiGroupChatAPI.getPublicChatMessageType(), quote);
+        LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote);
         byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
-        new LokiGroupChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, groupChat.getChannel(), groupChat.getServer()).success(new Function1<LokiGroupMessage, Unit>() {
+        new LokiPublicChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, publicChat.getChannel(), publicChat.getServer()).success(new Function1<LokiPublicChatMessage, Unit>() {
 
           @Override
-          public Unit invoke(LokiGroupMessage message) {
+          public Unit invoke(LokiPublicChatMessage message) {
             @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
             messageDatabase.setServerID(messageID, message.getServerID());
             f.set(Unit.INSTANCE);

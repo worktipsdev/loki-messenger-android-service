@@ -1,6 +1,6 @@
 package org.whispersystems.signalservice.loki.messaging
 
-import org.whispersystems.signalservice.loki.api.LokiGroupChat
+import org.whispersystems.signalservice.loki.api.LokiPublicChat
 
 interface LokiThreadDatabaseProtocol {
 
@@ -8,7 +8,7 @@ interface LokiThreadDatabaseProtocol {
     fun setFriendRequestStatus(threadID: Long, friendRequestStatus: LokiThreadFriendRequestStatus)
     fun getSessionResetStatus(threadID: Long): LokiThreadSessionResetStatus
     fun setSessionResetStatus(threadID: Long, sessionResetStatus: LokiThreadSessionResetStatus)
-    fun getGroupChat(threadID: Long): LokiGroupChat?
-    fun setGroupChat(groupChat: LokiGroupChat, threadID: Long)
-    fun removeGroupChat(threadID: Long)
+    fun getPublicChat(threadID: Long): LokiPublicChat?
+    fun setPublicChat(publicChat: LokiPublicChat, threadID: Long)
+    fun removePublicChat(threadID: Long)
 }

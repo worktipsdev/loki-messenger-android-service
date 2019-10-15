@@ -10,10 +10,7 @@ import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
-import org.whispersystems.signalservice.loki.messaging.LokiMessageWrapper
-import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol
-import org.whispersystems.signalservice.loki.messaging.Mention
-import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo
+import org.whispersystems.signalservice.loki.messaging.*
 import org.whispersystems.signalservice.loki.utilities.Analytics
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
@@ -50,16 +47,23 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             }
         }
 
-        fun getMentionCandidates(query: String, threadID: Long, userDatabase: LokiUserDatabaseProtocol): List<Mention> {
+        fun getMentionCandidates(query: String, threadID: Long, userHexEncodedPublicKey: String, threadDatabase: LokiThreadDatabaseProtocol, userDatabase: LokiUserDatabaseProtocol): List<Mention> {
             // Prepare
             val cache = userHexEncodedPublicKeyCache[threadID] ?: return listOf()
             // Gather candidates
-            val serverID = LokiGroupChatAPI.publicChatServer + "." + LokiGroupChatAPI.publicChatServerID
+            val publicChat = threadDatabase.getPublicChat(threadID)
             var candidates: List<Mention> = cache.mapNotNull { hexEncodedPublicKey ->
-                val displayName = userDatabase.getServerDisplayName(serverID, hexEncodedPublicKey) ?: return@mapNotNull null
+                val displayName: String?
+                if (publicChat != null) {
+                    displayName = userDatabase.getServerDisplayName(publicChat.id, hexEncodedPublicKey)
+                } else {
+                    displayName = userDatabase.getDisplayName(hexEncodedPublicKey)
+                }
+                if (displayName == null) { return@mapNotNull null }
                 if (displayName.startsWith("Anonymous")) { return@mapNotNull null }
                 Mention(hexEncodedPublicKey, displayName)
             }
+            candidates = candidates.filter { it.hexEncodedPublicKey != userHexEncodedPublicKey }
             // Sort alphabetically first
             candidates.sortedBy { it.displayName }
             if (query.length >= 2) {
