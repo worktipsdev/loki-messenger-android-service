@@ -20,7 +20,14 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     internal enum class HTTPVerb { GET, PUT, POST, DELETE, PATCH }
 
-    protected fun getAuthToken(server: String): Promise<String, Exception> {
+    // region Types
+    public sealed class Error(val description: String) : Exception() {
+        object Generic : Error("An error occurred.")
+        object ParsingFailed : Error("Failed to parse object from JSON.")
+    }
+    // endregion
+
+    public fun getAuthToken(server: String): Promise<String, Exception> {
         val token = apiDatabase.getAuthToken(server)
         if (token != null) {
             return Promise.of(token)
@@ -110,8 +117,9 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     internal fun execute(verb: HTTPVerb, server: String, endpoint: String, isAuthRequired: Boolean = true, parameters: Map<String, Any> = mapOf()): Promise<Response, Exception> {
         val deferred = deferred<Response, Exception>()
+        val sanitizedEndpoint = endpoint.removePrefix("/")
         fun execute(token: String?) {
-            var url = "$server/$endpoint"
+            var url = "$server/$sanitizedEndpoint"
             if (verb == HTTPVerb.GET) {
                 val queryParameters = parameters.map { "${it.key}=${it.value}" }.joinToString("&")
                 if (queryParameters.isNotEmpty()) {

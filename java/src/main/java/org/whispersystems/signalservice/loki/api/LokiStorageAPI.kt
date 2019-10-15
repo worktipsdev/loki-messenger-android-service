@@ -34,13 +34,6 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
     // endregion
   }
 
-  // region Types
-  sealed class Error(val description: String) : Exception() {
-    object Generic : Error("An error occurred.")
-    object ParsingFailed : Error("Failed to parse object from JSON.")
-  }
-  // endregion
-
   // region Private API
   private fun fetchDeviceMappings(hexEncodedPublicKey: String): Promise<List<PairingAuthorisation>, Exception> {
     val parameters = mapOf( "include_user_annotations" to 1 )

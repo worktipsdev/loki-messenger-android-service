@@ -5,7 +5,7 @@ import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 
-public data class LokiGroupMessage(
+public data class LokiPublicChatMessage(
     public val serverID: Long?,
     public val hexEncodedPublicKey: String,
     public val displayName: String,
@@ -43,10 +43,10 @@ public data class LokiGroupMessage(
     // endregion
 
     // region Crypto
-    internal fun sign(privateKey: ByteArray): LokiGroupMessage? {
+    internal fun sign(privateKey: ByteArray): LokiPublicChatMessage? {
         val data = getValidationData(signatureVersion)
         if (data == null) {
-            Log.d("Loki", "Failed to sign group chat message.")
+            Log.d("Loki", "Failed to sign public chat message.")
             return null
         }
         try {
@@ -54,7 +54,7 @@ public data class LokiGroupMessage(
             val signature = Signature(signatureData, signatureVersion)
             return copy(signature = signature)
         } catch(e: Exception) {
-            Log.d("Loki", "Failed to sign group chat message due to error: ${e.message}.")
+            Log.d("Loki", "Failed to sign public chat message due to error: ${e.message}.")
             return null
         }
     }
@@ -66,7 +66,7 @@ public data class LokiGroupMessage(
         try {
             return curve.verifySignature(publicKey, data, signature.data)
         } catch(e: Exception) {
-            Log.d("Loki", "Failed to verify group chat message due to error: ${e.message}.")
+            Log.d("Loki", "Failed to verify public chat message due to error: ${e.message}.")
             return false
         }
     }
