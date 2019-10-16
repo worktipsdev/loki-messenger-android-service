@@ -28,6 +28,7 @@ import org.whispersystems.signalservice.internal.sticker.StickerProtos;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.websocket.WebSocketConnection;
+import org.whispersystems.signalservice.loki.api.LokiStorageAPI;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -116,7 +117,7 @@ public class SignalServiceMessageReceiver {
   public InputStream retrieveProfileAvatar(String path, File destination, byte[] profileKey, int maxSizeBytes)
     throws IOException
   {
-    socket.retrieveProfileAvatar(path, destination, maxSizeBytes);
+    LokiStorageAPI.Companion.fetchAttachment(destination, path, maxSizeBytes, null);
     return new ProfileCipherInputStream(new FileInputStream(destination), profileKey);
   }
 
@@ -136,8 +137,10 @@ public class SignalServiceMessageReceiver {
       throws IOException, InvalidMessageException
   {
     if (!pointer.getDigest().isPresent()) throw new InvalidMessageException("No attachment digest!");
+    if (pointer.getUrl().isEmpty()) throw new InvalidMessageException("No attachment url!");
 
-    socket.retrieveAttachment(pointer.getId(), destination, maxSizeBytes, listener);
+    // Loki - Fetch attachment
+    LokiStorageAPI.Companion.fetchAttachment(destination, pointer.getUrl(), maxSizeBytes, listener);
     return AttachmentCipherInputStream.createForAttachment(destination, pointer.getSize().or(0), pointer.getKey(), pointer.getDigest().get());
   }
 

@@ -15,6 +15,7 @@ import org.whispersystems.libsignal.SignalProtocolAddress;
 import org.whispersystems.libsignal.logging.Log;
 import org.whispersystems.libsignal.state.PreKeyBundle;
 import org.whispersystems.libsignal.state.SignalProtocolStore;
+import org.whispersystems.libsignal.util.ByteUtil;
 import org.whispersystems.libsignal.util.Pair;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.crypto.AttachmentCipherOutputStream;
@@ -78,6 +79,7 @@ import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
 import org.whispersystems.signalservice.loki.api.LokiPublicChat;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatMessage;
+import org.whispersystems.signalservice.loki.api.LokiStorageAPI;
 import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
@@ -93,6 +95,7 @@ import org.whispersystems.signalservice.loki.utilities.Analytics;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Iterator;
@@ -397,8 +400,10 @@ public class SignalServiceMessageSender {
                                                                  new AttachmentCipherOutputStreamFactory(attachmentKey),
                                                                  attachment.getListener());
 
-    AttachmentUploadAttributes uploadAttributes;
 
+
+    /* Loki - Delete this once we don't need it
+    AttachmentUploadAttributes uploadAttributes;
     if (pipe.get().isPresent()) {
       Log.d(TAG, "Using pipe to retrieve attachment upload attributes...");
       uploadAttributes = pipe.get().get().getAttachmentUploadAttributes();
@@ -408,17 +413,32 @@ public class SignalServiceMessageSender {
     }
 
     Pair<Long, byte[]> attachmentIdAndDigest = socket.uploadAttachment(attachmentData, uploadAttributes);
+    */
 
-    return new SignalServiceAttachmentPointer(attachmentIdAndDigest.first(),
+    // Loki - Upload attachment
+    Pair<String, byte[]> attachmentUrlAndDigest = LokiStorageAPI.shared.uploadAttachment(attachmentData);
+    String url = attachmentUrlAndDigest.first();
+
+    // Generate the attachment id from the url
+    long attachmentId;
+    try {
+      MessageDigest sha512 = MessageDigest.getInstance("SHA-512");
+      byte[] digest = sha512.digest(url.getBytes());
+      attachmentId = ByteUtil.byteArrayToLong(digest);
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+
+    return new SignalServiceAttachmentPointer(attachmentId,
                                               attachment.getContentType(),
                                               attachmentKey,
                                               Optional.of(Util.toIntExact(attachment.getLength())),
                                               attachment.getPreview(),
                                               attachment.getWidth(), attachment.getHeight(),
-                                              Optional.of(attachmentIdAndDigest.second()),
+                                              Optional.of(attachmentUrlAndDigest.second()),
                                               attachment.getFileName(),
                                               attachment.getVoiceNote(),
-                                              attachment.getCaption());
+                                              attachment.getCaption(), url);
   }
 
 
@@ -499,11 +519,9 @@ public class SignalServiceMessageSender {
     // Loki - Set the pairing authorisation if needed
     if (message.getPairingAuthorisation().isPresent()) {
       PairingAuthorisation authorisation = message.getPairingAuthorisation().get();
-      SignalServiceProtos.PairingAuthorisationMessage.Type type = authorisation.getType() == PairingAuthorisation.Type.REQUEST ? SignalServiceProtos.PairingAuthorisationMessage.Type.REQUEST : SignalServiceProtos.PairingAuthorisationMessage.Type.GRANT;
       SignalServiceProtos.PairingAuthorisationMessage.Builder builder = SignalServiceProtos.PairingAuthorisationMessage.newBuilder()
-              .setType(type)
-              .setPrimaryDevicePubKey(authorisation.getPrimaryDevicePublicKey())
-              .setSecondaryDevicePubKey(authorisation.getSecondaryDevicePublicKey());
+              .setPrimaryDevicePublicKey(authorisation.getPrimaryDevicePublicKey())
+              .setSecondaryDevicePublicKey(authorisation.getSecondaryDevicePublicKey());
       if (authorisation.getRequestSignature() != null) { builder.setRequestSignature(ByteString.copyFrom(authorisation.getRequestSignature())); }
       if (authorisation.getGrantSignature() != null) { builder.setGrantSignature(ByteString.copyFrom(authorisation.getGrantSignature())); }
       container.setPairingAuthorisation(builder);
@@ -1168,7 +1186,8 @@ public class SignalServiceMessageSender {
                                                          .setId(attachment.getId())
                                                          .setKey(ByteString.copyFrom(attachment.getKey()))
                                                          .setDigest(ByteString.copyFrom(attachment.getDigest().get()))
-                                                         .setSize(attachment.getSize().get());
+                                                         .setSize(attachment.getSize().get())
+                                                         .setUrl(attachment.getUrl());
 
     if (attachment.getFileName().isPresent()) {
       builder.setFileName(attachment.getFileName().get());
