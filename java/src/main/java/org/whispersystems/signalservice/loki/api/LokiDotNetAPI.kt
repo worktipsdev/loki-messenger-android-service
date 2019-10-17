@@ -3,6 +3,7 @@ package org.whispersystems.signalservice.loki.api
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
+import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.then
 import okhttp3.*
 import org.whispersystems.libsignal.logging.Log
@@ -29,12 +30,12 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     public fun getAuthToken(server: String): Promise<String, Exception> {
         val token = apiDatabase.getAuthToken(server)
-        if (token != null) {
-            return Promise.of(token)
+        return if (token != null) {
+            Promise.of(token)
         } else {
-            return requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { token ->
-                apiDatabase.setAuthToken(server, token)
-                token
+            requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { newToken ->
+                apiDatabase.setAuthToken(server, newToken)
+                newToken
             }
         }
     }
@@ -44,66 +45,85 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         val queryParameters = "pubKey=$userHexEncodedPublicKey"
         val url = "$server/loki/v1/get_challenge?$queryParameters"
         val request = Request.Builder().url(url).get()
-        val connection = OkHttpClient()
-        val deferred = deferred<String, Exception>()
-        connection.newCall(request.build()).enqueue(object : Callback {
-
-            override fun onResponse(call: Call, response: Response) {
-                when (response.code()) {
-                    in 200..299 -> {
-                        try {
-                            val bodyAsString = response.body()!!.string()
-                            @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
-                            val base64EncodedChallenge = body["cipherText64"] as String
-                            val challenge = Base64.decode(base64EncodedChallenge)
-                            val base64EncodedServerPublicKey = body["serverPubKey64"] as String
-                            var serverPublicKey = Base64.decode(base64EncodedServerPublicKey)
-                            // Discard the "05" prefix if needed
-                            if (serverPublicKey.count() == 33) {
-                                val hexEncodedServerPublicKey = Hex.toStringCondensed(serverPublicKey)
-                                serverPublicKey = Hex.fromStringCondensed(hexEncodedServerPublicKey.removing05PrefixIfNeeded())
-                            }
-                            // The challenge is prefixed by the 16 bit IV
-                            val tokenAsData = DiffieHellman.decrypt(challenge, serverPublicKey, userPrivateKey)
-                            val token = tokenAsData.toString(Charsets.UTF_8)
-                            deferred.resolve(token)
-                        } catch (exception: Exception) {
-                            Log.d("Loki", "Couldn't parse auth token for server: $server.")
-                            deferred.reject(exception)
-                        }
-                    }
-                    else -> {
-                        Log.d("Loki", "Couldn't reach server: $server.")
-                        deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
-                    }
+        return execute(request.build(), server).map { response ->
+            try {
+                val bodyAsString = response.body()!!.string()
+                @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
+                val base64EncodedChallenge = body["cipherText64"] as String
+                val challenge = Base64.decode(base64EncodedChallenge)
+                val base64EncodedServerPublicKey = body["serverPubKey64"] as String
+                var serverPublicKey = Base64.decode(base64EncodedServerPublicKey)
+                // Discard the "05" prefix if needed
+                if (serverPublicKey.count() == 33) {
+                    val hexEncodedServerPublicKey = Hex.toStringCondensed(serverPublicKey)
+                    serverPublicKey = Hex.fromStringCondensed(hexEncodedServerPublicKey.removing05PrefixIfNeeded())
                 }
+                // The challenge is prefixed by the 16 bit IV
+                val tokenAsData = DiffieHellman.decrypt(challenge, serverPublicKey, userPrivateKey)
+                val token = tokenAsData.toString(Charsets.UTF_8)
+                token
+            } catch (exception: Exception) {
+                Log.d("Loki", "Couldn't parse auth token for server: $server.")
+                throw exception
             }
-
-            override fun onFailure(call: Call, exception: IOException) {
-                Log.d("Loki", "Couldn't reach server: $server.")
-                deferred.reject(exception)
-            }
-        })
-        return deferred.promise
+        }
     }
 
     private fun submitAuthToken(token: String, server: String): Promise<String, Exception> {
         Log.d("Loki", "Submitting auth token for server: $server.")
         val url = "$server/loki/v1/submit_challenge"
-        val parameters = "{ \"pubKey\" : \"$userHexEncodedPublicKey\", \"token\" : \"$token\" }"
-        val body = RequestBody.create(MediaType.get("application/json"), parameters)
+        val parameters = mapOf("pubKey" to userHexEncodedPublicKey, "token" to token)
+        val body = RequestBody.create(MediaType.get("application/json"), JsonUtil.toJson(parameters))
         val request = Request.Builder().url(url).post(body)
+        return execute(request.build(), server).map { token }
+    }
+
+    internal fun execute(verb: HTTPVerb, server: String, endpoint: String, parameters: Map<String, Any> = mapOf()): Promise<Response, Exception> {
+        val sanitizedEndpoint = endpoint.removePrefix("/")
+        var url = "$server/$sanitizedEndpoint"
+        if (verb == HTTPVerb.GET) {
+            val queryParameters = parameters.map { "${it.key}=${it.value}" }.joinToString("&")
+            if (queryParameters.isNotEmpty()) {
+                url += "?$queryParameters"
+            }
+            val request = Request.Builder().url(url)
+            return execute(request.build(), server)
+        } else {
+            val parametersAsJSON = JsonUtil.toJson(parameters)
+            val body = RequestBody.create(MediaType.get("application/json"), parametersAsJSON)
+            var request = Request.Builder().url(url)
+            request = when (verb) {
+                HTTPVerb.GET -> request.get()
+                HTTPVerb.DELETE -> request.delete()
+                HTTPVerb.PUT -> request.put(body)
+                HTTPVerb.POST -> request.post(body)
+                HTTPVerb.PATCH -> request.patch(body)
+            }
+            return getAuthenticatedRequest(request, server).bind { execute(it.build(), server) }
+        }
+    }
+
+    internal fun getAuthenticatedRequest(builder: Request.Builder, server: String): Promise<Request.Builder, Exception> {
+        return getAuthToken(server).map { token -> builder.header("Authorization", "Bearer $token") }
+    }
+
+    private fun execute(request: Request, server: String): Promise<Response, Exception> {
         val connection = OkHttpClient()
-        val deferred = deferred<String, Exception>()
-        connection.newCall(request.build()).enqueue(object : Callback {
+        return execute(connection, request, server)
+    }
+
+    internal fun execute(connection: OkHttpClient, request: Request, server: String): Promise<Response, Exception> {
+        val deferred = deferred<Response, Exception>()
+        connection.newCall(request).enqueue(object : Callback {
 
             override fun onResponse(call: Call, response: Response) {
                 when (response.code()) {
-                    in 200..299 -> deferred.resolve(token)
-                    else -> {
-                        Log.d("Loki", "Couldn't reach server: $server.")
-                        deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
+                    in 200..299 -> deferred.resolve(response)
+                    401 -> {
+                        apiDatabase.setAuthToken(server, null)
+                        deferred.reject(LokiAPI.Error.TokenExpired)
                     }
+                    else -> deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
                 }
             }
 
@@ -112,64 +132,6 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                 deferred.reject(exception)
             }
         })
-        return deferred.promise
-    }
-
-    internal fun execute(verb: HTTPVerb, server: String, endpoint: String, isAuthRequired: Boolean = true, parameters: Map<String, Any> = mapOf()): Promise<Response, Exception> {
-        val deferred = deferred<Response, Exception>()
-        val sanitizedEndpoint = endpoint.removePrefix("/")
-        fun execute(token: String?) {
-            var url = "$server/$sanitizedEndpoint"
-            if (verb == HTTPVerb.GET) {
-                val queryParameters = parameters.map { "${it.key}=${it.value}" }.joinToString("&")
-                if (queryParameters.isNotEmpty()) {
-                    url += "?$queryParameters"
-                }
-            }
-            var request = Request.Builder().url(url)
-            if (isAuthRequired) {
-                if (token == null) { throw IllegalStateException() }
-                request = request.header("Authorization", "Bearer $token")
-            }
-            when (verb) {
-                HTTPVerb.GET -> request = request.get()
-                HTTPVerb.DELETE -> request = request.delete()
-                else -> {
-                    val parametersAsJSON = JsonUtil.toJson(parameters)
-                    val body = RequestBody.create(MediaType.get("application/json"), parametersAsJSON)
-                    when (verb) {
-                        HTTPVerb.PUT -> request = request.put(body)
-                        HTTPVerb.POST -> request = request.post(body)
-                        HTTPVerb.PATCH -> request = request.patch(body)
-                        else -> throw IllegalStateException()
-                    }
-                }
-            }
-            val connection = OkHttpClient()
-            connection.newCall(request.build()).enqueue(object : Callback {
-
-                override fun onResponse(call: Call, response: Response) {
-                    when (response.code()) {
-                        in 200..299 -> deferred.resolve(response)
-                        401 -> {
-                            apiDatabase.setAuthToken(server, null)
-                            deferred.reject(LokiAPI.Error.TokenExpired)
-                        }
-                        else -> deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
-                    }
-                }
-
-                override fun onFailure(call: Call, exception: IOException) {
-                    Log.d("Loki", "Couldn't reach server: $server.")
-                    deferred.reject(exception)
-                }
-            })
-        }
-        if (isAuthRequired) {
-            getAuthToken(server).success { execute(it) }.fail { deferred.reject(it) }
-        } else {
-            execute(null)
-        }
         return deferred.promise
     }
 
@@ -177,6 +139,6 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         val annotation = mutableMapOf<String, Any>( "type" to type )
         if (newValue != null) { annotation["value"] = newValue }
         val parameters = mapOf( "annotations" to listOf( annotation ) )
-        return execute(HTTPVerb.PATCH, server, "users/me", true, parameters)
+        return execute(HTTPVerb.PATCH, server, "users/me", parameters)
     }
 }

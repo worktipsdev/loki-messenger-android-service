@@ -57,7 +57,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         } else {
             parameters["count"] = fallbackBatchCount
         }
-        return execute(HTTPVerb.GET, server, "channels/$channel/messages", false, parameters).then { response ->
+        return execute(HTTPVerb.GET, server, "channels/$channel/messages", parameters).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val body = JsonUtil.fromJson(bodyAsString)
@@ -118,7 +118,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         } else {
             parameters["count"] = fallbackBatchCount
         }
-        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/deletes", false, parameters).then { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/deletes", parameters).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val body = JsonUtil.fromJson(bodyAsString)
@@ -185,7 +185,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     }
 
     public fun getModerators(channel: Long, server: String): Promise<Set<String>, Exception> {
-        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/get_moderators", false).then { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/get_moderators").then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
@@ -206,7 +206,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
 
     public fun getChannelInfo(channel: Long, server: String): Promise<String, Exception> {
         val parameters = mapOf( "include_annotations" to 1 )
-        return execute(HTTPVerb.GET, server, "/channels/$channel", false, parameters).then { response ->
+        return execute(HTTPVerb.GET, server, "/channels/$channel", parameters).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val body = JsonUtil.fromJson(bodyAsString)

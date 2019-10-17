@@ -17,6 +17,7 @@ import org.whispersystems.signalservice.internal.push.http.DigestingRequestBody
 import org.whispersystems.signalservice.internal.push.http.OutputStreamFactory
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.*
 import java.util.concurrent.TimeUnit
@@ -75,19 +76,19 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
           val input = body.byteStream()
           val buffer = ByteArray(32768)
 
-          var read: Int
-          var totalRead = 0
-
-          while (input.read(buffer, 0, buffer.size).let { read = it; it != 1 }) {
-            outputStream.write(buffer, 0, read)
-            if (totalRead + read > maxSizeBytes) throw PushNetworkException("Response exceeded max size!")
-            totalRead += read
-
-            listener?.onAttachmentProgress(body.contentLength(), totalRead.toLong())
+          // Read bytes to output stream
+          var bytesCopied = 0
+          var bytes = input.read(buffer)
+          while (bytes >= 0) {
+            outputStream.write(buffer, 0, bytes)
+            bytesCopied += bytes
+            if (bytesCopied > maxSizeBytes) throw PushNetworkException("Response exceeded max size!")
+            listener?.onAttachmentProgress(body.contentLength(), bytesCopied.toLong())
+            bytes = input.read(buffer)
           }
+        } else {
+          throw NonSuccessfulResponseCodeException("Response: $response")
         }
-
-        throw NonSuccessfulResponseCodeException("Response: $response")
       } catch (e: IOException) {
         throw if (e is NonSuccessfulResponseCodeException) e else PushNetworkException(e)
       }
@@ -97,7 +98,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
   // region Private API
   private fun fetchDeviceMappings(hexEncodedPublicKey: String): Promise<List<PairingAuthorisation>, Exception> {
     val parameters = mapOf( "include_user_annotations" to 1 )
-    return execute(HTTPVerb.GET, server, "users/@$hexEncodedPublicKey", false, parameters).map { rawResponse ->
+    return execute(HTTPVerb.GET, server, "users/@$hexEncodedPublicKey", parameters).map { rawResponse ->
       try {
         val bodyAsString = rawResponse.body()!!.string()
         val body = JsonUtil.fromJson(bodyAsString)
@@ -236,27 +237,37 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
         .build()
 
     val request = Request.Builder().url("$server/files").post(requestBody)
+    val future = SettableFuture<Pair<String, ByteArray>>()
 
-    try {
-      val response = connection.newCall(request.build()).execute()
-      if (response.isSuccessful) {
-        val bodyAsString = response.body()!!.string()
-        val body = JsonUtil.fromJson(bodyAsString)
-        val bodyData = body.get("data")
-        if (bodyData == null) {
-          Log.d("Loki", "Couldn't parse attachment url from: $response.")
-          throw Error.ParsingFailed
-        }
-        val url = bodyData.get("url").toString()
-        if (url.isEmpty()) {
-          throw Error("Invalid url returned from server")
-        }
-
-        return Pair(url, file.transmittedDigest)
+    // Execute promise
+    getAuthenticatedRequest(request, server).bind { execute(connection, it.build(), server) }.map { response ->
+      val bodyAsString = response.body()!!.string()
+      val body = JsonUtil.fromJson(bodyAsString)
+      val bodyData = body.get("data")
+      if (bodyData == null) {
+        Log.d("Loki", "Couldn't parse attachment url from: $response.")
+        throw Error.ParsingFailed
       }
-      throw NonSuccessfulResponseCodeException("Response: $response")
+      val url = bodyData.get("url").asText()
+      if (url.isEmpty()) {
+        throw Error("Invalid url returned from server")
+      }
+
+      Pair(url, file.transmittedDigest)
+    }.success {
+      future.set(it)
+    }.fail {
+      future.setException(it)
+    }
+
+    // Return back synchronized future
+    try {
+      return future.get()
     } catch (e: Exception) {
-      throw if (e is NonSuccessfulResponseCodeException) e else PushNetworkException(e)
+      if (e is LokiAPI.Error.HTTPRequestFailed) {
+        throw NonSuccessfulResponseCodeException("Request returned with ${e.code}")
+      }
+      throw PushNetworkException(e)
     }
   }
   // endregion

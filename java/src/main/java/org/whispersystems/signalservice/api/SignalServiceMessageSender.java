@@ -400,21 +400,6 @@ public class SignalServiceMessageSender {
                                                                  new AttachmentCipherOutputStreamFactory(attachmentKey),
                                                                  attachment.getListener());
 
-
-
-    /* Loki - Delete this once we don't need it
-    AttachmentUploadAttributes uploadAttributes;
-    if (pipe.get().isPresent()) {
-      Log.d(TAG, "Using pipe to retrieve attachment upload attributes...");
-      uploadAttributes = pipe.get().get().getAttachmentUploadAttributes();
-    } else {
-      Log.d(TAG, "Not using pipe to retrieve attachment upload attributes...");
-      uploadAttributes = socket.getAttachmentUploadAttributes();
-    }
-
-    Pair<Long, byte[]> attachmentIdAndDigest = socket.uploadAttachment(attachmentData, uploadAttributes);
-    */
-
     // Loki - Upload attachment
     Pair<String, byte[]> attachmentUrlAndDigest = LokiStorageAPI.shared.uploadAttachment(attachmentData);
     String url = attachmentUrlAndDigest.first();
