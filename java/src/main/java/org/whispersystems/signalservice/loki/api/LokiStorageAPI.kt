@@ -264,8 +264,9 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
     try {
       return future.get()
     } catch (e: Exception) {
-      if (e is LokiAPI.Error.HTTPRequestFailed) {
-        throw NonSuccessfulResponseCodeException("Request returned with ${e.code}")
+      val error = e.cause ?: e
+      if (error is LokiAPI.Error.HTTPRequestFailed) {
+        throw NonSuccessfulResponseCodeException("Request returned with ${error.code}")
       }
       throw PushNetworkException(e)
     }

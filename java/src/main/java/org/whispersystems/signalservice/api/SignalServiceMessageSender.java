@@ -49,7 +49,6 @@ import org.whispersystems.signalservice.api.push.exceptions.UnregisteredUserExce
 import org.whispersystems.signalservice.api.util.CredentialsProvider;
 import org.whispersystems.signalservice.internal.configuration.SignalServiceConfiguration;
 import org.whispersystems.signalservice.internal.crypto.PaddingInputStream;
-import org.whispersystems.signalservice.internal.push.AttachmentUploadAttributes;
 import org.whispersystems.signalservice.internal.push.MismatchedDevices;
 import org.whispersystems.signalservice.internal.push.OutgoingPushMessage;
 import org.whispersystems.signalservice.internal.push.OutgoingPushMessageList;
