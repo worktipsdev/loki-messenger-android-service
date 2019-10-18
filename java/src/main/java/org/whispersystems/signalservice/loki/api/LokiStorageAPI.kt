@@ -8,7 +8,6 @@ import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.whispersystems.libsignal.logging.Log
-import org.whispersystems.libsignal.util.Pair
 import org.whispersystems.signalservice.api.messages.SignalServiceAttachment
 import org.whispersystems.signalservice.api.push.exceptions.NonSuccessfulResponseCodeException
 import org.whispersystems.signalservice.api.push.exceptions.PushNetworkException
@@ -214,12 +213,12 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
   }
 
   @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-  fun uploadAttachment(attachment: PushAttachmentData): Pair<String, ByteArray> {
+  fun uploadAttachment(attachment: PushAttachmentData): Triple<Long, String, ByteArray> {
     return upload(attachment.data, "application/octet-stream", attachment.dataSize, attachment.outputStreamFactory, attachment.listener)
   }
 
   @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-  fun upload(data: InputStream, contentType: String, length: Long, outputStreamFactory: OutputStreamFactory, progressListener: SignalServiceAttachment.ProgressListener): Pair<String, ByteArray> {
+  fun upload(data: InputStream, contentType: String, length: Long, outputStreamFactory: OutputStreamFactory, progressListener: SignalServiceAttachment.ProgressListener): Triple<Long, String, ByteArray> {
     // This function just mimicks what signal does in PushServiceSocket
     // We are doing it this way to minimize any breaking changes that we need to make to shim our file servers in
     val connection = OkHttpClient()
@@ -237,7 +236,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
         .build()
 
     val request = Request.Builder().url("$server/files").post(requestBody)
-    val future = SettableFuture<Pair<String, ByteArray>>()
+    val future = SettableFuture<Triple<Long, String, ByteArray>>()
 
     // Execute promise
     getAuthenticatedRequest(request, server).bind { execute(connection, it.build(), server) }.map { response ->
@@ -248,12 +247,13 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
         Log.d("Loki", "Couldn't parse attachment url from: $response.")
         throw Error.ParsingFailed
       }
+      val id = bodyData.get("id").asLong()
       val url = bodyData.get("url").asText()
       if (url.isEmpty()) {
         throw Error("Invalid url returned from server")
       }
 
-      Pair(url, file.transmittedDigest)
+      Triple(id, url, file.transmittedDigest)
     }.success {
       future.set(it)
     }.fail {

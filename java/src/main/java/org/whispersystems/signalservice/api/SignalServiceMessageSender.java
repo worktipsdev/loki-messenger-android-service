@@ -105,6 +105,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import kotlin.Triple;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function0;
 import kotlin.jvm.functions.Function1;
@@ -400,29 +401,17 @@ public class SignalServiceMessageSender {
                                                                  attachment.getListener());
 
     // Loki - Upload attachment
-    Pair<String, byte[]> attachmentUrlAndDigest = LokiStorageAPI.shared.uploadAttachment(attachmentData);
-    String url = attachmentUrlAndDigest.first();
-
-    // Generate the attachment id from the url
-    long attachmentId;
-    try {
-      MessageDigest sha512 = MessageDigest.getInstance("SHA-512");
-      byte[] digest = sha512.digest(url.getBytes());
-      attachmentId = ByteUtil.byteArrayToLong(digest);
-    } catch (Exception e) {
-      throw new IOException(e);
-    }
-
-    return new SignalServiceAttachmentPointer(attachmentId,
+    Triple<Long, String, byte[]> attachmentIdAndUrlAndDigest = LokiStorageAPI.shared.uploadAttachment(attachmentData);
+    return new SignalServiceAttachmentPointer(attachmentIdAndUrlAndDigest.getFirst(),
                                               attachment.getContentType(),
                                               attachmentKey,
                                               Optional.of(Util.toIntExact(attachment.getLength())),
                                               attachment.getPreview(),
                                               attachment.getWidth(), attachment.getHeight(),
-                                              Optional.of(attachmentUrlAndDigest.second()),
+                                              Optional.of(attachmentIdAndUrlAndDigest.getThird()),
                                               attachment.getFileName(),
                                               attachment.getVoiceNote(),
-                                              attachment.getCaption(), url);
+                                              attachment.getCaption(), attachmentIdAndUrlAndDigest.getSecond());
   }
 
 
