@@ -7,12 +7,21 @@ import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.then
 import okhttp3.*
 import org.whispersystems.libsignal.logging.Log
+import org.whispersystems.signalservice.api.messages.SignalServiceAttachment
+import org.whispersystems.signalservice.api.push.exceptions.NonSuccessfulResponseCodeException
+import org.whispersystems.signalservice.api.push.exceptions.PushNetworkException
+import org.whispersystems.signalservice.internal.push.PushAttachmentData
+import org.whispersystems.signalservice.internal.push.http.DigestingRequestBody
+import org.whispersystems.signalservice.internal.push.http.OutputStreamFactory
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture
 import org.whispersystems.signalservice.loki.crypto.DiffieHellman
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 import java.io.IOException
+import java.io.InputStream
+import java.util.concurrent.TimeUnit
 
 /**
  * Abstract base class that provides utilities for .NET based APIs.
@@ -141,4 +150,64 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         val parameters = mapOf( "annotations" to listOf( annotation ) )
         return execute(HTTPVerb.PATCH, server, "users/me", parameters)
     }
+
+    // region Attachments
+    fun uploadAttachment(server: String, attachment: PushAttachmentData): Triple<Long, String, ByteArray> {
+        return upload(server, attachment.data, "application/octet-stream", attachment.dataSize, attachment.outputStreamFactory, attachment.listener)
+    }
+
+    fun upload(server: String, data: InputStream, contentType: String, length: Long, outputStreamFactory: OutputStreamFactory, progressListener: SignalServiceAttachment.ProgressListener): Triple<Long, String, ByteArray> {
+        // This function just mimicks what signal does in PushServiceSocket
+        // We are doing it this way to minimize any breaking changes that we need to make to shim our file servers in
+        val connection = OkHttpClient()
+            .newBuilder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        val file = DigestingRequestBody(data, outputStreamFactory, contentType, length, progressListener)
+        val requestBody = MultipartBody.Builder ()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("type", "network.loki")
+            .addFormDataPart("Content-Type", contentType)
+            .addFormDataPart("content", "attachment", file)
+            .build()
+
+        val request = Request.Builder().url("$server/files").post(requestBody)
+        val future = SettableFuture<Triple<Long, String, ByteArray>>()
+
+        // Execute promise
+        getAuthenticatedRequest(request, server).bind { execute(connection, it.build(), server) }.map { response ->
+            val bodyAsString = response.body()!!.string()
+            val body = JsonUtil.fromJson(bodyAsString)
+            val bodyData = body.get("data")
+            if (bodyData == null) {
+                Log.d("Loki", "Couldn't parse attachment url from: $response.")
+                throw Error.ParsingFailed
+            }
+            val id = bodyData.get("id").asLong()
+            val url = bodyData.get("url").asText()
+            if (url.isEmpty()) {
+                throw Error("Invalid url returned from server")
+            }
+
+            Triple(id, url, file.transmittedDigest)
+        }.success {
+            future.set(it)
+        }.fail {
+            future.setException(it)
+        }
+
+        // Return back synchronized future
+        try {
+            return future.get()
+        } catch (e: Exception) {
+            val error = e.cause ?: e
+            if (error is LokiAPI.Error.HTTPRequestFailed) {
+                throw NonSuccessfulResponseCodeException("Request returned with ${error.code}")
+            }
+            throw PushNetworkException(e)
+        }
+    }
+    // endregion
 }

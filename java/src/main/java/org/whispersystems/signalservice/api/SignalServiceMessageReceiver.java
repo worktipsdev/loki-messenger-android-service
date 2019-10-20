@@ -25,9 +25,11 @@ import org.whispersystems.signalservice.internal.configuration.SignalServiceConf
 import org.whispersystems.signalservice.internal.push.PushServiceSocket;
 import org.whispersystems.signalservice.internal.push.SignalServiceEnvelopeEntity;
 import org.whispersystems.signalservice.internal.sticker.StickerProtos;
+import org.whispersystems.signalservice.internal.util.ContentLengthInputStream;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.websocket.WebSocketConnection;
+import org.whispersystems.signalservice.loki.api.LokiAttachmentAPI;
 import org.whispersystems.signalservice.loki.api.LokiStorageAPI;
 
 import java.io.ByteArrayOutputStream;
@@ -117,7 +119,7 @@ public class SignalServiceMessageReceiver {
   public InputStream retrieveProfileAvatar(String path, File destination, byte[] profileKey, int maxSizeBytes)
     throws IOException
   {
-    LokiStorageAPI.Companion.fetchAttachment(destination, path, maxSizeBytes, null);
+    LokiAttachmentAPI.INSTANCE.fetchAttachment(destination, path, maxSizeBytes, null);
     return new ProfileCipherInputStream(new FileInputStream(destination), profileKey);
   }
 
@@ -136,11 +138,15 @@ public class SignalServiceMessageReceiver {
   public InputStream retrieveAttachment(SignalServiceAttachmentPointer pointer, File destination, int maxSizeBytes, ProgressListener listener)
       throws IOException, InvalidMessageException
   {
-    if (!pointer.getDigest().isPresent()) throw new InvalidMessageException("No attachment digest!");
-    if (pointer.getUrl().isEmpty()) throw new InvalidMessageException("No attachment url!");
-
     // Loki - Fetch attachment
-    LokiStorageAPI.Companion.fetchAttachment(destination, pointer.getUrl(), maxSizeBytes, listener);
+    if (pointer.getUrl().isEmpty()) throw new InvalidMessageException("No attachment url!");
+    LokiAttachmentAPI.INSTANCE.fetchAttachment(destination, pointer.getUrl(), maxSizeBytes, listener);
+
+    // Loki - Assume we are retrieving attachment for public server if the digest is not set
+    if (!pointer.getDigest().isPresent()) {
+      return new FileInputStream(destination);
+    }
+
     return AttachmentCipherInputStream.createForAttachment(destination, pointer.getSize().or(0), pointer.getKey(), pointer.getDigest().get());
   }
 
