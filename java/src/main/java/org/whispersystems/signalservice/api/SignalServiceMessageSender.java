@@ -1026,10 +1026,13 @@ public class SignalServiceMessageSender {
           long serverID = messageDatabase.getQuoteServerID(quoteID, quoteeHexEncodedPublicKey);
           quote = new LokiPublicChatMessage.Quote(quoteID, quoteeHexEncodedPublicKey, data.getQuote().getText(), serverID);
         }
+        SignalServiceProtos.DataMessage.Preview linkPreview = (data.getPreviewList().size() > 0) ? data.getPreviewList().get(0) : null;
         ArrayList<LokiPublicChatMessage.Attachment> attachments = new ArrayList<>();
-        for (AttachmentPointer attachmentPointer : data.getAttachmentsList()) {
+        if (linkPreview != null && linkPreview.hasImage()) {
+          AttachmentPointer attachmentPointer = linkPreview.getImage();
           String caption = attachmentPointer.hasCaption() ? attachmentPointer.getCaption() : null;
           attachments.add(new LokiPublicChatMessage.Attachment(
+                  LokiPublicChatMessage.Attachment.Kind.LinkPreview,
                   publicChat.getServer(),
                   attachmentPointer.getId(),
                   attachmentPointer.getContentType(),
@@ -1039,7 +1042,27 @@ public class SignalServiceMessageSender {
                   attachmentPointer.getWidth(),
                   attachmentPointer.getHeight(),
                   caption,
-                  attachmentPointer.getUrl()
+                  attachmentPointer.getUrl(),
+                  linkPreview.getUrl(),
+                  linkPreview.getTitle()
+          ));
+        }
+        for (AttachmentPointer attachmentPointer : data.getAttachmentsList()) {
+          String caption = attachmentPointer.hasCaption() ? attachmentPointer.getCaption() : null;
+          attachments.add(new LokiPublicChatMessage.Attachment(
+                  LokiPublicChatMessage.Attachment.Kind.Attachment,
+                  publicChat.getServer(),
+                  attachmentPointer.getId(),
+                  attachmentPointer.getContentType(),
+                  attachmentPointer.getSize(),
+                  attachmentPointer.getFileName(),
+                  attachmentPointer.getFlags(),
+                  attachmentPointer.getWidth(),
+                  attachmentPointer.getHeight(),
+                  caption,
+                  attachmentPointer.getUrl(),
+                  null,
+                  null
           ));
         }
         LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);

@@ -39,6 +39,7 @@ public data class LokiPublicChatMessage(
     )
 
     public data class Attachment(
+        public val kind: Kind,
         public val server: String,
         public val serverID: Long,
         public val contentType: String,
@@ -48,9 +49,21 @@ public data class LokiPublicChatMessage(
         public val width: Int,
         public val height: Int,
         public val caption: String?,
-        public val url: String
+        public val url: String,
+        /**
+        Guaranteed to be non-`nil` if `kind` is `LinkPreview`.
+         */
+        public val linkPreviewURL: String?,
+        /**
+        Guaranteed to be non-`nil` if `kind` is `LinkPreview`.
+         */
+        public val linkPreviewTitle: String?
     ) {
         public val dotNetAPIType = if (contentType.startsWith("image")) "photo" else "video"
+
+        public enum class Kind(val rawValue: String) {
+            Attachment("attachment"), LinkPreview("preview")
+        }
     }
     // endregion
 
@@ -107,6 +120,7 @@ public data class LokiPublicChatMessage(
                 "version" to 1,
                 "type" to attachment.dotNetAPIType,
                 // Custom fields
+                "lokiType" to attachment.kind.rawValue,
                 "server" to attachment.server,
                 "id" to attachment.serverID,
                 "contentType" to attachment.contentType,
@@ -118,6 +132,8 @@ public data class LokiPublicChatMessage(
                 "url" to attachment.url
             )
             if (attachment.caption != null) { attachmentValue["caption"] = attachment.caption }
+            if (attachment.linkPreviewURL != null) { attachmentValue["linkPreviewUrl"] = attachment.linkPreviewURL }
+            if (attachment.linkPreviewTitle != null) { attachmentValue["linkPreviewTitle"] = attachment.linkPreviewTitle }
             val attachmentAnnotation = mapOf( "type" to attachmentType, "value" to attachmentValue )
             annotations.add(attachmentAnnotation)
         }

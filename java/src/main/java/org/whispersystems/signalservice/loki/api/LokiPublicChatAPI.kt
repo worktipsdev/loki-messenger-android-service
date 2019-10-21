@@ -91,16 +91,24 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                         val attachmentsAsJSON = message.get("annotations").filter { (it.get("type").asText("") == attachmentType) && it.hasNonNull("value") }
                         val attachments = attachmentsAsJSON.map { it.get("value") }.mapNotNull { attachmentAsJSON ->
                             try {
+                                val kindAsString = attachmentAsJSON.get("lokiType").asText()
+                                val kind = LokiPublicChatMessage.Attachment.Kind.valueOf(kindAsString)
                                 val id = attachmentAsJSON.get("id").asLong()
                                 val contentType = attachmentAsJSON.get("contentType").asText()
                                 val size = attachmentAsJSON.get("size").asInt()
                                 val fileName = attachmentAsJSON.get("fileName").asText()
-                                val flags = attachmentAsJSON.get("flags").asInt()
+                                val flags = 0
                                 val width = attachmentAsJSON.get("width").asInt()
                                 val height = attachmentAsJSON.get("height").asInt()
                                 val url = attachmentAsJSON.get("url").asText()
                                 val caption = if (attachmentAsJSON.hasNonNull("caption")) attachmentAsJSON.get("caption").asText() else null
-                                LokiPublicChatMessage.Attachment(server, id, contentType, size, fileName, flags, width, height, caption, url)
+                                val linkPreviewURL = if (attachmentAsJSON.hasNonNull("linkPreviewUrl")) attachmentAsJSON.get("linkPreviewUrl").asText() else null
+                                val linkPreviewTitle = if (attachmentAsJSON.hasNonNull("linkPreviewTitle")) attachmentAsJSON.get("linkPreviewTitle").asText() else null
+                                if (kind == LokiPublicChatMessage.Attachment.Kind.LinkPreview && (linkPreviewURL == null || linkPreviewTitle == null)) {
+                                    null
+                                } else {
+                                    LokiPublicChatMessage.Attachment(kind, server, id, contentType, size, fileName, flags, width, height, caption, url, linkPreviewURL, linkPreviewTitle)
+                                }
                             } catch (e: Exception) {
                                 null
                             }
