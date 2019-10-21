@@ -50,13 +50,13 @@ public data class LokiPublicChatMessage(
         public val caption: String?,
         public val url: String
     ) {
-        public val type = if (contentType.startsWith("image")) "photo" else "video"
+        public val dotNetAPIType = if (contentType.startsWith("image")) "photo" else "video"
     }
     // endregion
 
     // region Initialization
     constructor(hexEncodedPublicKey: String, displayName: String, body: String, timestamp: Long, type: String, quote: Quote?, attachments: List<Attachment>)
-        : this(null, hexEncodedPublicKey, displayName, body, timestamp, type, quote, attachments,null)
+        : this(null, hexEncodedPublicKey, displayName, body, timestamp, type, quote, attachments, null)
     // endregion
 
     // region Crypto
@@ -99,15 +99,14 @@ public data class LokiPublicChatMessage(
             value["sig"] = Hex.toStringCondensed(signature.data)
             value["sigver"] = signature.version
         }
-
         val annotation = mapOf( "type" to type, "value" to value )
-        val annotations = mutableListOf(annotation)
-
-        // Add attachments
+        val annotations = mutableListOf( annotation )
         attachments.forEach { attachment ->
             val attachmentValue = mutableMapOf(
+                // Fields required by the .NET API
                 "version" to 1,
-                "type" to attachment.type,
+                "type" to attachment.dotNetAPIType,
+                // Custom fields
                 "server" to attachment.server,
                 "id" to attachment.serverID,
                 "contentType" to attachment.contentType,
@@ -119,10 +118,9 @@ public data class LokiPublicChatMessage(
                 "url" to attachment.url
             )
             if (attachment.caption != null) { attachmentValue["caption"] = attachment.caption }
-            val attachmentAnnotation = mapOf("type" to attachmentType, "value" to attachmentValue)
+            val attachmentAnnotation = mapOf( "type" to attachmentType, "value" to attachmentValue )
             annotations.add(attachmentAnnotation)
         }
-
         val result = mutableMapOf( "text" to body, "annotations" to annotations )
         if (quote?.quotedMessageServerID != null) {
             result["reply_to"] = quote.quotedMessageServerID
@@ -140,7 +138,7 @@ public data class LokiPublicChatMessage(
                 string += "${quote.quotedMessageServerID}"
             }
         }
-        string += attachments.map { it.serverID }.joinToString("")
+        string += attachments.sortedBy { it.serverID }.map { it.serverID }.joinToString("")
         string += "$signatureVersion"
         try {
             return string.toByteArray(Charsets.UTF_8)

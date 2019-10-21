@@ -16,8 +16,6 @@ import org.whispersystems.libsignal.SignalProtocolAddress;
 import org.whispersystems.libsignal.logging.Log;
 import org.whispersystems.libsignal.state.PreKeyBundle;
 import org.whispersystems.libsignal.state.SignalProtocolStore;
-import org.whispersystems.libsignal.util.ByteUtil;
-import org.whispersystems.libsignal.util.Pair;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.crypto.AttachmentCipherOutputStream;
 import org.whispersystems.signalservice.api.crypto.SignalServiceCipher;
@@ -75,7 +73,7 @@ import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture;
-import org.whispersystems.signalservice.loki.api.BasicOutputStreamFactory;
+import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory;
 import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
 import org.whispersystems.signalservice.loki.api.LokiAttachmentAPI;
@@ -98,7 +96,6 @@ import org.whispersystems.signalservice.loki.utilities.Analytics;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -1021,8 +1018,7 @@ public class SignalServiceMessageSender {
       if (displayName == null) displayName = "Anonymous";
       try {
         SignalServiceProtos.DataMessage data = SignalServiceProtos.Content.parseFrom(content).getDataMessage();
-        String body = data.getBody();
-        String normalizedBody = (body != null && body.length() > 0) ? body : Long.toString(data.getTimestamp());
+        String body = (data.getBody() != null && data.getBody().length() > 0) ? data.getBody() : Long.toString(data.getTimestamp());
         LokiPublicChatMessage.Quote quote = null;
         if (data.hasQuote()) {
           long quoteID = data.getQuote().getId();
@@ -1030,8 +1026,6 @@ public class SignalServiceMessageSender {
           long serverID = messageDatabase.getQuoteServerID(quoteID, quoteeHexEncodedPublicKey);
           quote = new LokiPublicChatMessage.Quote(quoteID, quoteeHexEncodedPublicKey, data.getQuote().getText(), serverID);
         }
-
-        // Attachments
         ArrayList<LokiPublicChatMessage.Attachment> attachments = new ArrayList<>();
         for (AttachmentPointer attachmentPointer : data.getAttachmentsList()) {
           String caption = attachmentPointer.hasCaption() ? attachmentPointer.getCaption() : null;
@@ -1048,8 +1042,7 @@ public class SignalServiceMessageSender {
                   attachmentPointer.getUrl()
           ));
         }
-
-        LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, displayName, normalizedBody, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
+        LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
         byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
         new LokiPublicChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, publicChat.getChannel(), publicChat.getServer()).success(new Function1<LokiPublicChatMessage, Unit>() {
 

@@ -88,18 +88,18 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                             val text = quoteAnnotation.get("text").asText()
                             quote = if (quoteTimestamp > 0L && author != null && text != null) LokiPublicChatMessage.Quote(quoteTimestamp, author, text, replyTo) else null
                         }
-                        val attachmentNodes = message.get("annotations").filter { (it.get("type").asText("") == attachmentType) && it.hasNonNull("value") }
-                        val attachments = attachmentNodes.map { it.get("value") }.mapNotNull { node ->
+                        val attachmentsAsJSON = message.get("annotations").filter { (it.get("type").asText("") == attachmentType) && it.hasNonNull("value") }
+                        val attachments = attachmentsAsJSON.map { it.get("value") }.mapNotNull { attachmentAsJSON ->
                             try {
-                                val id = node.get("id").asLong()
-                                val contentType = node.get("contentType").asText()
-                                val size = node.get("size").asInt()
-                                val fileName = node.get("fileName").asText()
-                                val flags = node.get("flags").asInt()
-                                val width = node.get("width").asInt()
-                                val height = node.get("height").asInt()
-                                val url = node.get("url").asText()
-                                val caption = if (node.hasNonNull("caption")) node.get("caption").asText() else null
+                                val id = attachmentAsJSON.get("id").asLong()
+                                val contentType = attachmentAsJSON.get("contentType").asText()
+                                val size = attachmentAsJSON.get("size").asInt()
+                                val fileName = attachmentAsJSON.get("fileName").asText()
+                                val flags = attachmentAsJSON.get("flags").asInt()
+                                val width = attachmentAsJSON.get("width").asInt()
+                                val height = attachmentAsJSON.get("height").asInt()
+                                val url = attachmentAsJSON.get("url").asText()
+                                val caption = if (attachmentAsJSON.hasNonNull("caption")) attachmentAsJSON.get("caption").asText() else null
                                 LokiPublicChatMessage.Attachment(server, id, contentType, size, fileName, flags, width, height, caption, url)
                             } catch (e: Exception) {
                                 null

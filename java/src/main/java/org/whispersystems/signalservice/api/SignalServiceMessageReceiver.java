@@ -25,12 +25,10 @@ import org.whispersystems.signalservice.internal.configuration.SignalServiceConf
 import org.whispersystems.signalservice.internal.push.PushServiceSocket;
 import org.whispersystems.signalservice.internal.push.SignalServiceEnvelopeEntity;
 import org.whispersystems.signalservice.internal.sticker.StickerProtos;
-import org.whispersystems.signalservice.internal.util.ContentLengthInputStream;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.websocket.WebSocketConnection;
 import org.whispersystems.signalservice.loki.api.LokiAttachmentAPI;
-import org.whispersystems.signalservice.loki.api.LokiStorageAPI;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -119,7 +117,7 @@ public class SignalServiceMessageReceiver {
   public InputStream retrieveProfileAvatar(String path, File destination, byte[] profileKey, int maxSizeBytes)
     throws IOException
   {
-    LokiAttachmentAPI.INSTANCE.fetchAttachment(destination, path, maxSizeBytes, null);
+    LokiAttachmentAPI.INSTANCE.getAttachment(destination, path, maxSizeBytes, null);
     return new ProfileCipherInputStream(new FileInputStream(destination), profileKey);
   }
 
@@ -139,10 +137,10 @@ public class SignalServiceMessageReceiver {
       throws IOException, InvalidMessageException
   {
     // Loki - Fetch attachment
-    if (pointer.getUrl().isEmpty()) throw new InvalidMessageException("No attachment url!");
-    LokiAttachmentAPI.INSTANCE.fetchAttachment(destination, pointer.getUrl(), maxSizeBytes, listener);
+    if (pointer.getUrl().isEmpty()) throw new InvalidMessageException("Missing attachment URL");
+    LokiAttachmentAPI.INSTANCE.getAttachment(destination, pointer.getUrl(), maxSizeBytes, listener);
 
-    // Loki - Assume we are retrieving attachment for public server if the digest is not set
+    // Loki - Assume we're retrieving an attachment for a public chat server if the digest is not set
     if (!pointer.getDigest().isPresent()) {
       return new FileInputStream(destination);
     }
