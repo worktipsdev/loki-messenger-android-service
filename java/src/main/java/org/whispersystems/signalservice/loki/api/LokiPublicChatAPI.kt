@@ -92,7 +92,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                         val attachments = attachmentsAsJSON.map { it.get("value") }.mapNotNull { attachmentAsJSON ->
                             try {
                                 val kindAsString = attachmentAsJSON.get("lokiType").asText()
-                                val kind = LokiPublicChatMessage.Attachment.Kind.valueOf(kindAsString)
+                                val kind = LokiPublicChatMessage.Attachment.Kind.values().first { it.rawValue == kindAsString }
                                 val id = attachmentAsJSON.get("id").asLong()
                                 val contentType = attachmentAsJSON.get("contentType").asText()
                                 val size = attachmentAsJSON.get("size").asInt()
