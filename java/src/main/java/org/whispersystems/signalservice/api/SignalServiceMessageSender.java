@@ -404,17 +404,12 @@ public class SignalServiceMessageSender {
     }
 
     byte[]             attachmentKey    = Util.getSecretBytes(64);
-    long               paddedLength     = usePadding ? PaddingInputStream.getPaddedSize(attachment.getLength())
-                                                     : attachment.getLength();
-    InputStream        dataStream       = usePadding ? new PaddingInputStream(attachment.getInputStream(), attachment.getLength())
-                                                     : attachment.getInputStream();
-    long               ciphertextLength = AttachmentCipherOutputStream.getCiphertextLength(paddedLength);
+    long               paddedLength     = usePadding ? PaddingInputStream.getPaddedSize(attachment.getLength()) : attachment.getLength();
+    InputStream        dataStream       = usePadding ? new PaddingInputStream(attachment.getInputStream(), attachment.getLength()) : attachment.getInputStream();
+    long               ciphertextLength = shouldUseEncryption ? AttachmentCipherOutputStream.getCiphertextLength(paddedLength) : attachment.getLength();
 
     OutputStreamFactory outputStreamFactory = shouldUseEncryption ? new AttachmentCipherOutputStreamFactory(attachmentKey) : new BasicOutputStreamFactory();
-    PushAttachmentData attachmentData   = new PushAttachmentData(attachment.getContentType(),
-                                                                 dataStream,
-                                                                 ciphertextLength, outputStreamFactory,
-                                                                 attachment.getListener());
+    PushAttachmentData attachmentData   = new PushAttachmentData(attachment.getContentType(), dataStream, ciphertextLength, outputStreamFactory, attachment.getListener());
 
     // Loki - Upload attachment
     Triple<Long, String, byte[]> attachmentIdAndUrlAndDigest = LokiAttachmentAPI.INSTANCE.uploadAttachment(server, attachmentData);
@@ -429,7 +424,6 @@ public class SignalServiceMessageSender {
                                               attachment.getVoiceNote(),
                                               attachment.getCaption(), attachmentIdAndUrlAndDigest.getSecond());
   }
-
 
   private void sendMessage(long messageID, VerifiedMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess)
       throws IOException, UntrustedIdentityException
