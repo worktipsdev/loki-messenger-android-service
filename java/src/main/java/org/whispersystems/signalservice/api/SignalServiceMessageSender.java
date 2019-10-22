@@ -8,6 +8,7 @@ package org.whispersystems.signalservice.api;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import org.jetbrains.annotations.Nullable;
 import org.whispersystems.libsignal.InvalidKeyException;
 import org.whispersystems.libsignal.SessionBuilder;
 import org.whispersystems.libsignal.SessionCipher;
@@ -15,7 +16,6 @@ import org.whispersystems.libsignal.SignalProtocolAddress;
 import org.whispersystems.libsignal.logging.Log;
 import org.whispersystems.libsignal.state.PreKeyBundle;
 import org.whispersystems.libsignal.state.SignalProtocolStore;
-import org.whispersystems.libsignal.util.Pair;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.crypto.AttachmentCipherOutputStream;
 import org.whispersystems.signalservice.api.crypto.SignalServiceCipher;
@@ -48,7 +48,6 @@ import org.whispersystems.signalservice.api.push.exceptions.UnregisteredUserExce
 import org.whispersystems.signalservice.api.util.CredentialsProvider;
 import org.whispersystems.signalservice.internal.configuration.SignalServiceConfiguration;
 import org.whispersystems.signalservice.internal.crypto.PaddingInputStream;
-import org.whispersystems.signalservice.internal.push.AttachmentUploadAttributes;
 import org.whispersystems.signalservice.internal.push.MismatchedDevices;
 import org.whispersystems.signalservice.internal.push.OutgoingPushMessage;
 import org.whispersystems.signalservice.internal.push.OutgoingPushMessageList;
@@ -69,15 +68,19 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Typing
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Verified;
 import org.whispersystems.signalservice.internal.push.StaleDevices;
 import org.whispersystems.signalservice.internal.push.http.AttachmentCipherOutputStreamFactory;
+import org.whispersystems.signalservice.internal.push.http.OutputStreamFactory;
 import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture;
+import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory;
 import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
+import org.whispersystems.signalservice.loki.api.LokiAttachmentAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChat;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatMessage;
+import org.whispersystems.signalservice.loki.api.LokiStorageAPI;
 import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
@@ -94,6 +97,7 @@ import org.whispersystems.signalservice.loki.utilities.Analytics;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -103,6 +107,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import kotlin.Triple;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function0;
 import kotlin.jvm.functions.Function1;
@@ -275,7 +280,7 @@ public class SignalServiceMessageSender {
                                        SignalServiceDataMessage         message)
       throws UntrustedIdentityException, IOException
   {
-    byte[]            content   = createMessageContent(message);
+    byte[]            content   = createMessageContent(message, recipient);
     long              timestamp = message.getTimestamp();
     SendMessageResult result    = sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL(), message.isFriendRequest());
 
@@ -317,7 +322,7 @@ public class SignalServiceMessageSender {
                                              SignalServiceDataMessage               message)
       throws IOException, UntrustedIdentityException
   {
-    byte[]                  content            = createMessageContent(message);
+    byte[]                  content            = createMessageContent(message, recipients.get(0));
     long                    timestamp          = message.getTimestamp();
     List<SendMessageResult> results            = sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL());
     boolean                 needsSyncInResults = false;
@@ -384,43 +389,41 @@ public class SignalServiceMessageSender {
     this.isMultiDevice.set(isMultiDevice);
   }
 
-  public SignalServiceAttachmentPointer uploadAttachment(SignalServiceAttachmentStream attachment, boolean usePadding) throws IOException {
-    byte[]             attachmentKey    = Util.getSecretBytes(64);
-    long               paddedLength     = usePadding ? PaddingInputStream.getPaddedSize(attachment.getLength())
-                                                     : attachment.getLength();
-    InputStream        dataStream       = usePadding ? new PaddingInputStream(attachment.getInputStream(), attachment.getLength())
-                                                     : attachment.getInputStream();
-    long               ciphertextLength = AttachmentCipherOutputStream.getCiphertextLength(paddedLength);
-    PushAttachmentData attachmentData   = new PushAttachmentData(attachment.getContentType(),
-                                                                 dataStream,
-                                                                 ciphertextLength,
-                                                                 new AttachmentCipherOutputStreamFactory(attachmentKey),
-                                                                 attachment.getListener());
+  public SignalServiceAttachmentPointer uploadAttachment(SignalServiceAttachmentStream attachment, boolean usePadding, @Nullable SignalServiceAddress recipient) throws IOException {
+    boolean shouldUseEncryption = true;
+    String server = LokiStorageAPI.shared.getServer();
 
-    AttachmentUploadAttributes uploadAttributes;
-
-    if (pipe.get().isPresent()) {
-      Log.d(TAG, "Using pipe to retrieve attachment upload attributes...");
-      uploadAttributes = pipe.get().get().getAttachmentUploadAttributes();
-    } else {
-      Log.d(TAG, "Not using pipe to retrieve attachment upload attributes...");
-      uploadAttributes = socket.getAttachmentUploadAttributes();
+    // Check if we are sending to a public chat
+    if (recipient != null) {
+      long threadID = threadDatabase.getThreadID(recipient.getNumber());
+      LokiPublicChat publicChat = threadDatabase.getPublicChat(threadID);
+      if (publicChat != null) {
+        shouldUseEncryption = false;
+        server = publicChat.getServer();
+      }
     }
 
-    Pair<Long, byte[]> attachmentIdAndDigest = socket.uploadAttachment(attachmentData, uploadAttributes);
+    byte[]             attachmentKey    = Util.getSecretBytes(64);
+    long               paddedLength     = usePadding ? PaddingInputStream.getPaddedSize(attachment.getLength()) : attachment.getLength();
+    InputStream        dataStream       = usePadding ? new PaddingInputStream(attachment.getInputStream(), attachment.getLength()) : attachment.getInputStream();
+    long               ciphertextLength = shouldUseEncryption ? AttachmentCipherOutputStream.getCiphertextLength(paddedLength) : attachment.getLength();
 
-    return new SignalServiceAttachmentPointer(attachmentIdAndDigest.first(),
+    OutputStreamFactory outputStreamFactory = shouldUseEncryption ? new AttachmentCipherOutputStreamFactory(attachmentKey) : new BasicOutputStreamFactory();
+    PushAttachmentData attachmentData   = new PushAttachmentData(attachment.getContentType(), dataStream, ciphertextLength, outputStreamFactory, attachment.getListener());
+
+    // Loki - Upload attachment
+    Triple<Long, String, byte[]> attachmentIdAndUrlAndDigest = LokiAttachmentAPI.INSTANCE.uploadAttachment(server, attachmentData);
+    return new SignalServiceAttachmentPointer(attachmentIdAndUrlAndDigest.getFirst(),
                                               attachment.getContentType(),
                                               attachmentKey,
                                               Optional.of(Util.toIntExact(attachment.getLength())),
                                               attachment.getPreview(),
                                               attachment.getWidth(), attachment.getHeight(),
-                                              Optional.of(attachmentIdAndDigest.second()),
+                                              Optional.of(attachmentIdAndUrlAndDigest.getThird()),
                                               attachment.getFileName(),
                                               attachment.getVoiceNote(),
-                                              attachment.getCaption());
+                                              attachment.getCaption(), attachmentIdAndUrlAndDigest.getSecond());
   }
-
 
   private void sendMessage(long messageID, VerifiedMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess)
       throws IOException, UntrustedIdentityException
@@ -478,7 +481,7 @@ public class SignalServiceMessageSender {
     return container.setReceiptMessage(builder).build().toByteArray();
   }
 
-  private byte[] createMessageContent(SignalServiceDataMessage message) throws IOException {
+  private byte[] createMessageContent(SignalServiceDataMessage message, SignalServiceAddress recipient) throws IOException {
     Content.Builder         container = Content.newBuilder();
 
     // Loki - Set the pre key bundle if needed
@@ -499,18 +502,16 @@ public class SignalServiceMessageSender {
     // Loki - Set the pairing authorisation if needed
     if (message.getPairingAuthorisation().isPresent()) {
       PairingAuthorisation authorisation = message.getPairingAuthorisation().get();
-      SignalServiceProtos.PairingAuthorisationMessage.Type type = authorisation.getType() == PairingAuthorisation.Type.REQUEST ? SignalServiceProtos.PairingAuthorisationMessage.Type.REQUEST : SignalServiceProtos.PairingAuthorisationMessage.Type.GRANT;
       SignalServiceProtos.PairingAuthorisationMessage.Builder builder = SignalServiceProtos.PairingAuthorisationMessage.newBuilder()
-              .setType(type)
-              .setPrimaryDevicePubKey(authorisation.getPrimaryDevicePublicKey())
-              .setSecondaryDevicePubKey(authorisation.getSecondaryDevicePublicKey());
+              .setPrimaryDevicePublicKey(authorisation.getPrimaryDevicePublicKey())
+              .setSecondaryDevicePublicKey(authorisation.getSecondaryDevicePublicKey());
       if (authorisation.getRequestSignature() != null) { builder.setRequestSignature(ByteString.copyFrom(authorisation.getRequestSignature())); }
       if (authorisation.getGrantSignature() != null) { builder.setGrantSignature(ByteString.copyFrom(authorisation.getGrantSignature())); }
       container.setPairingAuthorisation(builder);
     }
 
     DataMessage.Builder builder = DataMessage.newBuilder();
-    List<AttachmentPointer> pointers = createAttachmentPointers(message.getAttachments());
+    List<AttachmentPointer> pointers = createAttachmentPointers(message.getAttachments(), recipient);
 
     if (!pointers.isEmpty()) {
       builder.addAllAttachments(pointers);
@@ -521,7 +522,7 @@ public class SignalServiceMessageSender {
     }
 
     if (message.getGroupInfo().isPresent()) {
-      builder.setGroup(createGroupContent(message.getGroupInfo().get()));
+      builder.setGroup(createGroupContent(message.getGroupInfo().get(), recipient));
     }
 
     if (message.isEndSession()) {
@@ -560,7 +561,7 @@ public class SignalServiceMessageSender {
         }
 
         if (attachment.getThumbnail() != null) {
-          quotedAttachment.setThumbnail(createAttachmentPointer(attachment.getThumbnail().asStream()));
+          quotedAttachment.setThumbnail(createAttachmentPointer(attachment.getThumbnail().asStream(), recipient));
         }
 
         quoteBuilder.addAttachments(quotedAttachment);
@@ -570,7 +571,7 @@ public class SignalServiceMessageSender {
     }
 
     if (message.getSharedContacts().isPresent()) {
-      builder.addAllContact(createSharedContactContent(message.getSharedContacts().get()));
+      builder.addAllContact(createSharedContactContent(message.getSharedContacts().get(), recipient));
     }
 
     if (message.getPreviews().isPresent()) {
@@ -581,7 +582,7 @@ public class SignalServiceMessageSender {
 
         if (preview.getImage().isPresent()) {
           if (preview.getImage().get().isStream()) {
-            previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asStream()));
+            previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asStream(), recipient));
           } else {
             previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asPointer()));
           }
@@ -599,7 +600,7 @@ public class SignalServiceMessageSender {
       stickerBuilder.setStickerId(message.getSticker().get().getStickerId());
 
       if (message.getSticker().get().getAttachment().isStream()) {
-        stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asStream(), true));
+        stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asStream(), true, recipient));
       } else {
         stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asPointer()));
       }
@@ -677,7 +678,7 @@ public class SignalServiceMessageSender {
     SignalServiceAddress address = new SignalServiceAddress(transcript.getDestination().get());
     SendMessageResult    result  = SendMessageResult.success(address, unidentifiedAccess.isPresent(), true);
 
-    return createMultiDeviceSentTranscriptContent(createMessageContent(transcript.getMessage()),
+    return createMultiDeviceSentTranscriptContent(createMessageContent(transcript.getMessage(), address),
                                                   Optional.of(address),
                                                   transcript.getTimestamp(),
                                                   Collections.singletonList(result));
@@ -827,7 +828,7 @@ public class SignalServiceMessageSender {
     return builder;
   }
 
-  private GroupContext createGroupContent(SignalServiceGroup group) throws IOException {
+  private GroupContext createGroupContent(SignalServiceGroup group, SignalServiceAddress recipient) throws IOException {
     GroupContext.Builder builder = GroupContext.newBuilder();
     builder.setId(ByteString.copyFrom(group.getGroupId()));
 
@@ -842,7 +843,7 @@ public class SignalServiceMessageSender {
 
       if (group.getAvatar().isPresent()) {
         if (group.getAvatar().get().isStream()) {
-          builder.setAvatar(createAttachmentPointer(group.getAvatar().get().asStream()));
+          builder.setAvatar(createAttachmentPointer(group.getAvatar().get().asStream(), recipient));
         } else {
           builder.setAvatar(createAttachmentPointer(group.getAvatar().get().asPointer()));
         }
@@ -854,7 +855,7 @@ public class SignalServiceMessageSender {
     return builder.build();
   }
 
-  private List<DataMessage.Contact> createSharedContactContent(List<SharedContact> contacts) throws IOException {
+  private List<DataMessage.Contact> createSharedContactContent(List<SharedContact> contacts, SignalServiceAddress recipient) throws IOException {
     List<DataMessage.Contact> results = new LinkedList<DataMessage.Contact>();
 
     for (SharedContact contact : contacts) {
@@ -933,7 +934,7 @@ public class SignalServiceMessageSender {
       }
 
       if (contact.getAvatar().isPresent()) {
-        AttachmentPointer pointer = contact.getAvatar().get().getAttachment().isStream() ? createAttachmentPointer(contact.getAvatar().get().getAttachment().asStream())
+        AttachmentPointer pointer = contact.getAvatar().get().getAttachment().isStream() ? createAttachmentPointer(contact.getAvatar().get().getAttachment().asStream(), recipient)
                                                                                          : createAttachmentPointer(contact.getAvatar().get().getAttachment().asPointer());
         contactBuilder.setAvatar(DataMessage.Contact.Avatar.newBuilder()
                                                            .setAvatar(pointer)
@@ -1011,7 +1012,7 @@ public class SignalServiceMessageSender {
       if (displayName == null) displayName = "Anonymous";
       try {
         SignalServiceProtos.DataMessage data = SignalServiceProtos.Content.parseFrom(content).getDataMessage();
-        String body = data.getBody();
+        String body = (data.getBody() != null && data.getBody().length() > 0) ? data.getBody() : Long.toString(data.getTimestamp());
         LokiPublicChatMessage.Quote quote = null;
         if (data.hasQuote()) {
           long quoteID = data.getQuote().getId();
@@ -1019,7 +1020,46 @@ public class SignalServiceMessageSender {
           long serverID = messageDatabase.getQuoteServerID(quoteID, quoteeHexEncodedPublicKey);
           quote = new LokiPublicChatMessage.Quote(quoteID, quoteeHexEncodedPublicKey, data.getQuote().getText(), serverID);
         }
-        LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote);
+        SignalServiceProtos.DataMessage.Preview linkPreview = (data.getPreviewList().size() > 0) ? data.getPreviewList().get(0) : null;
+        ArrayList<LokiPublicChatMessage.Attachment> attachments = new ArrayList<>();
+        if (linkPreview != null && linkPreview.hasImage()) {
+          AttachmentPointer attachmentPointer = linkPreview.getImage();
+          String caption = attachmentPointer.hasCaption() ? attachmentPointer.getCaption() : null;
+          attachments.add(new LokiPublicChatMessage.Attachment(
+                  LokiPublicChatMessage.Attachment.Kind.LinkPreview,
+                  publicChat.getServer(),
+                  attachmentPointer.getId(),
+                  attachmentPointer.getContentType(),
+                  attachmentPointer.getSize(),
+                  attachmentPointer.getFileName(),
+                  attachmentPointer.getFlags(),
+                  attachmentPointer.getWidth(),
+                  attachmentPointer.getHeight(),
+                  caption,
+                  attachmentPointer.getUrl(),
+                  linkPreview.getUrl(),
+                  linkPreview.getTitle()
+          ));
+        }
+        for (AttachmentPointer attachmentPointer : data.getAttachmentsList()) {
+          String caption = attachmentPointer.hasCaption() ? attachmentPointer.getCaption() : null;
+          attachments.add(new LokiPublicChatMessage.Attachment(
+                  LokiPublicChatMessage.Attachment.Kind.Attachment,
+                  publicChat.getServer(),
+                  attachmentPointer.getId(),
+                  attachmentPointer.getContentType(),
+                  attachmentPointer.getSize(),
+                  attachmentPointer.getFileName(),
+                  attachmentPointer.getFlags(),
+                  attachmentPointer.getWidth(),
+                  attachmentPointer.getHeight(),
+                  caption,
+                  attachmentPointer.getUrl(),
+                  null,
+                  null
+          ));
+        }
+        LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
         byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
         new LokiPublicChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, publicChat.getChannel(), publicChat.getServer()).success(new Function1<LokiPublicChatMessage, Unit>() {
 
@@ -1141,7 +1181,7 @@ public class SignalServiceMessageSender {
     }
   }
 
-  private List<AttachmentPointer> createAttachmentPointers(Optional<List<SignalServiceAttachment>> attachments) throws IOException {
+  private List<AttachmentPointer> createAttachmentPointers(Optional<List<SignalServiceAttachment>> attachments, SignalServiceAddress recipient) throws IOException {
     List<AttachmentPointer> pointers = new LinkedList<AttachmentPointer>();
 
     if (!attachments.isPresent() || attachments.get().isEmpty()) {
@@ -1152,7 +1192,7 @@ public class SignalServiceMessageSender {
     for (SignalServiceAttachment attachment : attachments.get()) {
       if (attachment.isStream()) {
         Log.w(TAG, "Found attachment, creating pointer...");
-        pointers.add(createAttachmentPointer(attachment.asStream()));
+        pointers.add(createAttachmentPointer(attachment.asStream(), recipient));
       } else if (attachment.isPointer()) {
         Log.w(TAG, "Including existing attachment pointer...");
         pointers.add(createAttachmentPointer(attachment.asPointer()));
@@ -1168,7 +1208,8 @@ public class SignalServiceMessageSender {
                                                          .setId(attachment.getId())
                                                          .setKey(ByteString.copyFrom(attachment.getKey()))
                                                          .setDigest(ByteString.copyFrom(attachment.getDigest().get()))
-                                                         .setSize(attachment.getSize().get());
+                                                         .setSize(attachment.getSize().get())
+                                                         .setUrl(attachment.getUrl());
 
     if (attachment.getFileName().isPresent()) {
       builder.setFileName(attachment.getFileName().get());
@@ -1198,15 +1239,21 @@ public class SignalServiceMessageSender {
   }
 
   private AttachmentPointer createAttachmentPointer(SignalServiceAttachmentStream attachment)
-    throws IOException
+          throws IOException
   {
-    return createAttachmentPointer(attachment, false);
+    return createAttachmentPointer(attachment, false, null);
   }
 
-  private AttachmentPointer createAttachmentPointer(SignalServiceAttachmentStream attachment, boolean usePadding)
+  private AttachmentPointer createAttachmentPointer(SignalServiceAttachmentStream attachment, SignalServiceAddress recipient)
+    throws IOException
+  {
+    return createAttachmentPointer(attachment, false, recipient);
+  }
+
+  private AttachmentPointer createAttachmentPointer(SignalServiceAttachmentStream attachment, boolean usePadding, SignalServiceAddress recipient)
       throws IOException
   {
-    SignalServiceAttachmentPointer pointer = uploadAttachment(attachment, usePadding);
+    SignalServiceAttachmentPointer pointer = uploadAttachment(attachment, usePadding, recipient);
     return createAttachmentPointer(pointer);
   }
 

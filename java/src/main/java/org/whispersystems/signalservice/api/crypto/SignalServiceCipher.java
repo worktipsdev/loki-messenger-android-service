@@ -186,8 +186,8 @@ public class SignalServiceCipher {
         LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiAddressMessage);
         if (message.hasPairingAuthorisation()) {
           SignalServiceProtos.PairingAuthorisationMessage pairingAuthorisationMessage = message.getPairingAuthorisation();
-          String primaryDevicePublicKey = pairingAuthorisationMessage.getPrimaryDevicePubKey();
-          String secondaryDevicePublicKey = pairingAuthorisationMessage.getSecondaryDevicePubKey();
+          String primaryDevicePublicKey = pairingAuthorisationMessage.getPrimaryDevicePublicKey();
+          String secondaryDevicePublicKey = pairingAuthorisationMessage.getSecondaryDevicePublicKey();
           byte[] requestSignature = pairingAuthorisationMessage.hasRequestSignature() ? pairingAuthorisationMessage.getRequestSignature().toByteArray() : null;
           byte[] grantSignature = pairingAuthorisationMessage.hasGrantSignature() ? pairingAuthorisationMessage.getGrantSignature().toByteArray() : null;
           PairingAuthorisation authorisation = new PairingAuthorisation(primaryDevicePublicKey, secondaryDevicePublicKey, requestSignature, grantSignature);
@@ -645,7 +645,8 @@ public class SignalServiceCipher {
                                               pointer.hasDigest() ? Optional.of(pointer.getDigest().toByteArray()) : Optional.<byte[]>absent(),
                                               pointer.hasFileName() ? Optional.of(pointer.getFileName()) : Optional.<String>absent(),
                                               (pointer.getFlags() & AttachmentPointer.Flags.VOICE_MESSAGE_VALUE) != 0,
-                                              pointer.hasCaption() ? Optional.of(pointer.getCaption()) : Optional.<String>absent());
+                                              pointer.hasCaption() ? Optional.of(pointer.getCaption()) : Optional.<String>absent(),
+                                              pointer.getUrl());
 
   }
 
@@ -686,7 +687,8 @@ public class SignalServiceCipher {
                                                     Optional.fromNullable(pointer.hasDigest() ? pointer.getDigest().toByteArray() : null),
                                                     Optional.<String>absent(),
                                                     false,
-                                                    Optional.<String>absent());
+                                                    Optional.<String>absent(),
+                                                    pointer.getUrl());
       }
 
       return new SignalServiceGroup(type, content.getGroup().getId().toByteArray(), name, members, avatar);

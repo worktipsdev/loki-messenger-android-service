@@ -9,7 +9,7 @@ import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 
-class LokiStorageAPI(private val server: String, private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val database: LokiAPIDatabaseProtocol) : LokiDotNetAPI(userHexEncodedPublicKey, userPrivateKey, database) {
+class LokiStorageAPI(public val server: String, private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val database: LokiAPIDatabaseProtocol) : LokiDotNetAPI(userHexEncodedPublicKey, userPrivateKey, database) {
 
   companion object {
     // region Settings
@@ -37,7 +37,7 @@ class LokiStorageAPI(private val server: String, private val userHexEncodedPubli
   // region Private API
   private fun fetchDeviceMappings(hexEncodedPublicKey: String): Promise<List<PairingAuthorisation>, Exception> {
     val parameters = mapOf( "include_user_annotations" to 1 )
-    return execute(HTTPVerb.GET, server, "users/@$hexEncodedPublicKey", false, parameters).map { rawResponse ->
+    return execute(HTTPVerb.GET, server, "users/@$hexEncodedPublicKey", parameters).map { rawResponse ->
       try {
         val bodyAsString = rawResponse.body()!!.string()
         val body = JsonUtil.fromJson(bodyAsString)

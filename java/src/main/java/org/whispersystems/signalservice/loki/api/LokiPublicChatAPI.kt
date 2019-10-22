@@ -24,6 +24,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
 
         // region Public Chat
         private val channelInfoType = "net.patter-app.settings"
+        private val attachmentType = "net.app.core.oembed"
         @JvmStatic
         public val publicChatMessageType = "network.loki.messenger.publicChat"
 
@@ -57,7 +58,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         } else {
             parameters["count"] = fallbackBatchCount
         }
-        return execute(HTTPVerb.GET, server, "channels/$channel/messages", false, parameters).then { response ->
+        return execute(HTTPVerb.GET, server, "channels/$channel/messages", parameters).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val body = JsonUtil.fromJson(bodyAsString)
@@ -87,6 +88,31 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                             val text = quoteAnnotation.get("text").asText()
                             quote = if (quoteTimestamp > 0L && author != null && text != null) LokiPublicChatMessage.Quote(quoteTimestamp, author, text, replyTo) else null
                         }
+                        val attachmentsAsJSON = message.get("annotations").filter { (it.get("type").asText("") == attachmentType) && it.hasNonNull("value") }
+                        val attachments = attachmentsAsJSON.map { it.get("value") }.mapNotNull { attachmentAsJSON ->
+                            try {
+                                val kindAsString = attachmentAsJSON.get("lokiType").asText()
+                                val kind = LokiPublicChatMessage.Attachment.Kind.values().first { it.rawValue == kindAsString }
+                                val id = attachmentAsJSON.get("id").asLong()
+                                val contentType = attachmentAsJSON.get("contentType").asText()
+                                val size = attachmentAsJSON.get("size").asInt()
+                                val fileName = attachmentAsJSON.get("fileName").asText()
+                                val flags = 0
+                                val width = attachmentAsJSON.get("width").asInt()
+                                val height = attachmentAsJSON.get("height").asInt()
+                                val url = attachmentAsJSON.get("url").asText()
+                                val caption = if (attachmentAsJSON.hasNonNull("caption")) attachmentAsJSON.get("caption").asText() else null
+                                val linkPreviewURL = if (attachmentAsJSON.hasNonNull("linkPreviewUrl")) attachmentAsJSON.get("linkPreviewUrl").asText() else null
+                                val linkPreviewTitle = if (attachmentAsJSON.hasNonNull("linkPreviewTitle")) attachmentAsJSON.get("linkPreviewTitle").asText() else null
+                                if (kind == LokiPublicChatMessage.Attachment.Kind.LinkPreview && (linkPreviewURL == null || linkPreviewTitle == null)) {
+                                    null
+                                } else {
+                                    LokiPublicChatMessage.Attachment(kind, server, id, contentType, size, fileName, flags, width, height, caption, url, linkPreviewURL, linkPreviewTitle)
+                                }
+                            } catch (e: Exception) {
+                                null
+                            }
+                        }
                         // Set the last message server ID here to avoid the situation where a message doesn't have a valid signature and this function is called over and over
                         @Suppress("NAME_SHADOWING") val lastMessageServerID = apiDatabase.getLastMessageServerID(channel, server)
                         if (serverID > lastMessageServerID ?: 0) { apiDatabase.setLastMessageServerID(channel, server, serverID) }
@@ -94,7 +120,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                         val signatureVersion = value.get("sigver").asLong()
                         val signature = LokiPublicChatMessage.Signature(Hex.fromStringCondensed(hexEncodedSignature), signatureVersion)
                         // Verify the message
-                        val groupMessage = LokiPublicChatMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, signature)
+                        val groupMessage = LokiPublicChatMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, attachments, signature)
                         if (groupMessage.hasValidSignature()) groupMessage else null
                     } catch (exception: Exception) {
                         Log.d("Loki", "Couldn't parse message for public chat channel with ID: $channel on server: $server from: ${JsonUtil.toJson(message)}. Exception: ${exception.message}")
@@ -118,7 +144,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         } else {
             parameters["count"] = fallbackBatchCount
         }
-        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/deletes", false, parameters).then { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/deletes", parameters).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val body = JsonUtil.fromJson(bodyAsString)
@@ -158,7 +184,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
                     val dateAsString = data.get("created_at").asText()
                     val timestamp = format.parse(dateAsString).time
-                    @Suppress("NAME_SHADOWING") val message = LokiPublicChatMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote, signedMessage.signature)
+                    @Suppress("NAME_SHADOWING") val message = LokiPublicChatMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote, message.attachments, signedMessage.signature)
                     message
                 } catch (exception: Exception) {
                     Log.d("Loki", "Couldn't parse message for public chat channel with ID: $channel on server: $server.")
@@ -185,7 +211,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     }
 
     public fun getModerators(channel: Long, server: String): Promise<Set<String>, Exception> {
-        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/get_moderators", false).then { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/get_moderators").then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
@@ -206,7 +232,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
 
     public fun getChannelInfo(channel: Long, server: String): Promise<String, Exception> {
         val parameters = mapOf( "include_annotations" to 1 )
-        return execute(HTTPVerb.GET, server, "/channels/$channel", false, parameters).then { response ->
+        return execute(HTTPVerb.GET, server, "/channels/$channel", parameters).then { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val body = JsonUtil.fromJson(bodyAsString)

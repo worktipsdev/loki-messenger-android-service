@@ -91,6 +91,8 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         object SnodeMigrated : Error("The snode previously associated with the given public key has migrated to a different swarm.")
         object InsufficientProofOfWork : Error("The proof of work is insufficient.")
         object TokenExpired : Error("The auth token being used has expired.")
+        object ParsingFailed : Error("Couldn't parse JSON.")
+        object MaxSizeExceeded : Error("Max file size exceeded.")
     }
     // endregion
 
