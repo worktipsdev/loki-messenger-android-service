@@ -37,7 +37,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
   // region Private API
   private fun fetchDeviceMappings(hexEncodedPublicKey: String): Promise<List<PairingAuthorisation>, Exception> {
     val parameters = mapOf( "include_user_annotations" to 1 )
-    return execute(HTTPVerb.GET, server, "users/@$hexEncodedPublicKey", parameters).map { rawResponse ->
+    return execute(HTTPVerb.GET, server, "users/@$hexEncodedPublicKey", false, parameters).map { rawResponse ->
       try {
         val bodyAsString = rawResponse.body()!!.string()
         val body = JsonUtil.fromJson(bodyAsString)
