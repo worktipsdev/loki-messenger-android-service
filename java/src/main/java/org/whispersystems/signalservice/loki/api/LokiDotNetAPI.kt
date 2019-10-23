@@ -23,6 +23,15 @@ import java.io.IOException
 import java.io.InputStream
 import java.util.*
 
+object RequestCache {
+    private val cache = mutableMapOf<String, Any>()
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T> get(key: String): T? { return cache[key] as? T }
+    fun set(key: String, value: Any) { cache[key] = value }
+    fun remove(key: String) { cache.remove(key) }
+}
+
 /**
  * Abstract base class that provides utilities for .NET based APIs.
  */
@@ -37,14 +46,23 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     public fun getAuthToken(server: String): Promise<String, Exception> {
         val token = apiDatabase.getAuthToken(server)
-        return if (token != null) {
-            Promise.of(token)
-        } else {
-            requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { newToken ->
+        if (token != null) {
+            return Promise.of(token)
+        }
+
+        // Avoid multiple token requests to the server by caching
+        val cacheKey = "token-request-$server"
+        var promise = RequestCache.get<Promise<String, Exception>>(cacheKey)
+        if (promise == null) {
+            promise = requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { newToken ->
                 apiDatabase.setAuthToken(server, newToken)
+                RequestCache.remove(cacheKey)
                 newToken
             }
+            RequestCache.set(cacheKey, promise)
         }
+
+        return promise
     }
 
     private fun requestNewAuthToken(server: String): Promise<String, Exception> {
