@@ -59,7 +59,12 @@ public data class LokiPublicChatMessage(
          */
         public val linkPreviewTitle: String?
     ) {
-        public val dotNetAPIType = if (contentType.startsWith("image")) "photo" else "video"
+        public val dotNetAPIType = when {
+            contentType.startsWith("image") -> "photo"
+            contentType.startsWith("video") -> "video"
+            contentType.startsWith("audio") -> "audio"
+            else -> "other"
+        }
 
         public enum class Kind(val rawValue: String) {
             Attachment("attachment"), LinkPreview("preview")
