@@ -1004,173 +1004,206 @@ public class SignalServiceMessageSender {
                                         int                          ttl,
                                         boolean                      isFriendRequest)
   {
-    final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
     long threadID = threadDatabase.getThreadID(recipient.getNumber());
     LokiPublicChat publicChat = threadDatabase.getPublicChat(threadID);
-    if (publicChat != null) {
-      String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
-      if (displayName == null) displayName = "Anonymous";
-      try {
-        SignalServiceProtos.DataMessage data = SignalServiceProtos.Content.parseFrom(content).getDataMessage();
-        String body = (data.getBody() != null && data.getBody().length() > 0) ? data.getBody() : Long.toString(data.getTimestamp());
-        LokiPublicChatMessage.Quote quote = null;
-        if (data.hasQuote()) {
-          long quoteID = data.getQuote().getId();
-          String quoteeHexEncodedPublicKey = data.getQuote().getAuthor();
-          long serverID = messageDatabase.getQuoteServerID(quoteID, quoteeHexEncodedPublicKey);
-          quote = new LokiPublicChatMessage.Quote(quoteID, quoteeHexEncodedPublicKey, data.getQuote().getText(), serverID);
-        }
-        SignalServiceProtos.DataMessage.Preview linkPreview = (data.getPreviewList().size() > 0) ? data.getPreviewList().get(0) : null;
-        ArrayList<LokiPublicChatMessage.Attachment> attachments = new ArrayList<>();
-        if (linkPreview != null && linkPreview.hasImage()) {
-          AttachmentPointer attachmentPointer = linkPreview.getImage();
-          String caption = attachmentPointer.hasCaption() ? attachmentPointer.getCaption() : null;
-          attachments.add(new LokiPublicChatMessage.Attachment(
-                  LokiPublicChatMessage.Attachment.Kind.LinkPreview,
-                  publicChat.getServer(),
-                  attachmentPointer.getId(),
-                  attachmentPointer.getContentType(),
-                  attachmentPointer.getSize(),
-                  attachmentPointer.getFileName(),
-                  attachmentPointer.getFlags(),
-                  attachmentPointer.getWidth(),
-                  attachmentPointer.getHeight(),
-                  caption,
-                  attachmentPointer.getUrl(),
-                  linkPreview.getUrl(),
-                  linkPreview.getTitle()
-          ));
-        }
-        for (AttachmentPointer attachmentPointer : data.getAttachmentsList()) {
-          String caption = attachmentPointer.hasCaption() ? attachmentPointer.getCaption() : null;
-          attachments.add(new LokiPublicChatMessage.Attachment(
-                  LokiPublicChatMessage.Attachment.Kind.Attachment,
-                  publicChat.getServer(),
-                  attachmentPointer.getId(),
-                  attachmentPointer.getContentType(),
-                  attachmentPointer.getSize(),
-                  attachmentPointer.getFileName(),
-                  attachmentPointer.getFlags(),
-                  attachmentPointer.getWidth(),
-                  attachmentPointer.getHeight(),
-                  caption,
-                  attachmentPointer.getUrl(),
-                  null,
-                  null
-          ));
-        }
-        LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
-        byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
-        new LokiPublicChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, publicChat.getChannel(), publicChat.getServer()).success(new Function1<LokiPublicChatMessage, Unit>() {
-
-          @Override
-          public Unit invoke(LokiPublicChatMessage message) {
-            @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-            messageDatabase.setServerID(messageID, message.getServerID());
-            f.set(Unit.INSTANCE);
-            return Unit.INSTANCE;
-          }
-        }).fail(new Function1<Exception, Unit>() {
-
-          @Override
-          public Unit invoke(Exception exception) {
-            @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-            f.setException(exception);
-            return Unit.INSTANCE;
-          }
-        });
-      } catch (Exception exception) {
-        @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-        f.setException(exception);
-      }
+    // If we're sending to our number then don't bother encrypting messages
+    if (recipient.equals(localAddress)) {
+      return SendMessageResult.success(recipient, false, false);
+    } else if (publicChat != null) {
+      return sendMessageToPublicChat(messageID, recipient, timestamp, content, publicChat);
     } else {
-      try {
-        OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
-        OutgoingPushMessage message = messages.getMessages().get(0);
-        final SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
-        // Make sure we have a valid ttl; otherwise default to a day
-        if (ttl <= 0) { ttl = 24 * 60 * 60 * 1000; }
-        SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userHexEncodedPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
-        // TODO: PoW
-        // Update the message and thread if needed
-        if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-          messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING);
-          threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENDING);
-        }
-        LokiAPI api = new LokiAPI(userHexEncodedPublicKey, apiDatabase);
-        api.sendSignalMessage(messageInfo, new Function0<Unit>() {
+      return sendMessageToServiceNode(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, isFriendRequest);
+    }
+  }
 
-          @Override
-          public Unit invoke() {
-            // TODO: onP2PSuccess
-            return Unit.INSTANCE;
-          }
-        }).success(new Function1<Set<Promise<Map<?, ?>, Exception>>, Unit>() {
-
-          @Override
-          public Unit invoke(Set<Promise<Map<?, ?>, Exception>> promises) {
-            final boolean[] isSuccess = {false};
-            final int[] promiseCount = {promises.size()};
-            final int[] errorCount = {0};
-            for (Promise<Map<?, ?>, Exception> promise : promises) {
-              promise.success(new Function1<Map<?, ?>, Unit>() {
-
-                @Override
-                public Unit invoke(Map<?, ?> map) {
-                  if (isSuccess[0]) { return Unit.INSTANCE; } // Succeed as soon as the first promise succeeds
-                  Analytics.Companion.getShared().track("Sent Message Using Swarm API");
-                  isSuccess[0] = true;
-                  // Update the message and thread if needed
-                  if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-                    messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_PENDING);
-                    // TODO: Expiration
-                    long threadID = threadDatabase.getThreadID(recipient.getNumber());
-                    threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENT);
-                  }
-                  @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-                  f.set(Unit.INSTANCE);
-                  return Unit.INSTANCE;
-                }
-              }).fail(new Function1<Exception, Unit>() {
-
-                @Override
-                public Unit invoke(Exception exception) {
-                  errorCount[0] += 1;
-                  if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
-                  Analytics.Companion.getShared().track("Failed to Send Message Using Swarm API");
-                  // Update the message and thread if needed
-                  if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-                    messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_FAILED);
-                    long threadID = threadDatabase.getThreadID(recipient.getNumber());
-                    threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
-                  }
-                  @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-                  f.setException(exception);
-                  return Unit.INSTANCE;
-                }
-              });
-            }
-            return Unit.INSTANCE;
-          }
-        }).fail(new Function1<Exception, Unit>() {
-
-          @Override
-          public Unit invoke(Exception exception) { // The snode is unreachable
-            // Update the message and thread if needed
-            if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-              messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_FAILED);
-              long threadID = threadDatabase.getThreadID(recipient.getNumber());
-              threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
-            }
-            @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-            f.setException(exception);
-            return Unit.INSTANCE;
-          }
-        });
-      } catch (Exception exception) {
-        @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-        f.setException(exception);
+  private SendMessageResult sendMessageToPublicChat(final long                   messageID,
+                                                    final SignalServiceAddress   recipient,
+                                                    long                         timestamp,
+                                                    byte[]                       content,
+                                                    LokiPublicChat               publicChat) {
+    final SettableFuture<?>[] future = {new SettableFuture<Unit>()};
+    String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
+    if (displayName == null) displayName = "Anonymous";
+    try {
+      SignalServiceProtos.DataMessage data = SignalServiceProtos.Content.parseFrom(content).getDataMessage();
+      String body = (data.getBody() != null && data.getBody().length() > 0) ? data.getBody() : Long.toString(data.getTimestamp());
+      LokiPublicChatMessage.Quote quote = null;
+      if (data.hasQuote()) {
+        long quoteID = data.getQuote().getId();
+        String quoteeHexEncodedPublicKey = data.getQuote().getAuthor();
+        long serverID = messageDatabase.getQuoteServerID(quoteID, quoteeHexEncodedPublicKey);
+        quote = new LokiPublicChatMessage.Quote(quoteID, quoteeHexEncodedPublicKey, data.getQuote().getText(), serverID);
       }
+      SignalServiceProtos.DataMessage.Preview linkPreview = (data.getPreviewList().size() > 0) ? data.getPreviewList().get(0) : null;
+      ArrayList<LokiPublicChatMessage.Attachment> attachments = new ArrayList<>();
+      if (linkPreview != null && linkPreview.hasImage()) {
+        AttachmentPointer attachmentPointer = linkPreview.getImage();
+        String caption = attachmentPointer.hasCaption() ? attachmentPointer.getCaption() : null;
+        attachments.add(new LokiPublicChatMessage.Attachment(
+                LokiPublicChatMessage.Attachment.Kind.LinkPreview,
+                publicChat.getServer(),
+                attachmentPointer.getId(),
+                attachmentPointer.getContentType(),
+                attachmentPointer.getSize(),
+                attachmentPointer.getFileName(),
+                attachmentPointer.getFlags(),
+                attachmentPointer.getWidth(),
+                attachmentPointer.getHeight(),
+                caption,
+                attachmentPointer.getUrl(),
+                linkPreview.getUrl(),
+                linkPreview.getTitle()
+        ));
+      }
+      for (AttachmentPointer attachmentPointer : data.getAttachmentsList()) {
+        String caption = attachmentPointer.hasCaption() ? attachmentPointer.getCaption() : null;
+        attachments.add(new LokiPublicChatMessage.Attachment(
+                LokiPublicChatMessage.Attachment.Kind.Attachment,
+                publicChat.getServer(),
+                attachmentPointer.getId(),
+                attachmentPointer.getContentType(),
+                attachmentPointer.getSize(),
+                attachmentPointer.getFileName(),
+                attachmentPointer.getFlags(),
+                attachmentPointer.getWidth(),
+                attachmentPointer.getHeight(),
+                caption,
+                attachmentPointer.getUrl(),
+                null,
+                null
+        ));
+      }
+      LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
+      byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
+      new LokiPublicChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, publicChat.getChannel(), publicChat.getServer()).success(new Function1<LokiPublicChatMessage, Unit>() {
+
+        @Override
+        public Unit invoke(LokiPublicChatMessage message) {
+          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+          messageDatabase.setServerID(messageID, message.getServerID());
+          f.set(Unit.INSTANCE);
+          return Unit.INSTANCE;
+        }
+      }).fail(new Function1<Exception, Unit>() {
+
+        @Override
+        public Unit invoke(Exception exception) {
+          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+          f.setException(exception);
+          return Unit.INSTANCE;
+        }
+      });
+    } catch (Exception exception) {
+      @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+      f.setException(exception);
+    }
+
+    @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+    try {
+      f.get();
+      return SendMessageResult.success(recipient, false, false);
+    } catch (Exception exception) {
+      return SendMessageResult.networkFailure(recipient);
+    }
+  }
+
+  private SendMessageResult sendMessageToServiceNode(final long                   messageID,
+                                                     final SignalServiceAddress   recipient,
+                                                     Optional<UnidentifiedAccess> unidentifiedAccess,
+                                                     long                         timestamp,
+                                                     byte[]                       content,
+                                                     boolean                      online,
+                                                     int                          ttl,
+                                                     boolean                      isFriendRequest)
+  {
+    final SettableFuture<?>[] future = {new SettableFuture<Unit>()};
+    long threadID = threadDatabase.getThreadID(recipient.getNumber());
+    try {
+      OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
+      OutgoingPushMessage message = messages.getMessages().get(0);
+      final SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
+      // Make sure we have a valid ttl; otherwise default to a day
+      if (ttl <= 0) { ttl = 24 * 60 * 60 * 1000; }
+      SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userHexEncodedPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
+      // TODO: PoW
+      // Update the message and thread if needed
+      if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
+        messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING);
+        threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENDING);
+      }
+      LokiAPI api = new LokiAPI(userHexEncodedPublicKey, apiDatabase);
+      api.sendSignalMessage(messageInfo, new Function0<Unit>() {
+
+        @Override
+        public Unit invoke() {
+          // TODO: onP2PSuccess
+          return Unit.INSTANCE;
+        }
+      }).success(new Function1<Set<Promise<Map<?, ?>, Exception>>, Unit>() {
+
+        @Override
+        public Unit invoke(Set<Promise<Map<?, ?>, Exception>> promises) {
+          final boolean[] isSuccess = {false};
+          final int[] promiseCount = {promises.size()};
+          final int[] errorCount = {0};
+          for (Promise<Map<?, ?>, Exception> promise : promises) {
+            promise.success(new Function1<Map<?, ?>, Unit>() {
+
+              @Override
+              public Unit invoke(Map<?, ?> map) {
+                if (isSuccess[0]) { return Unit.INSTANCE; } // Succeed as soon as the first promise succeeds
+                Analytics.Companion.getShared().track("Sent Message Using Swarm API");
+                isSuccess[0] = true;
+                // Update the message and thread if needed
+                if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
+                  messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_PENDING);
+                  // TODO: Expiration
+                  long threadID = threadDatabase.getThreadID(recipient.getNumber());
+                  threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENT);
+                }
+                @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+                f.set(Unit.INSTANCE);
+                return Unit.INSTANCE;
+              }
+            }).fail(new Function1<Exception, Unit>() {
+
+              @Override
+              public Unit invoke(Exception exception) {
+                errorCount[0] += 1;
+                if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
+                Analytics.Companion.getShared().track("Failed to Send Message Using Swarm API");
+                // Update the message and thread if needed
+                if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
+                  messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_FAILED);
+                  long threadID = threadDatabase.getThreadID(recipient.getNumber());
+                  threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
+                }
+                @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+                f.setException(exception);
+                return Unit.INSTANCE;
+              }
+            });
+          }
+          return Unit.INSTANCE;
+        }
+      }).fail(new Function1<Exception, Unit>() {
+
+        @Override
+        public Unit invoke(Exception exception) { // The snode is unreachable
+          // Update the message and thread if needed
+          if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
+            messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_FAILED);
+            long threadID = threadDatabase.getThreadID(recipient.getNumber());
+            threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
+          }
+          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+          f.setException(exception);
+          return Unit.INSTANCE;
+        }
+      });
+    } catch (Exception exception) {
+      @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+      f.setException(exception);
     }
     @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
     try {
