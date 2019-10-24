@@ -134,7 +134,11 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
   }
 
   fun getAllDevicePublicKeys(hexEncodedPublicKey: String): Promise<Set<String>, Exception> {
-    return getDeviceMappings(hexEncodedPublicKey).map { authorisations ->
+    // Our primary device should have all the mappings
+    return getPrimaryDevicePublicKey(hexEncodedPublicKey).bind { primaryDevicePublicKey ->
+      val primaryDevice = primaryDevicePublicKey ?: hexEncodedPublicKey
+      getDeviceMappings(primaryDevice)
+    }.map { authorisations ->
       val publicKeys = authorisations.flatMap { listOf(it.primaryDevicePublicKey, it.secondaryDevicePublicKey) }.toSet()
       publicKeys.plus(hexEncodedPublicKey)
     }

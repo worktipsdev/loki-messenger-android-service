@@ -218,7 +218,7 @@ public class SignalServiceCipher {
                                           plaintext.getMetadata().getTimestamp(),
                                           plaintext.getMetadata().isNeedsReceipt());
            */
-        } else if (message.hasSyncMessage() && localAddress.getNumber().equals(plaintext.getMetadata().getSender())) {
+        } else if (message.hasSyncMessage()) {
           return new SignalServiceContent(createSynchronizeMessage(plaintext.getMetadata(), message.getSyncMessage()),
                                           plaintext.getMetadata().getSender(),
                                           plaintext.getMetadata().getSenderDevice(),

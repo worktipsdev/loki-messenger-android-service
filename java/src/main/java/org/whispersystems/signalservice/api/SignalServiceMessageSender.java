@@ -73,6 +73,7 @@ import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture;
+import org.whispersystems.signalservice.loki.messaging.LokiSyncMessage;
 import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory;
 import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
@@ -266,6 +267,15 @@ public class SignalServiceMessageSender {
     sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), System.currentTimeMillis(), content, false, message.getTTL());
   }
 
+  public SendMessageResult sendMessage(long                             messageID,
+                                       SignalServiceAddress             recipient,
+                                       Optional<UnidentifiedAccessPair> unidentifiedAccess,
+                                       SignalServiceDataMessage         message)
+          throws UntrustedIdentityException, IOException
+  {
+    return sendMessage(messageID, recipient, unidentifiedAccess, message, Optional.<LokiSyncMessage>absent());
+  }
+
   /**
    * Send a message to a single recipient.
    *
@@ -277,16 +287,20 @@ public class SignalServiceMessageSender {
   public SendMessageResult sendMessage(long                             messageID,
                                        SignalServiceAddress             recipient,
                                        Optional<UnidentifiedAccessPair> unidentifiedAccess,
-                                       SignalServiceDataMessage         message)
+                                       SignalServiceDataMessage         message,
+                                       Optional<LokiSyncMessage>        lokiSyncMessage)
       throws UntrustedIdentityException, IOException
   {
     byte[]            content   = createMessageContent(message, recipient);
     long              timestamp = message.getTimestamp();
     SendMessageResult result    = sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL(), message.isFriendRequest());
 
-    if ((result.getSuccess() != null && result.getSuccess().isNeedsSync()) || (unidentifiedAccess.isPresent() && isMultiDevice.get())) {
-      byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.of(recipient), timestamp, Collections.singletonList(result));
-      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false, message.getTTL());
+    if (lokiSyncMessage.isPresent() && (result.getSuccess() != null && message.canSyncMessage() || (unidentifiedAccess.isPresent() && isMultiDevice.get()))) {
+      byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.of(lokiSyncMessage.get().getRecipient()), timestamp, Collections.singletonList(result));
+      // Trigger an event to send sync message
+      if (eventListener.isPresent()) {
+        eventListener.get().onSyncEvent(lokiSyncMessage.get().getOriginalMessageID(), timestamp, syncMessage, message.getTTL());
+      }
     }
 
     // Loki - Start session reset if needed
@@ -984,6 +998,11 @@ public class SignalServiceMessageSender {
 
     return results;
   }
+
+  public SendMessageResult lokiSendSyncMessage(long messageID, SignalServiceAddress recipient, long timestamp, byte[] content, int ttl) {
+    return sendMessage(messageID, recipient, Optional.<UnidentifiedAccess>absent(), timestamp, content, false, ttl, false);
+  }
+
   private SendMessageResult sendMessage(long                         messageID,
                                         SignalServiceAddress         recipient,
                                         Optional<UnidentifiedAccess> unidentifiedAccess,
@@ -1423,6 +1442,7 @@ public class SignalServiceMessageSender {
 
   public static interface EventListener {
     public void onSecurityEvent(SignalServiceAddress address);
+    public void onSyncEvent(long messageID, long timestamp, byte[] message, int ttl);
   }
 
 }
