@@ -198,7 +198,7 @@ public class SignalServiceCipher {
         } else if (message.hasDataMessage()) {
           DataMessage dataMessage = message.getDataMessage();
 
-          SignalServiceContent content = new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), dataMessage),
+          SignalServiceContent content = new SignalServiceContent(createSignalServiceMessage(plaintext.getMetadata(), dataMessage, envelope.isFriendRequest()),
                   plaintext.getMetadata().getSender(),
                   plaintext.getMetadata().getSenderDevice(),
                   plaintext.getMetadata().getTimestamp(),
@@ -315,7 +315,7 @@ public class SignalServiceCipher {
     }
   }
 
-  private SignalServiceDataMessage createSignalServiceMessage(Metadata metadata, DataMessage content) throws ProtocolInvalidMessageException {
+  private SignalServiceDataMessage createSignalServiceMessage(Metadata metadata, DataMessage content, boolean isFriendRequest) throws ProtocolInvalidMessageException {
     SignalServiceGroup             groupInfo        = createGroupInfo(content);
     List<SignalServiceAttachment>  attachments      = new LinkedList<SignalServiceAttachment>();
     boolean                        endSession       = ((content.getFlags() & DataMessage.Flags.END_SESSION_VALUE            ) != 0);
@@ -348,7 +348,8 @@ public class SignalServiceCipher {
                                         quote,
                                         sharedContacts,
                                         previews,
-                                        sticker);
+                                        sticker,
+                                        isFriendRequest, null, null);
   }
 
   private SignalServiceSyncMessage createSynchronizeMessage(Metadata metadata, SyncMessage content)
@@ -364,7 +365,7 @@ public class SignalServiceCipher {
 
       return SignalServiceSyncMessage.forSentTranscript(new SentTranscriptMessage(sentContent.getDestination(),
                                                                                   sentContent.getTimestamp(),
-                                                                                  createSignalServiceMessage(metadata, sentContent.getMessage()),
+                                                                                  createSignalServiceMessage(metadata, sentContent.getMessage(), false),
                                                                                   sentContent.getExpirationStartTimestamp(),
                                                                                   unidentifiedStatuses));
     }
