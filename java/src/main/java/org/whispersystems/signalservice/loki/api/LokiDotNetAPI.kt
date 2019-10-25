@@ -95,7 +95,9 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     private fun submitAuthToken(token: String, server: String): Promise<String, Exception> {
         Log.d("Loki", "Submitting auth token for server: $server.")
         val parameters = mapOf( "pubKey" to userHexEncodedPublicKey, "token" to token )
-        return execute(HTTPVerb.POST, server, "loki/v1/submit_challenge", false, parameters).map { token }
+        return execute(HTTPVerb.POST, server, "loki/v1/submit_challenge", false, parameters).map { token }.success {
+            Log.d("Loki", "Received auth token from server: $server")
+        }
     }
 
     internal fun execute(verb: HTTPVerb, server: String, endpoint: String, isAuthRequired: Boolean = true, parameters: Map<String, Any> = mapOf()): Promise<Response, Exception> {

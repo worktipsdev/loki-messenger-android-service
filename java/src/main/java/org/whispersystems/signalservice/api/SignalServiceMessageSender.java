@@ -85,11 +85,9 @@ import org.whispersystems.signalservice.loki.api.LokiStorageAPI;
 import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
-import org.whispersystems.signalservice.loki.messaging.LokiMessageFriendRequestStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiSessionDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtocol;
-import org.whispersystems.signalservice.loki.messaging.LokiThreadFriendRequestStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
@@ -360,6 +358,7 @@ public class SignalServiceMessageSender {
       throws IOException, UntrustedIdentityException
   {
     byte[] content;
+    long timestamp = System.currentTimeMillis();
 
     if (message.getContacts().isPresent()) {
       content = createMultiDeviceContactsContent(message.getContacts().get().getContactsStream().asStream(),
@@ -373,6 +372,7 @@ public class SignalServiceMessageSender {
     } else if (message.getConfiguration().isPresent()) {
       content = createMultiDeviceConfigurationContent(message.getConfiguration().get());
     } else if (message.getSent().isPresent()) {
+      timestamp = message.getSent().get().getTimestamp();
       content = createMultiDeviceSentTranscriptContent(message.getSent().get(), unidentifiedAccess);
     } else if (message.getStickerPackOperations().isPresent()) {
       content = createMultiDeviceStickerPackOperationContent(message.getStickerPackOperations().get());
@@ -383,7 +383,11 @@ public class SignalServiceMessageSender {
       throw new IOException("Unsupported sync message!");
     }
 
-    sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), System.currentTimeMillis(), content, false, message.getTTL());
+    // Loki - Trigger an event to send sync message
+    if (eventListener.isPresent()) {
+      eventListener.get().onSyncEvent(messageID, timestamp, content, message.getTTL());
+    }
+    // sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), System.currentTimeMillis(), content, false, message.getTTL());
   }
 
   public void setSoTimeoutMillis(long soTimeoutMillis) {
@@ -1136,20 +1140,18 @@ public class SignalServiceMessageSender {
                                                      boolean                      isFriendRequest)
   {
     final SettableFuture<?>[] future = {new SettableFuture<Unit>()};
-    long threadID = threadDatabase.getThreadID(recipient.getNumber());
+    final long threadID = threadDatabase.getThreadID(recipient.getNumber());
     try {
       OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
       OutgoingPushMessage message = messages.getMessages().get(0);
       final SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
+      final boolean isFriendRequestMessage = type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST;
       // Make sure we have a valid ttl; otherwise default to a day
       if (ttl <= 0) { ttl = 24 * 60 * 60 * 1000; }
       SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userHexEncodedPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
-      // TODO: PoW
+      // TODO: PoW indicator
       // Update the message and thread if needed
-      if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-        messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING);
-        threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENDING);
-      }
+      if (isFriendRequestMessage && eventListener.isPresent()) { eventListener.get().onFriendRequestSending(messageID, threadID); }
       LokiAPI api = new LokiAPI(userHexEncodedPublicKey, apiDatabase);
       api.sendSignalMessage(messageInfo, new Function0<Unit>() {
 
@@ -1174,11 +1176,8 @@ public class SignalServiceMessageSender {
                 Analytics.Companion.getShared().track("Sent Message Using Swarm API");
                 isSuccess[0] = true;
                 // Update the message and thread if needed
-                if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-                  messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_PENDING);
-                  // TODO: Expiration
-                  long threadID = threadDatabase.getThreadID(recipient.getNumber());
-                  threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENT);
+                if (isFriendRequestMessage && eventListener.isPresent()) {
+                    eventListener.get().onFriendRequestSent(messageID, threadID);
                 }
                 @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
                 f.set(Unit.INSTANCE);
@@ -1192,10 +1191,8 @@ public class SignalServiceMessageSender {
                 if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
                 Analytics.Companion.getShared().track("Failed to Send Message Using Swarm API");
                 // Update the message and thread if needed
-                if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-                  messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_FAILED);
-                  long threadID = threadDatabase.getThreadID(recipient.getNumber());
-                  threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
+                if (isFriendRequestMessage && eventListener.isPresent()) {
+                    eventListener.get().onFriendRequestSendingFail(messageID, threadID);
                 }
                 @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
                 f.setException(exception);
@@ -1210,10 +1207,8 @@ public class SignalServiceMessageSender {
         @Override
         public Unit invoke(Exception exception) { // The snode is unreachable
           // Update the message and thread if needed
-          if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-            messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_FAILED);
-            long threadID = threadDatabase.getThreadID(recipient.getNumber());
-            threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
+          if (isFriendRequestMessage && eventListener.isPresent()) {
+              eventListener.get().onFriendRequestSendingFail(messageID, threadID);
           }
           @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
           f.setException(exception);
@@ -1443,6 +1438,9 @@ public class SignalServiceMessageSender {
   public static interface EventListener {
     public void onSecurityEvent(SignalServiceAddress address);
     public void onSyncEvent(long messageID, long timestamp, byte[] message, int ttl);
+    public void onFriendRequestSending(long messageID, long threadID);
+    public void onFriendRequestSent(long messageID, long threadID);
+    public void onFriendRequestSendingFail(long messageID, long threadID);
   }
 
 }

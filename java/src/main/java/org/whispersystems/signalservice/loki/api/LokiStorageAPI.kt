@@ -151,9 +151,11 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
       retryIfNeeded(maxRetryCount) {
         val authorisationsAsJSON = authorisations.map { it.toJSON() }
         val value = if (authorisations.count() > 0) mapOf( "isPrimary" to isPrimary, "authorisations" to authorisationsAsJSON ) else null
-        setSelfAnnotation(server, deviceMappingType, value).get()
-      }
-    }.map { Unit }
+        setSelfAnnotation(server, deviceMappingType, value)
+      }.get()
+    }.map { Unit }.success {
+      Log.d("Loki", "Updated user device mappings")
+    }
   }
   // endregion
 }
