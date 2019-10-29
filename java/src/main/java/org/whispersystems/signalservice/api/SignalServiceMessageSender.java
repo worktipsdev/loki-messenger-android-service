@@ -636,6 +636,10 @@ public class SignalServiceMessageSender {
 
     container.setDataMessage(builder);
 
+    // Loki - Always set an address message
+    SignalServiceProtos.LokiAddressMessage.Builder addressMessage = SignalServiceProtos.LokiAddressMessage.newBuilder().setType(SignalServiceProtos.LokiAddressMessage.Type.HOST_UNREACHABLE);
+    container.setLokiAddressMessage(addressMessage);
+
     return container.build().toByteArray();
   }
 
