@@ -7,8 +7,9 @@ import nl.komponents.kovenant.functional.map
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.loki.utilities.PublicKeyValidation
+import org.whispersystems.signalservice.loki.utilities.get
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
-import org.whispersystems.signalservice.loki.utilities.sync
 
 class LokiStorageAPI(public val server: String, private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val database: LokiAPIDatabaseProtocol) : LokiDotNetAPI(userHexEncodedPublicKey, userPrivateKey, database) {
 
@@ -16,6 +17,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
     // region Settings
     private val maxRetryCount = 8
     private val lastDeviceLinkUpdate = hashMapOf<String, Long>()
+    private val requestCache = hashMapOf<String, Promise<List<PairingAuthorisation>, Exception>>()
     private val deviceMappingUpdateInterval = 8 * 60 * 1000 // 8 Minutes
     private val primaryDeviceMappingUpdateInterval = 1 * 60 * 1000 // 1 Minute
     private val deviceMappingType = "network.loki.messenger.devicemapping"
@@ -121,28 +123,45 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
   }
 
   fun getDeviceMappingsAsync(hexEncodedPublicKey: String, skipCache: Boolean = false): Promise<List<PairingAuthorisation>, Exception> {
+    // Filter our any groups or invalid keys
+    if (!PublicKeyValidation.isValid(hexEncodedPublicKey)) { return Promise.of(listOf()) }
     val databaseAuthorisations = database.getPairingAuthorisations(hexEncodedPublicKey)
-    val now = System.currentTimeMillis()
-    // If we are getting the mapping for our primary device then we should use a shorter interval
-    val ourPrimaryDevicePubKey = getOurPrimaryDevicePublicKey()
-    val cacheInterval = if (ourPrimaryDevicePubKey == hexEncodedPublicKey) primaryDeviceMappingUpdateInterval else deviceMappingUpdateInterval
-    val hasCacheExpired = !lastDeviceLinkUpdate.containsKey(hexEncodedPublicKey) || (now - lastDeviceLinkUpdate[hexEncodedPublicKey]!! > cacheInterval)
-    val isSelf = (hexEncodedPublicKey == userHexEncodedPublicKey) // Don't rely on the server for the user's own device mapping
-    if (!isSelf && (hasCacheExpired || skipCache)) {
-      val deferred = deferred<List<PairingAuthorisation>, Exception>()
-      // Try and fetch the device mappings, otherwise fall back to database
-      fetchAndSaveDeviceMappings(hexEncodedPublicKey).success { authorisations ->
-        lastDeviceLinkUpdate[hexEncodedPublicKey] = now
-        deferred.resolve(authorisations)
-      }.fail {
-        // If we errored out due to a parsing failure then don't immediately re-fetch
-        if (it is Error.ParsingFailed) { lastDeviceLinkUpdate[hexEncodedPublicKey] = now }
-        deferred.resolve(databaseAuthorisations)
+
+    // Don't rely on the server for the user's own device mapping
+    if (hexEncodedPublicKey != userHexEncodedPublicKey) {
+      val now = System.currentTimeMillis()
+      // If we are getting the mapping for our primary device then we should use a shorter interval
+      val ourPrimaryDevicePubKey = getOurPrimaryDevicePublicKey()
+      val cacheInterval = if (ourPrimaryDevicePubKey == hexEncodedPublicKey) primaryDeviceMappingUpdateInterval else deviceMappingUpdateInterval
+      val hasCacheExpired = !lastDeviceLinkUpdate.containsKey(hexEncodedPublicKey) || (now - lastDeviceLinkUpdate[hexEncodedPublicKey]!! > cacheInterval)
+      if (hasCacheExpired || skipCache) {
+        // Cache request promise so we only have 1 per user
+        var promise = requestCache[hexEncodedPublicKey]
+        if (promise == null) {
+          val deferred = deferred<List<PairingAuthorisation>, Exception>()
+
+          // Try and fetch the device mappings, otherwise fall back to database
+          fetchAndSaveDeviceMappings(hexEncodedPublicKey).success { authorisations ->
+            lastDeviceLinkUpdate[hexEncodedPublicKey] = now
+            deferred.resolve(authorisations)
+          }.fail {
+            // If we errored out due to a parsing failure then don't immediately re-fetch
+            if (it is Error.ParsingFailed) {
+              lastDeviceLinkUpdate[hexEncodedPublicKey] = now
+            }
+            deferred.resolve(databaseAuthorisations)
+          }.always {
+            requestCache.remove(hexEncodedPublicKey)
+          }
+
+          promise = deferred.promise
+          requestCache[hexEncodedPublicKey] = promise
+        }
+        return promise
       }
-      return deferred.promise
-    } else {
-      return Promise.of(databaseAuthorisations)
     }
+
+    return Promise.of(databaseAuthorisations)
   }
 
   fun getPrimaryDevicePublicKeyAsync(hexEncodedPublicKey: String): Promise<String?, Exception> {
@@ -153,7 +172,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
   }
 
   fun getPrimaryDevicePublicKey(hexEncodedPublicKey: String): String? {
-    return getPrimaryDevicePublicKeyAsync(hexEncodedPublicKey).sync(null)
+    return getPrimaryDevicePublicKeyAsync(hexEncodedPublicKey).get(null)
   }
 
   fun getSecondaryDevicePublicKeysAsync(hexEncodedPublicKey: String): Promise<List<String>, Exception> {
@@ -163,7 +182,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
   }
 
   fun getSecondaryDevicePublicKeys(hexEncodedPublicKey: String): List<String> {
-    return getSecondaryDevicePublicKeysAsync(hexEncodedPublicKey).sync(listOf())
+    return getSecondaryDevicePublicKeysAsync(hexEncodedPublicKey).get(listOf())
   }
 
   fun getAllDevicePublicKeysAsync(hexEncodedPublicKey: String): Promise<Set<String>, Exception> {
@@ -178,7 +197,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
   }
 
   fun getAllDevicePublicKeys(hexEncodedPublicKey: String): Set<String> {
-    return getAllDevicePublicKeysAsync(hexEncodedPublicKey).sync(setOf())
+    return getAllDevicePublicKeysAsync(hexEncodedPublicKey).get(setOf())
   }
   // endregion
 }
