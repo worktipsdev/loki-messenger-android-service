@@ -16,7 +16,8 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
     // region Settings
     private val maxRetryCount = 8
     private val lastDeviceLinkUpdate = hashMapOf<String, Long>()
-    private val deviceMappingUpdateInterval = 8 * 60 * 1000
+    private val deviceMappingUpdateInterval = 8 * 60 * 1000 // 8 Minutes
+    private val primaryDeviceMappingUpdateInterval = 1 * 60 * 1000 // 1 Minute
     private val deviceMappingType = "network.loki.messenger.devicemapping"
     // endregion
 
@@ -96,6 +97,12 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
       authorisations.forEach { database.insertOrUpdatePairingAuthorisation(it) }
     }
   }
+
+  private fun getOurPrimaryDevicePublicKey(): String? {
+    val authorisation = database.getPairingAuthorisations(userHexEncodedPublicKey)
+    val primaryAuthorisation = authorisation.find { it.secondaryDevicePublicKey == userHexEncodedPublicKey }
+    return primaryAuthorisation?.primaryDevicePublicKey
+  }
   // endregion
 
   // region Public API
@@ -116,7 +123,10 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
   fun getDeviceMappingsAsync(hexEncodedPublicKey: String, skipCache: Boolean = false): Promise<List<PairingAuthorisation>, Exception> {
     val databaseAuthorisations = database.getPairingAuthorisations(hexEncodedPublicKey)
     val now = System.currentTimeMillis()
-    val hasCacheExpired = !lastDeviceLinkUpdate.containsKey(hexEncodedPublicKey) || (now - lastDeviceLinkUpdate[hexEncodedPublicKey]!! > deviceMappingUpdateInterval)
+    // If we are getting the mapping for our primary device then we should use a shorter interval
+    val ourPrimaryDevicePubKey = getOurPrimaryDevicePublicKey()
+    val cacheInterval = if (ourPrimaryDevicePubKey == hexEncodedPublicKey) primaryDeviceMappingUpdateInterval else deviceMappingUpdateInterval
+    val hasCacheExpired = !lastDeviceLinkUpdate.containsKey(hexEncodedPublicKey) || (now - lastDeviceLinkUpdate[hexEncodedPublicKey]!! > cacheInterval)
     val isSelf = (hexEncodedPublicKey == userHexEncodedPublicKey) // Don't rely on the server for the user's own device mapping
     if (!isSelf && (hasCacheExpired || skipCache)) {
       val deferred = deferred<List<PairingAuthorisation>, Exception>()
