@@ -23,21 +23,14 @@ import java.io.IOException
 import java.io.InputStream
 import java.util.*
 
-object RequestCache {
-    private val cache = mutableMapOf<String, Any>()
-
-    @Suppress("UNCHECKED_CAST")
-    fun <T> get(key: String): T? { return cache[key] as? T }
-    fun set(key: String, value: Any) { cache[key] = value }
-    fun remove(key: String) { cache.remove(key) }
-}
-
 /**
  * Abstract base class that provides utilities for .NET based APIs.
  */
 open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private val userPrivateKey: ByteArray, private val apiDatabase: LokiAPIDatabaseProtocol) {
 
     internal enum class HTTPVerb { GET, PUT, POST, DELETE, PATCH }
+
+    private val authRequestCache = hashMapOf<String, Promise<String, Exception>>()
 
     public sealed class Error(val description: String) : Exception() {
         object Generic : Error("An error occurred.")
@@ -51,15 +44,15 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         }
 
         // Avoid multiple token requests to the server by caching
-        val cacheKey = "token-request-$server"
-        var promise = RequestCache.get<Promise<String, Exception>>(cacheKey)
+        var promise = authRequestCache[server]
         if (promise == null) {
             promise = requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { newToken ->
                 apiDatabase.setAuthToken(server, newToken)
-                RequestCache.remove(cacheKey)
                 newToken
+            }.always {
+                authRequestCache.remove(server)
             }
-            RequestCache.set(cacheKey, promise)
+            authRequestCache[server] = promise
         }
 
         return promise

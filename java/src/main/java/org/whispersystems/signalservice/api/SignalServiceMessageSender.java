@@ -1033,7 +1033,6 @@ public class SignalServiceMessageSender {
   {
     long threadID = threadDatabase.getThreadID(recipient.getNumber());
     LokiPublicChat publicChat = threadDatabase.getPublicChat(threadID);
-    // If we're sending to our number then don't bother encrypting messages
     if (recipient.equals(localAddress)) {
       return SendMessageResult.success(recipient, false, false);
     } else if (publicChat != null) {

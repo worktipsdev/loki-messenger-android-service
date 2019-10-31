@@ -17,7 +17,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
     // region Settings
     private val maxRetryCount = 8
     private val lastDeviceLinkUpdate = hashMapOf<String, Long>()
-    private val requestCache = hashMapOf<String, Promise<List<PairingAuthorisation>, Exception>>()
+    private val deviceMappingRequestCache = hashMapOf<String, Promise<List<PairingAuthorisation>, Exception>>()
     private val deviceMappingUpdateInterval = 8 * 60 * 1000 // 8 Minutes
     private val primaryDeviceMappingUpdateInterval = 1 * 60 * 1000 // 1 Minute
     private val deviceMappingType = "network.loki.messenger.devicemapping"
@@ -136,7 +136,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
       val hasCacheExpired = !lastDeviceLinkUpdate.containsKey(hexEncodedPublicKey) || (now - lastDeviceLinkUpdate[hexEncodedPublicKey]!! > cacheInterval)
       if (hasCacheExpired || skipCache) {
         // Cache request promise so we only have 1 per user
-        var promise = requestCache[hexEncodedPublicKey]
+        var promise = deviceMappingRequestCache[hexEncodedPublicKey]
         if (promise == null) {
           val deferred = deferred<List<PairingAuthorisation>, Exception>()
 
@@ -151,11 +151,11 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
             }
             deferred.resolve(databaseAuthorisations)
           }.always {
-            requestCache.remove(hexEncodedPublicKey)
+            deviceMappingRequestCache.remove(hexEncodedPublicKey)
           }
 
           promise = deferred.promise
-          requestCache[hexEncodedPublicKey] = promise
+          deviceMappingRequestCache[hexEncodedPublicKey] = promise
         }
         return promise
       }
