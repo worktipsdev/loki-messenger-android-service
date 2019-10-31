@@ -169,7 +169,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         return upload(server, attachment.data, "application/octet-stream", attachment.dataSize, attachment.outputStreamFactory, attachment.listener)
     }
 
-    fun upload(server: String, data: InputStream, contentType: String, length: Long, outputStreamFactory: OutputStreamFactory, progressListener: SignalServiceAttachment.ProgressListener): Triple<Long, String, ByteArray> {
+    fun upload(server: String, data: InputStream, contentType: String, length: Long, outputStreamFactory: OutputStreamFactory, progressListener: SignalServiceAttachment.ProgressListener?): Triple<Long, String, ByteArray> {
         // This function mimicks what Signal does in PushServiceSocket
         val future = SettableFuture<Triple<Long, String, ByteArray>>()
         getAuthToken(server).then { token ->
