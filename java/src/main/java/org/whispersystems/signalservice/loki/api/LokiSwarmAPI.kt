@@ -28,6 +28,8 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
         private val seedNodePool: Set<String> = setOf( "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://imaginary.stream:38157" )
         internal var randomSnodePool: MutableSet<LokiAPITarget> = mutableSetOf()
         // endregion
+
+        private val client = OkHttpClient()
     }
 
     // region Caching
@@ -49,9 +51,8 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
             val parameters = "{ \"method\" : \"get_n_service_nodes\", \"params\" : { \"active_only\" : true, \"limit\" : 24, \"fields\" : { \"public_ip\" : true, \"storage_port\" : true } } }"
             val body = RequestBody.create(MediaType.get("application/json"), parameters)
             val request = Request.Builder().url(url).post(body)
-            val connection = OkHttpClient()
             val deferred = deferred<LokiAPITarget, Exception>()
-            connection.newCall(request.build()).enqueue(object : Callback {
+            client.newCall(request.build()).enqueue(object : Callback {
 
                 override fun onResponse(call: Call, response: Response) {
                     when (response.code()) {

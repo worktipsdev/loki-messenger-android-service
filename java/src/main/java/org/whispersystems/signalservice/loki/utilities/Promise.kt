@@ -2,6 +2,7 @@
 package org.whispersystems.signalservice.loki.utilities
 
 import nl.komponents.kovenant.Promise
+import nl.komponents.kovenant.deferred
 import org.whispersystems.libsignal.logging.Log
 
 fun <V, E: Throwable> Promise<V, E>.get(defaultValue: V): V {
@@ -22,4 +23,18 @@ fun <V, E> Promise<V, E>.successBackground(callback: (value: V) -> Unit): Promis
   }.start()
 
   return this
+}
+
+fun <V, E: Throwable> Promise<V, E>.recover(callback: (exception: E) -> V): Promise<V, E> {
+  val deferred = deferred<V, E>()
+  this.success {
+    deferred.resolve(it)
+  }.fail {
+    try {
+      callback(it)
+    } catch (e: Throwable) {
+      deferred.reject(it)
+    }
+  }
+  return deferred.promise
 }

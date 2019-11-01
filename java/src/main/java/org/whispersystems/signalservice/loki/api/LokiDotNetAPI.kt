@@ -30,7 +30,10 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     internal enum class HTTPVerb { GET, PUT, POST, DELETE, PATCH }
 
-    private val authRequestCache = hashMapOf<String, Promise<String, Exception>>()
+    companion object {
+        private val authRequestCache = hashMapOf<String, Promise<String, Exception>>()
+        private val client = OkHttpClient()
+    }
 
     public sealed class Error(val description: String) : Exception() {
         object Generic : Error("An error occurred.")
@@ -123,8 +126,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                     }
                 }
             }
-            val connection = OkHttpClient()
-            connection.newCall(request.build()).enqueue(object : Callback {
+            client.newCall(request.build()).enqueue(object : Callback {
 
                 override fun onResponse(call: Call, response: Response) {
                     when (response.code()) {
@@ -175,8 +177,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                 .build()
             val request = Request.Builder().url("$server/files").post(body)
             request.addHeader("Authorization", "Bearer $token")
-            val connection = OkHttpClient()
-            connection.newCall(request.build()).enqueue(object : Callback {
+            client.newCall(request.build()).enqueue(object : Callback {
 
                 override fun onResponse(call: Call, response: Response) {
                     when (response.code()) {

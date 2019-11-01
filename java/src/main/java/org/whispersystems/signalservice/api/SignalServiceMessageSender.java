@@ -528,39 +528,48 @@ public class SignalServiceMessageSender {
       container.setPairingAuthorisation(builder);
     }
 
+    boolean hasDataContent = false;
     DataMessage.Builder builder = DataMessage.newBuilder();
     List<AttachmentPointer> pointers = createAttachmentPointers(message.getAttachments(), recipient);
 
     if (!pointers.isEmpty()) {
       builder.addAllAttachments(pointers);
+      hasDataContent = true;
     }
 
     if (message.getBody().isPresent()) {
       builder.setBody(message.getBody().get());
+      hasDataContent = true;
     }
 
     if (message.getGroupInfo().isPresent()) {
       builder.setGroup(createGroupContent(message.getGroupInfo().get(), recipient));
+      hasDataContent = true;
     }
 
     if (message.isEndSession()) {
       builder.setFlags(DataMessage.Flags.END_SESSION_VALUE);
+      hasDataContent = true;
     }
 
     if (message.isExpirationUpdate()) {
       builder.setFlags(DataMessage.Flags.EXPIRATION_TIMER_UPDATE_VALUE);
+      hasDataContent = true;
     }
 
     if (message.isProfileKeyUpdate()) {
       builder.setFlags(DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE);
+      hasDataContent = true;
     }
 
     if (message.getExpiresInSeconds() > 0) {
       builder.setExpireTimer(message.getExpiresInSeconds());
+      hasDataContent = true;
     }
 
     if (message.getProfileKey().isPresent()) {
       builder.setProfileKey(ByteString.copyFrom(message.getProfileKey().get()));
+      hasDataContent = true;
     }
 
     if (message.getQuote().isPresent()) {
@@ -586,10 +595,12 @@ public class SignalServiceMessageSender {
       }
 
       builder.setQuote(quoteBuilder);
+      hasDataContent = true;
     }
 
     if (message.getSharedContacts().isPresent()) {
       builder.addAllContact(createSharedContactContent(message.getSharedContacts().get(), recipient));
+      hasDataContent = true;
     }
 
     if (message.getPreviews().isPresent()) {
@@ -607,6 +618,7 @@ public class SignalServiceMessageSender {
         }
 
         builder.addPreview(previewBuilder.build());
+        hasDataContent = true;
       }
     }
 
@@ -624,21 +636,24 @@ public class SignalServiceMessageSender {
       }
 
       builder.setSticker(stickerBuilder.build());
+      hasDataContent = true;
     }
 
-    builder.setTimestamp(message.getTimestamp());
+    if (hasDataContent) {
+      builder.setTimestamp(message.getTimestamp());
 
-    String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
-    if (displayName != null) {
-      LokiProfile profile = LokiProfile.newBuilder().setDisplayName(displayName).build();
-      builder.setProfile(profile);
+      String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
+      if (displayName != null) {
+        LokiProfile profile = LokiProfile.newBuilder().setDisplayName(displayName).build();
+        builder.setProfile(profile);
+      }
+
+      container.setDataMessage(builder);
+    } else {
+      // Loki - Set an address message is we don't have any data content
+      SignalServiceProtos.LokiAddressMessage.Builder addressMessage = SignalServiceProtos.LokiAddressMessage.newBuilder().setType(SignalServiceProtos.LokiAddressMessage.Type.HOST_UNREACHABLE);
+      container.setLokiAddressMessage(addressMessage);
     }
-
-    container.setDataMessage(builder);
-
-    // Loki - Always set an address message
-    SignalServiceProtos.LokiAddressMessage.Builder addressMessage = SignalServiceProtos.LokiAddressMessage.newBuilder().setType(SignalServiceProtos.LokiAddressMessage.Type.HOST_UNREACHABLE);
-    container.setLokiAddressMessage(addressMessage);
 
     return container.build().toByteArray();
   }
