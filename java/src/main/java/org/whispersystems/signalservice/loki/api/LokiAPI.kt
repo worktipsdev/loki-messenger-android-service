@@ -219,7 +219,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         return retryIfNeeded(maxRetryCount) {
             LokiSwarmAPI(database).getSingleTargetSnode(userHexEncodedPublicKey).bind { targetSnode ->
                 getRawMessages(targetSnode, false).map { parseRawMessagesResponse(it, targetSnode) }
-            }.get()
+            }
         }
     }
 
@@ -250,7 +250,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                                 rawResponse
                             }
                         }.toSet()
-                    }.get()
+                    }
                 }
             }
         }
@@ -259,7 +259,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             val target = LokiAPITarget(peer.address, peer.port)
             val deferred = deferred<Set<RawResponsePromise>, Exception>()
             retryIfNeeded(maxRetryCount) {
-                task { listOf(target) }.map { it.map { sendLokiMessage(lokiMessage, it) } }.map { it.toSet() }.get()
+                task { listOf(target) }.map { it.map { sendLokiMessage(lokiMessage, it) } }.map { it.toSet() }
             }.success {
                 LokiP2PAPI.shared.mark(true, destination)
                 onP2PSuccess()
