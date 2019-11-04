@@ -6,6 +6,7 @@
 
 package org.whispersystems.signalservice.api.crypto;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.signal.libsignal.metadata.InvalidMetadataMessageException;
@@ -40,6 +41,7 @@ import org.whispersystems.libsignal.util.Pair;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.messages.SignalServiceAttachment;
 import org.whispersystems.signalservice.api.messages.SignalServiceAttachmentPointer;
+import org.whispersystems.signalservice.api.messages.SignalServiceAttachmentStream;
 import org.whispersystems.signalservice.api.messages.SignalServiceContent;
 import org.whispersystems.signalservice.api.messages.SignalServiceDataMessage;
 import org.whispersystems.signalservice.api.messages.SignalServiceDataMessage.Preview;
@@ -54,6 +56,7 @@ import org.whispersystems.signalservice.api.messages.calls.HangupMessage;
 import org.whispersystems.signalservice.api.messages.calls.IceUpdateMessage;
 import org.whispersystems.signalservice.api.messages.calls.OfferMessage;
 import org.whispersystems.signalservice.api.messages.calls.SignalServiceCallMessage;
+import org.whispersystems.signalservice.api.messages.multidevice.ContactsMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.ReadMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.RequestMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.SentTranscriptMessage;
@@ -80,6 +83,7 @@ import org.whispersystems.signalservice.loki.messaging.LokiServiceAddressMessage
 import org.whispersystems.signalservice.loki.messaging.LokiServiceMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiServicePreKeyBundleMessage;
 
+import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -382,6 +386,20 @@ public class SignalServiceCipher {
       }
 
       return SignalServiceSyncMessage.forRead(readMessages);
+    }
+
+    if (content.hasContacts()) {
+      SyncMessage.Contacts contacts = content.getContacts();
+      ByteString data = contacts.getData();
+      if (data != null || data.isEmpty()) {
+        byte[] bytes = data.toByteArray();
+        SignalServiceAttachmentStream attachmentStream   = SignalServiceAttachment.newStreamBuilder()
+                .withStream(new ByteArrayInputStream(data.toByteArray()))
+                .withContentType("application/octet-stream")
+                .withLength(bytes.length)
+                .build();
+        return SignalServiceSyncMessage.forContacts(new ContactsMessage(attachmentStream, contacts.getComplete()));
+      }
     }
 
     if (content.hasVerified()) {

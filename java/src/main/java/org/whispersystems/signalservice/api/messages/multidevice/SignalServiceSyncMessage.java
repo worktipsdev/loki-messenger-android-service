@@ -216,6 +216,11 @@ public class SignalServiceSyncMessage {
     return stickerPackOperations;
   }
 
-  public int getTTL() { return 24 * 60 * 60 * 1000; }
+  public int getTTL() {
+    int hours = 60 * 60 * 1000;
+
+    // If we are syncing contacts then it should last 6 hours
+    return getContacts().isPresent() ? 6 * hours : 24 * hours;
+  }
 
 }

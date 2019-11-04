@@ -696,7 +696,7 @@ public class SignalServiceMessageSender {
     Content.Builder     container = Content.newBuilder();
     SyncMessage.Builder builder   = createSyncMessageBuilder();
     builder.setContacts(SyncMessage.Contacts.newBuilder()
-                                            .setBlob(createAttachmentPointer(contacts))
+                                            .setData(ByteString.readFrom(contacts.getInputStream()))
                                             .setComplete(complete));
 
     return container.setSyncMessage(builder).build().toByteArray();
