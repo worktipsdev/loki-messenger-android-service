@@ -31,7 +31,8 @@ fun <V, E: Throwable> Promise<V, E>.recover(callback: (exception: E) -> V): Prom
     deferred.resolve(it)
   }.fail {
     try {
-      callback(it)
+      val recoveredValue = callback(it)
+      deferred.resolve(recoveredValue)
     } catch (e: Throwable) {
       deferred.reject(it)
     }
