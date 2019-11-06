@@ -649,8 +649,8 @@ public class SignalServiceMessageSender {
       }
 
       container.setDataMessage(builder);
-    } else {
-      // Loki - Set an address message is we don't have any data content
+    } else if (!message.getPairingAuthorisation().isPresent()) {
+      // Loki - Set an address message is we don't have any data content or a pairing authorisation
       SignalServiceProtos.LokiAddressMessage.Builder addressMessage = SignalServiceProtos.LokiAddressMessage.newBuilder().setType(SignalServiceProtos.LokiAddressMessage.Type.HOST_UNREACHABLE);
       container.setLokiAddressMessage(addressMessage);
     }
