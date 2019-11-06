@@ -268,7 +268,7 @@ public class SignalServiceDataMessage {
     if (isFriendRequest || preKeyBundle.isPresent() || pairingAuthorisation.isPresent()) return false;
 
     // We should only sync if our message has valid content
-    return body.isPresent() || attachments.isPresent() || sticker.isPresent() || quote.isPresent() || contacts.isPresent() || previews.isPresent() || sticker.isPresent();
+    return body.isPresent() || attachments.isPresent() || sticker.isPresent() || quote.isPresent() || contacts.isPresent() || previews.isPresent();
   }
 
   public int getTTL() {
