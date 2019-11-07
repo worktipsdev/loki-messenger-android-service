@@ -103,6 +103,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -1141,7 +1142,7 @@ public class SignalServiceMessageSender {
 
     @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
     try {
-      f.get();
+      f.get(1, TimeUnit.MINUTES);
       return SendMessageResult.success(recipient, false, false);
     } catch (Exception exception) {
       return SendMessageResult.networkFailure(recipient);
@@ -1239,7 +1240,7 @@ public class SignalServiceMessageSender {
     }
     @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
     try {
-      f.get();
+      f.get(1, TimeUnit.MINUTES);
       return SendMessageResult.success(recipient, false, false);
     } catch (Exception exception) {
       return SendMessageResult.networkFailure(recipient);
