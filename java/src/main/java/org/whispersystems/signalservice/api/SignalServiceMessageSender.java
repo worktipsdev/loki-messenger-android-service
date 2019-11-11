@@ -355,8 +355,26 @@ public class SignalServiceMessageSender {
     return results;
   }
 
+  /**
+   * Send a sync message to a specific recipient
+   */
+  public void sendMessage(long messageID, SignalServiceSyncMessage message, SignalServiceAddress recipient)
+          throws IOException, UntrustedIdentityException
+  {
+    sendMessage(messageID, message, Optional.<UnidentifiedAccessPair>absent(), Optional.fromNullable(recipient));
+  }
+
+  /**
+   * Send a sync message to all linked devices
+   */
   public void sendMessage(long messageID, SignalServiceSyncMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess)
       throws IOException, UntrustedIdentityException
+  {
+    sendMessage(messageID, message, unidentifiedAccess, Optional.<SignalServiceAddress>absent());
+  }
+
+  private void sendMessage(long messageID, SignalServiceSyncMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess, Optional<SignalServiceAddress> recipient)
+          throws IOException, UntrustedIdentityException
   {
     byte[] content;
     long timestamp = System.currentTimeMillis();
@@ -385,10 +403,11 @@ public class SignalServiceMessageSender {
     }
 
     // Loki - Trigger an event to send sync message
-    if (eventListener.isPresent()) {
+    if (recipient.isPresent()) {
+      sendMessage(messageID, recipient.get(), Optional.<UnidentifiedAccess>absent(), System.currentTimeMillis(), content, false, message.getTTL());
+    } else if (eventListener.isPresent()) {
       eventListener.get().onSyncEvent(messageID, timestamp, content, message.getTTL());
     }
-    // sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), System.currentTimeMillis(), content, false, message.getTTL());
   }
 
   public void setSoTimeoutMillis(long soTimeoutMillis) {
