@@ -196,7 +196,8 @@ public class SignalServiceCipher {
           byte[] grantSignature = pairingAuthorisationMessage.hasGrantSignature() ? pairingAuthorisationMessage.getGrantSignature().toByteArray() : null;
           PairingAuthorisation authorisation = new PairingAuthorisation(primaryDevicePublicKey, secondaryDevicePublicKey, requestSignature, grantSignature);
           SignalServiceCipher.Metadata metadata = plaintext.getMetadata();
-          SignalServiceContent content = new SignalServiceContent(authorisation, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false);
+          SignalServiceSyncMessage syncMessage = (message.hasSyncMessage() && message.getSyncMessage().hasContacts()) ? createSynchronizeMessage(metadata, message.getSyncMessage()) : null;
+          SignalServiceContent content = new SignalServiceContent(authorisation, syncMessage, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false);
           content.setLokiServiceMessage(lokiServiceMessage);
           return content;
         } else if (message.hasDataMessage()) {

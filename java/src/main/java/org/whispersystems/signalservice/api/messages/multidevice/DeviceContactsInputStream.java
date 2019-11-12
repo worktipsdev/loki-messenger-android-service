@@ -27,7 +27,7 @@ public class DeviceContactsInputStream extends ChunkedInputStream {
   }
 
   public DeviceContact read() throws IOException {
-    long   detailsLength     = readRawVarint32();
+    long   detailsLength     = readInt32();
     byte[] detailsSerialized = new byte[(int)detailsLength];
     Util.readFully(in, detailsSerialized);
 
