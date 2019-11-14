@@ -210,7 +210,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         }
     }
 
-    public fun deleteMessages(messageServerIDs: LongArray, channel: Long, server: String, isSentByUser: Boolean): Promise<LongArray, Exception> {
+    public fun deleteMessages(messageServerIDs: List<Long>, channel: Long, server: String, isSentByUser: Boolean): Promise<List<Long>, Exception> {
         return retryIfNeeded(maxRetryCount) {
             val isModerationRequest = !isSentByUser
             val parameters = mapOf( "ids" to messageServerIDs.joinToString() )
