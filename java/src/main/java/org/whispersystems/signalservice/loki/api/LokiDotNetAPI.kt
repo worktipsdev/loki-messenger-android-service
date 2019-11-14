@@ -32,7 +32,12 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     companion object {
         private val authRequestCache = hashMapOf<String, Promise<String, Exception>>()
-        private val client = OkHttpClient()
+        private var client = OkHttpClient()
+
+        @JvmStatic
+        public fun setCache(cache: Cache) {
+            client = OkHttpClient.Builder().cache(cache).build()
+        }
     }
 
     public sealed class Error(val description: String) : Exception() {
