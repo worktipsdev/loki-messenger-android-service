@@ -30,6 +30,16 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     internal enum class HTTPVerb { GET, PUT, POST, DELETE, PATCH }
 
+    companion object {
+        private val authRequestCache = hashMapOf<String, Promise<String, Exception>>()
+        private var connection = OkHttpClient()
+
+        @JvmStatic
+        public fun setCache(cache: Cache) {
+            connection = OkHttpClient.Builder().cache(cache).build()
+        }
+    }
+
     public sealed class Error(val description: String) : Exception() {
         object Generic : Error("An error occurred.")
         object ParsingFailed : Error("Failed to parse object from JSON.")
@@ -37,14 +47,19 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     public fun getAuthToken(server: String): Promise<String, Exception> {
         val token = apiDatabase.getAuthToken(server)
-        return if (token != null) {
-            Promise.of(token)
-        } else {
-            requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { newToken ->
+        if (token != null) { return Promise.of(token) }
+        // Avoid multiple token requests to the server by caching
+        var promise = authRequestCache[server]
+        if (promise == null) {
+            promise = requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { newToken ->
                 apiDatabase.setAuthToken(server, newToken)
                 newToken
+            }.always {
+                authRequestCache.remove(server)
             }
+            authRequestCache[server] = promise
         }
+        return promise
     }
 
     private fun requestNewAuthToken(server: String): Promise<String, Exception> {
@@ -110,7 +125,6 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                     }
                 }
             }
-            val connection = OkHttpClient()
             connection.newCall(request.build()).enqueue(object : Callback {
 
                 override fun onResponse(call: Call, response: Response) {
@@ -162,7 +176,6 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                 .build()
             val request = Request.Builder().url("$server/files").post(body)
             request.addHeader("Authorization", "Bearer $token")
-            val connection = OkHttpClient()
             connection.newCall(request.build()).enqueue(object : Callback {
 
                 override fun onResponse(call: Call, response: Response) {

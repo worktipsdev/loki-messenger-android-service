@@ -18,7 +18,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         private val moderators: HashMap<String, HashMap<Long, Set<String>>> = hashMapOf() // Server URL to (channel ID to set of moderator IDs)
 
         // region Settings
-        private val fallbackBatchCount = 256
+        private val fallbackBatchCount = 64
         private val maxRetryCount = 8
         // endregion
 
@@ -190,7 +190,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                     Log.d("Loki", "Couldn't parse message for public chat channel with ID: $channel on server: $server.")
                     throw exception
                 }
-            }.get()
+            }
         }.success {
             Analytics.shared.track("Group Message Sent") // Should ideally be Public Chat Message Sent
         }.fail {
@@ -206,7 +206,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
             execute(HTTPVerb.DELETE, server, endpoint).then {
                 Log.d("Loki", "Deleted message with ID: $messageServerID from public chat channel with ID: $channel on server: $server.")
                 messageServerID
-            }.get()
+            }
         }
     }
 

@@ -17,6 +17,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
 
     companion object {
         internal var failureCount: MutableMap<LokiAPITarget, Int> = mutableMapOf()
+        private val connection = OkHttpClient()
 
         // region Settings
         private val minimumSnodeCount = 2
@@ -49,7 +50,6 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
             val parameters = "{ \"method\" : \"get_n_service_nodes\", \"params\" : { \"active_only\" : true, \"limit\" : 24, \"fields\" : { \"public_ip\" : true, \"storage_port\" : true } } }"
             val body = RequestBody.create(MediaType.get("application/json"), parameters)
             val request = Request.Builder().url(url).post(body)
-            val connection = OkHttpClient()
             val deferred = deferred<LokiAPITarget, Exception>()
             connection.newCall(request.build()).enqueue(object : Callback {
 
