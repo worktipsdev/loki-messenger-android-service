@@ -5,7 +5,7 @@ import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.deferred
 import org.whispersystems.libsignal.logging.Log
 
-fun <V, E: Throwable> Promise<V, E>.get(defaultValue: V): V {
+fun <V, E : Throwable> Promise<V, E>.get(defaultValue: V): V {
   return try {
     get()
   } catch (e: Exception) {
@@ -18,16 +18,16 @@ fun <V, E> Promise<V, E>.successBackground(callback: (value: V) -> Unit): Promis
     try {
       callback(get())
     } catch (e: Exception) {
-      Log.w("Promise", "Failed to execute task in background: ${e.message}")
+      Log.d("Loki", "Failed to execute task in background: ${e.message}.")
     }
   }.start()
 
   return this
 }
 
-fun <V, E: Throwable> Promise<V, E>.recover(callback: (exception: E) -> V): Promise<V, E> {
+fun <V, E : Throwable> Promise<V, E>.recover(callback: (exception: E) -> V): Promise<V, E> {
   val deferred = deferred<V, E>()
-  this.success {
+  success {
     deferred.resolve(it)
   }.fail {
     try {

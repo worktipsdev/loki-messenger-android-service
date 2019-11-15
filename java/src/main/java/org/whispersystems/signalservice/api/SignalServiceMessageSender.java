@@ -296,7 +296,7 @@ public class SignalServiceMessageSender {
 
     if (lokiSyncMessage.isPresent() && (result.getSuccess() != null && message.canSyncMessage() || (unidentifiedAccess.isPresent() && isMultiDevice.get()))) {
       byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.of(lokiSyncMessage.get().getRecipient()), timestamp, Collections.singletonList(result));
-      // Trigger an event to send sync message
+      // Trigger an event to send a sync message
       if (eventListener.isPresent()) {
         eventListener.get().onSyncEvent(lokiSyncMessage.get().getOriginalMessageID(), timestamp, syncMessage, message.getTTL());
       }
@@ -1073,7 +1073,7 @@ public class SignalServiceMessageSender {
     } else if (publicChat != null) {
       return sendMessageToPublicChat(messageID, recipient, timestamp, content, publicChat);
     } else {
-      return sendMessageToServiceNode(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, isFriendRequest);
+      return sendMessageToPrivateChat(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, isFriendRequest);
     }
   }
 
@@ -1168,7 +1168,7 @@ public class SignalServiceMessageSender {
     }
   }
 
-  private SendMessageResult sendMessageToServiceNode(final long                   messageID,
+  private SendMessageResult sendMessageToPrivateChat(final long                   messageID,
                                                      final SignalServiceAddress   recipient,
                                                      Optional<UnidentifiedAccess> unidentifiedAccess,
                                                      long                         timestamp,

@@ -32,11 +32,11 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     companion object {
         private val authRequestCache = hashMapOf<String, Promise<String, Exception>>()
-        private var client = OkHttpClient()
+        private var connection = OkHttpClient()
 
         @JvmStatic
         public fun setCache(cache: Cache) {
-            client = OkHttpClient.Builder().cache(cache).build()
+            connection = OkHttpClient.Builder().cache(cache).build()
         }
     }
 
@@ -47,10 +47,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     public fun getAuthToken(server: String): Promise<String, Exception> {
         val token = apiDatabase.getAuthToken(server)
-        if (token != null) {
-            return Promise.of(token)
-        }
-
+        if (token != null) { return Promise.of(token) }
         // Avoid multiple token requests to the server by caching
         var promise = authRequestCache[server]
         if (promise == null) {
@@ -62,7 +59,6 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
             }
             authRequestCache[server] = promise
         }
-
         return promise
     }
 
@@ -96,9 +92,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     private fun submitAuthToken(token: String, server: String): Promise<String, Exception> {
         Log.d("Loki", "Submitting auth token for server: $server.")
         val parameters = mapOf( "pubKey" to userHexEncodedPublicKey, "token" to token )
-        return execute(HTTPVerb.POST, server, "loki/v1/submit_challenge", false, parameters).map { token }.success {
-            Log.d("Loki", "Received auth token from server: $server")
-        }
+        return execute(HTTPVerb.POST, server, "loki/v1/submit_challenge", false, parameters).map { token }
     }
 
     internal fun execute(verb: HTTPVerb, server: String, endpoint: String, isAuthRequired: Boolean = true, parameters: Map<String, Any> = mapOf()): Promise<Response, Exception> {
@@ -131,7 +125,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                     }
                 }
             }
-            client.newCall(request.build()).enqueue(object : Callback {
+            connection.newCall(request.build()).enqueue(object : Callback {
 
                 override fun onResponse(call: Call, response: Response) {
                     when (response.code()) {
@@ -182,7 +176,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                 .build()
             val request = Request.Builder().url("$server/files").post(body)
             request.addHeader("Authorization", "Bearer $token")
-            client.newCall(request.build()).enqueue(object : Callback {
+            connection.newCall(request.build()).enqueue(object : Callback {
 
                 override fun onResponse(call: Call, response: Response) {
                     when (response.code()) {

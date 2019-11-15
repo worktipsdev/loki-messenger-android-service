@@ -24,8 +24,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
     private val maxRetryCount = 8
     private val lastDeviceLinkUpdate = hashMapOf<String, Long>()
     private val deviceMappingRequestCache = hashMapOf<String, Promise<List<PairingAuthorisation>, Exception>>()
-    private val deviceMappingUpdateInterval = 8 * 60 * 1000 // 8 Minutes
-    private val primaryDeviceMappingUpdateInterval = 1 * 60 * 1000 // 1 Minute
+    private val deviceMappingUpdateInterval = 60 * 1000
     private val deviceMappingType = "network.loki.messenger.devicemapping"
     // endregion
 
@@ -57,13 +56,12 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
       }
       data
     }.map { data ->
-      data.map deviceMap@ { node ->
+      data.map dataMap@ { node ->
         val device = node.get("username").asText()
         val annotations = node.get("annotations")
         val deviceMappingAnnotation = annotations.find { annotation ->
           annotation.get("type").asText() == deviceMappingType
-        } ?: return@deviceMap DeviceMappingFetchResult(device, Error.ParsingFailed)
-
+        } ?: return@dataMap DeviceMappingFetchResult(device, Error.ParsingFailed)
         val value = deviceMappingAnnotation.get("value")
         val authorisationsAsJSON = value.get("authorisations")
         val authorisations = authorisationsAsJSON.mapNotNull { authorisationAsJSON ->
@@ -108,17 +106,8 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
     }
   }
 
-  private fun getOurPrimaryDevicePublicKey(): String? {
-    val authorisation = database.getPairingAuthorisations(userHexEncodedPublicKey)
-    val primaryAuthorisation = authorisation.find { it.secondaryDevicePublicKey == userHexEncodedPublicKey }
-    return primaryAuthorisation?.primaryDevicePublicKey
-  }
-
   private fun hasCacheExpired(time: Long, pubKey: String): Boolean {
-    // If we are getting the mapping for our primary device then we should use a shorter interval
-    val ourPrimaryDevicePubKey = getOurPrimaryDevicePublicKey()
-    val cacheInterval = if (ourPrimaryDevicePubKey == pubKey) primaryDeviceMappingUpdateInterval else deviceMappingUpdateInterval
-    return !lastDeviceLinkUpdate.containsKey(pubKey) || (time - lastDeviceLinkUpdate[pubKey]!! > cacheInterval)
+    return !lastDeviceLinkUpdate.containsKey(pubKey) || (time - lastDeviceLinkUpdate[pubKey]!! > deviceMappingUpdateInterval)
   }
   // endregion
 
@@ -146,12 +135,10 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
     val validDevices = hexEncodedPublicKeys.filter { PublicKeyValidation.isValid(it) }
     val devicesToFetch = validDevices.filter { it != userHexEncodedPublicKey && hasCacheExpired(now, it) }
     val databaseAuthorisations = validDevices.minus(devicesToFetch).flatMap { database.getPairingAuthorisations(it) }
-
     // If we don't need to fetch then bail early
     if (devicesToFetch.isEmpty()) {
       return Promise.of(databaseAuthorisations)
     }
-
     return fetchAndSaveDeviceMappings(devicesToFetch).map { results ->
       val authorisations = mutableListOf<PairingAuthorisation>()
       for (result in results) {
@@ -159,12 +146,10 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
         if (result.isSuccess || result.error is Error.ParsingFailed) {
           lastDeviceLinkUpdate[result.pubKey] = now
         }
-
         // Fall back to using database authorisation if we failed
         val list = if (result.isSuccess) result.authorisations else database.getPairingAuthorisations(result.pubKey)
         authorisations.addAll(list)
       }
-
       // Return the union of the db auth and our fetched auth
       authorisations.union(databaseAuthorisations).toList()
     }.recover { hexEncodedPublicKeys.flatMap { database.getPairingAuthorisations(it) } }

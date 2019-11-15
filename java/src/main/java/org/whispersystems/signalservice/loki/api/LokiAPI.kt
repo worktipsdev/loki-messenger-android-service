@@ -35,7 +35,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         private val longPollingTimeout: Long = 40
         internal val defaultMessageTTL = 24 * 60 * 60 * 1000
         internal var powDifficulty = 40
-        internal val httpClientCache = hashMapOf<Long, OkHttpClient>()
+        internal val okHTTPCache = hashMapOf<Long, OkHttpClient>()
         // endregion
 
         // region User ID Caching
@@ -99,11 +99,8 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
 
     // region Clearnet Setup
     private fun getClearnetConnection(timeout: Long): OkHttpClient {
-        /*
-            OkHttp performs best when you create a single OkHttpClient instance and reuse it for all of your HTTP calls.
-         */
-        var client = httpClientCache[timeout]
-        if (client == null) {
+        var connection = okHTTPCache[timeout]
+        if (connection == null) {
             val trustManager = object : X509TrustManager {
 
                 override fun checkClientTrusted(chain: Array<out X509Certificate>?, authorizationType: String?) {}
@@ -114,16 +111,16 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             }
             val sslContext = SSLContext.getInstance("SSL")
             sslContext.init(null, arrayOf(trustManager), SecureRandom())
-            client = OkHttpClient().newBuilder()
+            connection = OkHttpClient().newBuilder()
                 .sslSocketFactory(sslContext.socketFactory, trustManager)
                 .hostnameVerifier { _, _ -> true }
                 .connectTimeout(timeout, TimeUnit.SECONDS)
                 .readTimeout(timeout, TimeUnit.SECONDS)
                 .writeTimeout(timeout, TimeUnit.SECONDS)
                 .build()
-            httpClientCache[timeout] = client
+            okHTTPCache[timeout] = connection
         }
-        return client!!
+        return connection!!
     }
     // endregion
 

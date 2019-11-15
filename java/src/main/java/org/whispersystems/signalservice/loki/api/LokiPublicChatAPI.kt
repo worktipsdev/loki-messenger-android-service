@@ -18,7 +18,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         private val moderators: HashMap<String, HashMap<Long, Set<String>>> = hashMapOf() // Server URL to (channel ID to set of moderator IDs)
 
         // region Settings
-        private val fallbackBatchCount = 256
+        private val fallbackBatchCount = 64
         private val maxRetryCount = 8
         // endregion
 

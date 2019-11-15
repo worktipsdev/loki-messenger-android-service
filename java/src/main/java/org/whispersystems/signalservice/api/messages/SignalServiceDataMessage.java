@@ -264,10 +264,9 @@ public class SignalServiceDataMessage {
   public Optional<PreKeyBundle> getPreKeyBundle() { return preKeyBundle; }
   public Optional<PairingAuthorisation> getPairingAuthorisation() { return pairingAuthorisation; }
   public boolean canSyncMessage() {
-    // If any of the loki fields are present then we shouldn't sync this message
+    // If any of the Loki fields are present then don't sync the message
     if (isFriendRequest || preKeyBundle.isPresent() || pairingAuthorisation.isPresent()) return false;
-
-    // We should only sync if our message has valid content
+    // Only sync if the message has valid content
     return body.isPresent() || attachments.isPresent() || sticker.isPresent() || quote.isPresent() || contacts.isPresent() || previews.isPresent();
   }
 

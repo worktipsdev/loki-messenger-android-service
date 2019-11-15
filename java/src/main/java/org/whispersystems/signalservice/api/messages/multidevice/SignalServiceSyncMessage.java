@@ -217,10 +217,8 @@ public class SignalServiceSyncMessage {
   }
 
   public int getTTL() {
-    int hours = 60 * 60 * 1000;
-
-    // If we are syncing contacts then it should last 6 hours
-    return getContacts().isPresent() ? 6 * hours : 24 * hours;
+    int hour = 60 * 60 * 1000;
+    return getContacts().isPresent() ? 6 * hour : 24 * hour;
   }
 
 }

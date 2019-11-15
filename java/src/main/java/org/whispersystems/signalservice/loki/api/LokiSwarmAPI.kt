@@ -17,6 +17,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
 
     companion object {
         internal var failureCount: MutableMap<LokiAPITarget, Int> = mutableMapOf()
+        private val connection = OkHttpClient()
 
         // region Settings
         private val minimumSnodeCount = 2
@@ -28,8 +29,6 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
         private val seedNodePool: Set<String> = setOf( "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://imaginary.stream:38157" )
         internal var randomSnodePool: MutableSet<LokiAPITarget> = mutableSetOf()
         // endregion
-
-        private val client = OkHttpClient()
     }
 
     // region Caching
@@ -52,7 +51,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
             val body = RequestBody.create(MediaType.get("application/json"), parameters)
             val request = Request.Builder().url(url).post(body)
             val deferred = deferred<LokiAPITarget, Exception>()
-            client.newCall(request.build()).enqueue(object : Callback {
+            connection.newCall(request.build()).enqueue(object : Callback {
 
                 override fun onResponse(call: Call, response: Response) {
                     when (response.code()) {
