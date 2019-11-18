@@ -5,7 +5,6 @@ import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Base64
-import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.utilities.PublicKeyValidation
 import org.whispersystems.signalservice.loki.utilities.recover
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
@@ -45,17 +44,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
 
   // region Private API
   private fun fetchDeviceMappings(hexEncodedPublicKeys: List<String>): Promise<List<DeviceMappingFetchResult>, Exception> {
-    val parameters = mapOf( "include_user_annotations" to 1, "ids" to hexEncodedPublicKeys.joinToString { "@$it" } )
-    return execute(HTTPVerb.GET, server, "users", false, parameters).map { rawResponse ->
-      val bodyAsString = rawResponse.body()!!.string()
-      val body = JsonUtil.fromJson(bodyAsString)
-      val data = body.get("data")
-      if (data == null) {
-        Log.d("Loki", "Couldn't parse device mappings for users: $hexEncodedPublicKeys from: $rawResponse.")
-        throw Error.ParsingFailed
-      }
-      data
-    }.map { data ->
+    return getUsers(hexEncodedPublicKeys.toSet(), server, true).map { data ->
       data.map dataMap@ { node ->
         val device = node.get("username").asText()
         val annotations = node.get("annotations")
@@ -112,6 +101,10 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
   // endregion
 
   // region Public API
+  public fun hasCacheExpired(pubKey: String): Boolean {
+    return hasCacheExpired(System.currentTimeMillis(), pubKey);
+  }
+
   fun updateUserDeviceMappings(): Promise<Unit, Exception> {
     return getDeviceMappings(userHexEncodedPublicKey).bind { authorisations ->
       // We are a primary device if an authorisation has us listed as one

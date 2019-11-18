@@ -1,5 +1,6 @@
 package org.whispersystems.signalservice.loki.api
 
+import com.fasterxml.jackson.databind.JsonNode
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
@@ -154,6 +155,20 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         return deferred.promise
     }
 
+    internal fun getUsers(publicKeys: Set<String>, server: String, includeAnnotations: Boolean): Promise<JsonNode, Exception> {
+        val parameters = mapOf( "include_user_annotations" to includeAnnotations.int, "ids" to publicKeys.joinToString { "@$it" } )
+        return execute(HTTPVerb.GET, server, "users", false, parameters).map { rawResponse ->
+            val bodyAsString = rawResponse.body()!!.string()
+            val body = JsonUtil.fromJson(bodyAsString)
+            val data = body.get("data")
+            if (data == null) {
+                Log.d("Loki", "Couldn't parse users: $publicKeys from: $rawResponse.")
+                throw Error.ParsingFailed
+            }
+            data
+        }
+    }
+
     internal fun setSelfAnnotation(server: String, type: String, newValue: Any?): Promise<Response, Exception> {
         val annotation = mutableMapOf<String, Any>( "type" to type )
         if (newValue != null) { annotation["value"] = newValue }
@@ -223,3 +238,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         }
     }
 }
+// region Extension
+private val Boolean.int
+    get() = if (this) 1 else 0
+// endregion
