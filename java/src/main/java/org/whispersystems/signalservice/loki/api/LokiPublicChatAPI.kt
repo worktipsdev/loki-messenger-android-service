@@ -1,6 +1,8 @@
 package org.whispersystems.signalservice.loki.api
 
+import nl.komponents.kovenant.Kovenant
 import nl.komponents.kovenant.Promise
+import nl.komponents.kovenant.buildDispatcher
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.then
 import org.whispersystems.libsignal.logging.Log
@@ -50,6 +52,19 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
 
     // region Public API
     public fun getMessages(channel: Long, server: String): Promise<List<LokiPublicChatMessage>, Exception> {
+        val context = Kovenant.createContext {
+            callbackContext.dispatcher = buildDispatcher {
+                name = "callback_dispatcher"
+                concurrentTasks = 8
+            }
+            workerContext.dispatcher = buildDispatcher {
+                name = "worker_dispatcher"
+                concurrentTasks = 8
+            }
+            multipleCompletion = { lhs, rhs ->
+                Log.d("Loki", "Promise resolved more than once (first with $lhs, then with $rhs); ignoring $rhs.")
+            }
+        }
         Log.d("Loki", "Getting messages for public chat channel with ID: $channel on server: $server.")
         val parameters = mutableMapOf<String, Any>("include_annotations" to 1)
         val lastMessageServerID = apiDatabase.getLastMessageServerID(channel, server)
@@ -58,7 +73,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         } else {
             parameters["count"] = fallbackBatchCount
         }
-        return execute(HTTPVerb.GET, server, "channels/$channel/messages", false, parameters).then { response ->
+        return execute(HTTPVerb.GET, server, "channels/$channel/messages", false, parameters).then(context) { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val body = JsonUtil.fromJson(bodyAsString)

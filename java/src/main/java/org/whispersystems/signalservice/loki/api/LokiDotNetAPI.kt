@@ -125,24 +125,26 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                     }
                 }
             }
-            connection.newCall(request.build()).enqueue(object : Callback {
+            Thread {
+                connection.newCall(request.build()).enqueue(object : Callback {
 
-                override fun onResponse(call: Call, response: Response) {
-                    when (response.code()) {
-                        in 200..299 -> deferred.resolve(response)
-                        401 -> {
-                            apiDatabase.setAuthToken(server, null)
-                            deferred.reject(LokiAPI.Error.TokenExpired)
+                    override fun onResponse(call: Call, response: Response) {
+                        when (response.code()) {
+                            in 200..299 -> deferred.resolve(response)
+                            401 -> {
+                                apiDatabase.setAuthToken(server, null)
+                                deferred.reject(LokiAPI.Error.TokenExpired)
+                            }
+                            else -> deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
                         }
-                        else -> deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
                     }
-                }
 
-                override fun onFailure(call: Call, exception: IOException) {
-                    Log.d("Loki", "Couldn't reach server: $server.")
-                    deferred.reject(exception)
-                }
-            })
+                    override fun onFailure(call: Call, exception: IOException) {
+                        Log.d("Loki", "Couldn't reach server: $server.")
+                        deferred.reject(exception)
+                    }
+                })
+            }.start()
         }
         if (isAuthRequired) {
             getAuthToken(server).success { execute(it) }.fail { deferred.reject(it) }

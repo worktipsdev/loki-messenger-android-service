@@ -151,54 +151,56 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             }
         }
         val deferred = deferred<Map<*, *>, Exception>()
-        connection.newCall(request.build()).enqueue(object : Callback {
+        Thread {
+            connection.newCall(request.build()).enqueue(object : Callback {
 
-            override fun onResponse(call: Call, response: Response) {
-                when (response.code()) {
-                    200 -> {
-                        val jsonAsString = response.body()!!.string()
-                        @Suppress("NAME_SHADOWING") val json = JsonUtil.fromJson(jsonAsString, Map::class.java)
-                        deferred.resolve(json)
-                    }
-                    400 -> dropSnodeIfNeeded()
-                    421 -> {
-                        // The snode isn't associated with the given public key anymore
-                        Log.d("Loki", "Invalidating swarm for: $hexEncodedPublicKey.")
-                        Analytics.shared.track("Migrated Snode")
-                        LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey)
-                        deferred.reject(Error.SnodeMigrated)
-                    }
-                    432 -> {
-                        // The PoW difficulty is too low
-                        val jsonAsString = response.body()!!.string()
-                        @Suppress("NAME_SHADOWING") val json = JsonUtil.fromJson(jsonAsString, Map::class.java)
-                        val powDifficulty = json?.get("difficulty") as? Int
-                        if (powDifficulty != null) {
-                            Log.d("Loki", "Setting proof of work difficulty to $powDifficulty.")
-                            LokiAPI.powDifficulty = powDifficulty
-                        } else {
-                            Log.d("Loki", "Failed to update proof of work difficulty.")
+                override fun onResponse(call: Call, response: Response) {
+                    when (response.code()) {
+                        200 -> {
+                            val jsonAsString = response.body()!!.string()
+                            @Suppress("NAME_SHADOWING") val json = JsonUtil.fromJson(jsonAsString, Map::class.java)
+                            deferred.resolve(json)
                         }
-                        deferred.reject(Error.InsufficientProofOfWork)
-                    }
-                    500 -> dropSnodeIfNeeded()
-                    503 -> dropSnodeIfNeeded()
-                    else -> {
-                        Log.d("Loki", "Unhandled response code: ${response.code()}.")
-                        deferred.reject(Error.Generic)
+                        400 -> dropSnodeIfNeeded()
+                        421 -> {
+                            // The snode isn't associated with the given public key anymore
+                            Log.d("Loki", "Invalidating swarm for: $hexEncodedPublicKey.")
+                            Analytics.shared.track("Migrated Snode")
+                            LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey)
+                            deferred.reject(Error.SnodeMigrated)
+                        }
+                        432 -> {
+                            // The PoW difficulty is too low
+                            val jsonAsString = response.body()!!.string()
+                            @Suppress("NAME_SHADOWING") val json = JsonUtil.fromJson(jsonAsString, Map::class.java)
+                            val powDifficulty = json?.get("difficulty") as? Int
+                            if (powDifficulty != null) {
+                                Log.d("Loki", "Setting proof of work difficulty to $powDifficulty.")
+                                LokiAPI.powDifficulty = powDifficulty
+                            } else {
+                                Log.d("Loki", "Failed to update proof of work difficulty.")
+                            }
+                            deferred.reject(Error.InsufficientProofOfWork)
+                        }
+                        500 -> dropSnodeIfNeeded()
+                        503 -> dropSnodeIfNeeded()
+                        else -> {
+                            Log.d("Loki", "Unhandled response code: ${response.code()}.")
+                            deferred.reject(Error.Generic)
+                        }
                     }
                 }
-            }
 
-            override fun onFailure(call: Call, exception: IOException) {
-                if (exception is ConnectException || exception is SocketTimeoutException) {
-                    dropSnodeIfNeeded()
-                } else {
-                    Log.d("Loki", "Unhandled exception: $exception.")
+                override fun onFailure(call: Call, exception: IOException) {
+                    if (exception is ConnectException || exception is SocketTimeoutException) {
+                        dropSnodeIfNeeded()
+                    } else {
+                        Log.d("Loki", "Unhandled exception: $exception.")
+                    }
+                    deferred.reject(exception)
                 }
-                deferred.reject(exception)
-            }
-        })
+            })
+        }.start()
         return deferred.promise
     }
 
