@@ -228,13 +228,13 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     public fun deleteMessages(messageServerIDs: List<Long>, channel: Long, server: String, isSentByUser: Boolean): Promise<List<Long>, Exception> {
         return retryIfNeeded(maxRetryCount) {
             val isModerationRequest = !isSentByUser
-            val parameters = mapOf( "ids" to messageServerIDs.joinToString() )
-            Log.d("Loki", "Deleting message with IDs: ${messageServerIDs.joinToString()} from public chat channel with ID: $channel on server: $server (isModerationRequest = $isModerationRequest).")
+            val parameters = mapOf( "ids" to messageServerIDs.joinToString(",") )
+            Log.d("Loki", "Deleting messages with IDs: ${messageServerIDs.joinToString()} from public chat channel with ID: $channel on server: $server (isModerationRequest = $isModerationRequest).")
             val endpoint = if (isSentByUser) "loki/v1/messages" else "loki/v1/moderation/messages"
             execute(HTTPVerb.DELETE, server, endpoint, parameters = parameters).then {
-                Log.d("Loki", "Deleted message with ID: $messageServerIDs from public chat channel with ID: $channel on server: $server.")
+                Log.d("Loki", "Deleted messages with IDs: $messageServerIDs from public chat channel with ID: $channel on server: $server.")
                 messageServerIDs
-            }.get()
+            }
         }
     }
 
