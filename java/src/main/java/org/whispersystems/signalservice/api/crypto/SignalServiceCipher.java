@@ -392,7 +392,7 @@ public class SignalServiceCipher {
     if (content.hasContacts()) {
       SyncMessage.Contacts contacts = content.getContacts();
       ByteString data = contacts.getData();
-      if (data != null || data.isEmpty()) {
+      if (data != null && !data.isEmpty()) {
         byte[] bytes = data.toByteArray();
         SignalServiceAttachmentStream attachmentStream   = SignalServiceAttachment.newStreamBuilder()
                 .withStream(new ByteArrayInputStream(data.toByteArray()))
