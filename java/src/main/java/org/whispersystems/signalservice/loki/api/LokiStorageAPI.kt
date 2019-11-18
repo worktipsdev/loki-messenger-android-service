@@ -44,7 +44,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
 
   // region Private API
   private fun fetchDeviceMappings(hexEncodedPublicKeys: List<String>): Promise<List<DeviceMappingFetchResult>, Exception> {
-    return getUsers(hexEncodedPublicKeys.toSet(), server, true).map { data ->
+    return getUserProfiles(hexEncodedPublicKeys.toSet(), server, true).map { data ->
       data.map dataMap@ { node ->
         val device = node.get("username").asText()
         val annotations = node.get("annotations")
@@ -101,8 +101,8 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
   // endregion
 
   // region Public API
-  public fun hasCacheExpired(pubKey: String): Boolean {
-    return hasCacheExpired(System.currentTimeMillis(), pubKey);
+  public fun hasCacheExpired(hexEncodedPublicKey: String): Boolean {
+    return hasCacheExpired(System.currentTimeMillis(), hexEncodedPublicKey)
   }
 
   fun updateUserDeviceMappings(): Promise<Unit, Exception> {

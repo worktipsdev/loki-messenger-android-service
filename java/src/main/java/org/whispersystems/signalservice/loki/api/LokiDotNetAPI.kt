@@ -155,14 +155,14 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         return deferred.promise
     }
 
-    internal fun getUsers(publicKeys: Set<String>, server: String, includeAnnotations: Boolean): Promise<JsonNode, Exception> {
-        val parameters = mapOf( "include_user_annotations" to includeAnnotations.int, "ids" to publicKeys.joinToString { "@$it" } )
+    internal fun getUserProfiles(hexEncodedPublicKeys: Set<String>, server: String, includeAnnotations: Boolean): Promise<JsonNode, Exception> {
+        val parameters = mapOf( "include_user_annotations" to includeAnnotations.toInt(), "ids" to hexEncodedPublicKeys.joinToString { "@$it" } )
         return execute(HTTPVerb.GET, server, "users", false, parameters).map { rawResponse ->
             val bodyAsString = rawResponse.body()!!.string()
             val body = JsonUtil.fromJson(bodyAsString)
             val data = body.get("data")
             if (data == null) {
-                Log.d("Loki", "Couldn't parse users: $publicKeys from: $rawResponse.")
+                Log.d("Loki", "Couldn't parse user profiles for: $hexEncodedPublicKeys from: $rawResponse.")
                 throw Error.ParsingFailed
             }
             data
@@ -238,7 +238,5 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         }
     }
 }
-// region Extension
-private val Boolean.int
-    get() = if (this) 1 else 0
-// endregion
+
+private fun Boolean.toInt(): Int { return if (this) 1 else 0 }
