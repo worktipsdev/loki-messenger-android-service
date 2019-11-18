@@ -263,6 +263,20 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         }
     }
 
+    public fun getDisplayNames(hexEncodedPublicKeys: Set<String>, server: String): Promise<Map<String, String>, Exception> {
+        return getUserProfiles(hexEncodedPublicKeys, server, false).map { data ->
+            val mapping = mutableMapOf<String, String>()
+            for (user in data) {
+                if (user.hasNonNull("username")) {
+                    val hexEncodedPublicKey = user.get("username").asText()
+                    val displayName = if (user.hasNonNull("name")) user.get("name").asText() else "Anonymous"
+                    mapping[hexEncodedPublicKey] = displayName
+                }
+            }
+            mapping
+        }
+    }
+
     public fun setDisplayName(newDisplayName: String?, server: String): Promise<Unit, Exception> {
         Log.d("Loki", "Updating display name on server: $server.")
         val parameters = mapOf( "name" to (newDisplayName ?: "") )
