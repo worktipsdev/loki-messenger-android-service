@@ -101,7 +101,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         val sanitizedEndpoint = endpoint.removePrefix("/")
         fun execute(token: String?) {
             var url = "$server/$sanitizedEndpoint"
-            if (verb == HTTPVerb.GET) {
+            if (verb == HTTPVerb.GET || verb == HTTPVerb.DELETE) {
                 val queryParameters = parameters.map { "${it.key}=${it.value}" }.joinToString("&")
                 if (queryParameters.isNotEmpty()) {
                     url += "?$queryParameters"
