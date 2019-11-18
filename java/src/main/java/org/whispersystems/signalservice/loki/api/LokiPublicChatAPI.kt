@@ -234,7 +234,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
             execute(HTTPVerb.DELETE, server, endpoint, parameters = parameters).then {
                 Log.d("Loki", "Deleted message with ID: $messageServerIDs from public chat channel with ID: $channel on server: $server.")
                 messageServerIDs
-            }.get()
+            }
         }
     }
 
