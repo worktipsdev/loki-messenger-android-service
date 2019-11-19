@@ -1092,7 +1092,9 @@ public class SignalServiceMessageSender {
                                                     LokiPublicChat               publicChat) {
     final SettableFuture<?>[] future = {new SettableFuture<Unit>()};
     String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
+    String avatarUrl = userDatabase.getProfileAvatarUrl(userHexEncodedPublicKey);
     if (displayName == null) displayName = "Anonymous";
+    if (avatarUrl == null) avatarUrl = "";
     try {
       SignalServiceProtos.DataMessage data = SignalServiceProtos.Content.parseFrom(content).getDataMessage();
       String body = (data.getBody() != null && data.getBody().length() > 0) ? data.getBody() : Long.toString(data.getTimestamp());
@@ -1142,7 +1144,7 @@ public class SignalServiceMessageSender {
                 null
         ));
       }
-      LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, displayName, body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
+      LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, displayName, avatarUrl, body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
       byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
       new LokiPublicChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, publicChat.getChannel(), publicChat.getServer()).success(new Function1<LokiPublicChatMessage, Unit>() {
 
