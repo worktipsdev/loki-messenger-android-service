@@ -280,7 +280,7 @@ public class SignalServiceDataMessage {
     int minute = 60 * 1000;
     int day = 24 * 60 * minute;
     if (pairingAuthorisation.isPresent()) { return 2 * minute; }
-    if (isFriendRequest) { return 4 * day; }
+    if (isFriendRequest || unpairingRequest) { return 4 * day; }
     return day;
   }
 
