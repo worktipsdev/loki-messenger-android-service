@@ -37,6 +37,7 @@ public class SignalServiceDataMessage {
   private final boolean                                 isFriendRequest;
   private final Optional<PreKeyBundle>                  preKeyBundle;
   private final Optional<PairingAuthorisation>          pairingAuthorisation;
+  private final boolean                                 unpairingRequest;
 
   /**
    * Construct a SignalServiceDataMessage with a body and no attachments.
@@ -130,7 +131,7 @@ public class SignalServiceDataMessage {
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
                                   Sticker sticker)
   {
-    this(timestamp, group, attachments, body, endSession, expiresInSeconds, expirationUpdate, profileKey, profileKeyUpdate, quote, sharedContacts, previews, sticker, false, null, null);
+    this(timestamp, group, attachments, body, endSession, expiresInSeconds, expirationUpdate, profileKey, profileKeyUpdate, quote, sharedContacts, previews, sticker, false, null, null, false);
   }
 
   /**
@@ -150,7 +151,7 @@ public class SignalServiceDataMessage {
                                   String body, boolean endSession, int expiresInSeconds,
                                   boolean expirationUpdate, byte[] profileKey, boolean profileKeyUpdate,
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
-                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle, PairingAuthorisation pairingAuthorisation)
+                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle, PairingAuthorisation pairingAuthorisation, boolean unpairingRequest)
   {
     this.timestamp             = timestamp;
     this.body                  = Optional.fromNullable(body);
@@ -165,6 +166,7 @@ public class SignalServiceDataMessage {
     this.isFriendRequest       = isFriendRequest;
     this.preKeyBundle          = Optional.fromNullable(preKeyBundle);
     this.pairingAuthorisation  = Optional.fromNullable(pairingAuthorisation);
+    this.unpairingRequest      = unpairingRequest;
 
     if (attachments != null && !attachments.isEmpty()) {
       this.attachments = Optional.of(attachments);
@@ -233,6 +235,10 @@ public class SignalServiceDataMessage {
     return group.isPresent() && group.get().getType() != SignalServiceGroup.Type.DELIVER;
   }
 
+  public boolean isUnpairingRequest() {
+    return unpairingRequest;
+  }
+
   public int getExpiresInSeconds() {
     return expiresInSeconds;
   }
@@ -297,6 +303,7 @@ public class SignalServiceDataMessage {
     private boolean              isFriendRequest;
     private PreKeyBundle         preKeyBundle;
     private PairingAuthorisation pairingAuthorisation;
+    private boolean              unpairingRequest;
 
     private Builder() {}
 
@@ -398,12 +405,17 @@ public class SignalServiceDataMessage {
       return this;
     }
 
+    public Builder asUnpairingRequest(boolean unpairingRequest) {
+      this.unpairingRequest = unpairingRequest;
+      return this;
+    }
+
     public SignalServiceDataMessage build() {
       if (timestamp == 0) timestamp = System.currentTimeMillis();
       return new SignalServiceDataMessage(timestamp, group, attachments, body, endSession,
                                           expiresInSeconds, expirationUpdate, profileKey,
                                           profileKeyUpdate, quote, sharedContacts, previews,
-                                          sticker, isFriendRequest, preKeyBundle, pairingAuthorisation);
+                                          sticker, isFriendRequest, preKeyBundle, pairingAuthorisation, unpairingRequest);
     }
   }
 

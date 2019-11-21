@@ -582,6 +582,11 @@ public class SignalServiceMessageSender {
       hasDataContent = true;
     }
 
+    if (message.isUnpairingRequest()) {
+      builder.setFlags(DataMessage.Flags.UNPAIRING_REQUEST_VALUE);
+      hasDataContent = true;
+    }
+
     if (message.getExpiresInSeconds() > 0) {
       builder.setExpireTimer(message.getExpiresInSeconds());
       hasDataContent = true;
