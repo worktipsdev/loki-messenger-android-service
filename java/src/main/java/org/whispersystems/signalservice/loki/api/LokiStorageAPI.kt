@@ -50,7 +50,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
         val annotations = node.get("annotations")
         val deviceMappingAnnotation = annotations.find { annotation ->
           annotation.get("type").asText() == deviceMappingType
-        } ?: return@dataMap DeviceMappingFetchResult(device, Error.ParsingFailed)
+        } ?: return@dataMap DeviceMappingFetchResult(device, listOf())
         val value = deviceMappingAnnotation.get("value")
         val authorisationsAsJSON = value.get("authorisations")
         val authorisations = authorisationsAsJSON.mapNotNull { authorisationAsJSON ->
