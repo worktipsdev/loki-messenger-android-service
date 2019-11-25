@@ -215,7 +215,9 @@ public class SignalServiceCipher {
           content.setLokiServiceMessage(lokiServiceMessage);
 
           if (dataMessage.hasProfile()) {
-            content.setSenderDisplayName(dataMessage.getProfile().getDisplayName());
+            SignalServiceProtos.LokiProfile profile = dataMessage.getProfile();
+            if (profile.hasDisplayName()) { content.setSenderDisplayName(profile.getDisplayName()); }
+            if (profile.hasAvatar()) { content.setSenderProfileAvatarUrl(profile.getAvatar()); }
           }
 
           return content;

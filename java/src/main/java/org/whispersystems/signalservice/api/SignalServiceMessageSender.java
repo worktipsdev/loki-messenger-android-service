@@ -73,6 +73,7 @@ import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture;
+import org.whispersystems.signalservice.loki.api.LokiDotNetAPI;
 import org.whispersystems.signalservice.loki.messaging.LokiSyncMessage;
 import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory;
 import org.whispersystems.signalservice.loki.api.LokiAPI;
@@ -450,17 +451,17 @@ public class SignalServiceMessageSender {
     PushAttachmentData attachmentData   = new PushAttachmentData(attachment.getContentType(), dataStream, ciphertextLength, outputStreamFactory, attachment.getListener());
 
     // Loki - Upload attachment
-    Triple<Long, String, byte[]> attachmentIdAndUrlAndDigest = LokiAttachmentAPI.INSTANCE.uploadAttachment(server, attachmentData);
-    return new SignalServiceAttachmentPointer(attachmentIdAndUrlAndDigest.getFirst(),
+    LokiDotNetAPI.UploadResult result = LokiStorageAPI.shared.uploadAttachment(server, attachmentData);
+    return new SignalServiceAttachmentPointer(result.getId(),
                                               attachment.getContentType(),
                                               attachmentKey,
                                               Optional.of(Util.toIntExact(attachment.getLength())),
                                               attachment.getPreview(),
                                               attachment.getWidth(), attachment.getHeight(),
-                                              Optional.of(attachmentIdAndUrlAndDigest.getThird()),
+                                              Optional.fromNullable(result.getDigest()),
                                               attachment.getFileName(),
                                               attachment.getVoiceNote(),
-                                              attachment.getCaption(), attachmentIdAndUrlAndDigest.getSecond());
+                                              attachment.getCaption(), result.getUrl());
   }
 
   private void sendMessage(long messageID, VerifiedMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess)
@@ -664,14 +665,15 @@ public class SignalServiceMessageSender {
       hasDataContent = true;
     }
 
-    // Loki - Send profile name
+    // Loki - Send profile on pairing authorisation
     if (hasDataContent || message.getPairingAuthorisation().isPresent()) {
+      LokiProfile.Builder profile = LokiProfile.newBuilder();
       String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
-      if (displayName != null) {
-        LokiProfile profile = LokiProfile.newBuilder().setDisplayName(displayName).build();
-        builder.setProfile(profile);
-        hasDataContent = true;
-      }
+      String url = userDatabase.getProfileAvatarUrl(userHexEncodedPublicKey);
+      if (displayName != null) { profile.setDisplayName(displayName); }
+      profile.setAvatar(url != null ? url : "");
+      builder.setProfile(profile);
+      hasDataContent = true;
     }
 
     if (hasDataContent) {
@@ -1091,10 +1093,6 @@ public class SignalServiceMessageSender {
                                                     byte[]                       content,
                                                     LokiPublicChat               publicChat) {
     final SettableFuture<?>[] future = {new SettableFuture<Unit>()};
-    String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
-    String avatarUrl = userDatabase.getProfileAvatarUrl(userHexEncodedPublicKey);
-    if (displayName == null) displayName = "Anonymous";
-    if (avatarUrl == null) avatarUrl = "";
     try {
       SignalServiceProtos.DataMessage data = SignalServiceProtos.Content.parseFrom(content).getDataMessage();
       String body = (data.getBody() != null && data.getBody().length() > 0) ? data.getBody() : Long.toString(data.getTimestamp());
@@ -1144,7 +1142,7 @@ public class SignalServiceMessageSender {
                 null
         ));
       }
-      LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, displayName, avatarUrl, body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
+      LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, "", "", body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
       byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
       new LokiPublicChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, publicChat.getChannel(), publicChat.getServer()).success(new Function1<LokiPublicChatMessage, Unit>() {
 

@@ -29,6 +29,7 @@ public class SignalServiceContent {
   private final Optional<PairingAuthorisation> pairingAuthorisation;
   public Optional<LokiServiceMessage> lokiServiceMessage = Optional.absent();
   public Optional<String> senderDisplayName = Optional.absent();
+  public Optional<String> senderProfileAvatarUrl = Optional.absent();
 
   public SignalServiceContent(LokiServiceMessage lokiServiceMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
     this.sender       = sender;
@@ -170,4 +171,5 @@ public class SignalServiceContent {
   // Loki
   public void setLokiServiceMessage(LokiServiceMessage lokiServiceMessage) { this.lokiServiceMessage = Optional.fromNullable(lokiServiceMessage); }
   public void setSenderDisplayName(String displayName) { senderDisplayName = Optional.fromNullable(displayName); }
+  public void setSenderProfileAvatarUrl(String url) { senderProfileAvatarUrl = Optional.fromNullable(url); }
 }
