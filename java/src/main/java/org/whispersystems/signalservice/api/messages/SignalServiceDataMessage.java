@@ -284,6 +284,22 @@ public class SignalServiceDataMessage {
     return day;
   }
 
+  public boolean hasData() {
+    return getAttachments().isPresent() ||
+            getBody().isPresent() ||
+            getGroupInfo().isPresent() ||
+            isEndSession() ||
+            isExpirationUpdate() ||
+            isProfileKeyUpdate() ||
+            getExpiresInSeconds() > 0 ||
+            getProfileKey().isPresent() ||
+            getQuote().isPresent() ||
+            getSharedContacts().isPresent() ||
+            getPreviews().isPresent() ||
+            getSticker().isPresent() ||
+            isUnpairingRequest();
+  }
+
   public static class Builder {
 
     private List<SignalServiceAttachment> attachments    = new LinkedList<SignalServiceAttachment>();

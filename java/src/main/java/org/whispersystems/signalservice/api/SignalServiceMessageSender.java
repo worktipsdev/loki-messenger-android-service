@@ -549,138 +549,122 @@ public class SignalServiceMessageSender {
       container.setPairingAuthorisation(builder);
     }
 
-    boolean hasDataContent = false;
-    DataMessage.Builder builder = DataMessage.newBuilder();
-    List<AttachmentPointer> pointers = createAttachmentPointers(message.getAttachments(), recipient);
+    if (message.hasData() || message.getPairingAuthorisation().isPresent()) {
 
-    if (!pointers.isEmpty()) {
-      builder.addAllAttachments(pointers);
-      hasDataContent = true;
-    }
+      DataMessage.Builder builder = DataMessage.newBuilder();
+      List<AttachmentPointer> pointers = createAttachmentPointers(message.getAttachments(), recipient);
 
-    if (message.getBody().isPresent()) {
-      builder.setBody(message.getBody().get());
-      hasDataContent = true;
-    }
+      if (!pointers.isEmpty()) {
+        builder.addAllAttachments(pointers);
+      }
 
-    if (message.getGroupInfo().isPresent()) {
-      builder.setGroup(createGroupContent(message.getGroupInfo().get(), recipient));
-      hasDataContent = true;
-    }
+      if (message.getBody().isPresent()) {
+        builder.setBody(message.getBody().get());
+      }
 
-    if (message.isEndSession()) {
-      builder.setFlags(DataMessage.Flags.END_SESSION_VALUE);
-      hasDataContent = true;
-    }
+      if (message.getGroupInfo().isPresent()) {
+        builder.setGroup(createGroupContent(message.getGroupInfo().get(), recipient));
+      }
 
-    if (message.isExpirationUpdate()) {
-      builder.setFlags(DataMessage.Flags.EXPIRATION_TIMER_UPDATE_VALUE);
-      hasDataContent = true;
-    }
+      if (message.isEndSession()) {
+        builder.setFlags(DataMessage.Flags.END_SESSION_VALUE);
+      }
 
-    if (message.isProfileKeyUpdate()) {
-      builder.setFlags(DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE);
-      hasDataContent = true;
-    }
+      if (message.isExpirationUpdate()) {
+        builder.setFlags(DataMessage.Flags.EXPIRATION_TIMER_UPDATE_VALUE);
+      }
 
     if (message.isUnpairingRequest()) {
       builder.setFlags(DataMessage.Flags.UNPAIRING_REQUEST_VALUE);
-      hasDataContent = true;
     }
 
-    if (message.getExpiresInSeconds() > 0) {
-      builder.setExpireTimer(message.getExpiresInSeconds());
-      hasDataContent = true;
-    }
-
-    if (message.getProfileKey().isPresent()) {
-      builder.setProfileKey(ByteString.copyFrom(message.getProfileKey().get()));
-      hasDataContent = true;
-    }
-
-    if (message.getQuote().isPresent()) {
-      DataMessage.Quote.Builder quoteBuilder = DataMessage.Quote.newBuilder()
-              .setId(message.getQuote().get().getId())
-              .setAuthor(message.getQuote().get().getAuthor().getNumber())
-              .setText(message.getQuote().get().getText());
-
-      for (SignalServiceDataMessage.Quote.QuotedAttachment attachment : message.getQuote().get().getAttachments()) {
-        DataMessage.Quote.QuotedAttachment.Builder quotedAttachment = DataMessage.Quote.QuotedAttachment.newBuilder();
-
-        quotedAttachment.setContentType(attachment.getContentType());
-
-        if (attachment.getFileName() != null) {
-          quotedAttachment.setFileName(attachment.getFileName());
-        }
-
-        if (attachment.getThumbnail() != null) {
-          quotedAttachment.setThumbnail(createAttachmentPointer(attachment.getThumbnail().asStream(), recipient));
-        }
-
-        quoteBuilder.addAttachments(quotedAttachment);
+      if (message.isProfileKeyUpdate()) {
+        builder.setFlags(DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE);
       }
 
-      builder.setQuote(quoteBuilder);
-      hasDataContent = true;
-    }
+      if (message.getExpiresInSeconds() > 0) {
+        builder.setExpireTimer(message.getExpiresInSeconds());
+      }
 
-    if (message.getSharedContacts().isPresent()) {
-      builder.addAllContact(createSharedContactContent(message.getSharedContacts().get(), recipient));
-      hasDataContent = true;
-    }
+      if (message.getProfileKey().isPresent()) {
+        builder.setProfileKey(ByteString.copyFrom(message.getProfileKey().get()));
+      }
 
-    if (message.getPreviews().isPresent()) {
-      for (SignalServiceDataMessage.Preview preview : message.getPreviews().get()) {
-        DataMessage.Preview.Builder previewBuilder = DataMessage.Preview.newBuilder();
-        previewBuilder.setTitle(preview.getTitle());
-        previewBuilder.setUrl(preview.getUrl());
+      if (message.getQuote().isPresent()) {
+        DataMessage.Quote.Builder quoteBuilder = DataMessage.Quote.newBuilder()
+                .setId(message.getQuote().get().getId())
+                .setAuthor(message.getQuote().get().getAuthor().getNumber())
+                .setText(message.getQuote().get().getText());
 
-        if (preview.getImage().isPresent()) {
-          if (preview.getImage().get().isStream()) {
-            previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asStream(), recipient));
-          } else {
-            previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asPointer()));
+        for (SignalServiceDataMessage.Quote.QuotedAttachment attachment : message.getQuote().get().getAttachments()) {
+          DataMessage.Quote.QuotedAttachment.Builder quotedAttachment = DataMessage.Quote.QuotedAttachment.newBuilder();
+
+          quotedAttachment.setContentType(attachment.getContentType());
+
+          if (attachment.getFileName() != null) {
+            quotedAttachment.setFileName(attachment.getFileName());
           }
+
+          if (attachment.getThumbnail() != null) {
+            quotedAttachment.setThumbnail(createAttachmentPointer(attachment.getThumbnail().asStream(), recipient));
+          }
+
+          quoteBuilder.addAttachments(quotedAttachment);
         }
 
-        builder.addPreview(previewBuilder.build());
-        hasDataContent = true;
-      }
-    }
-
-    if (message.getSticker().isPresent()) {
-      DataMessage.Sticker.Builder stickerBuilder = DataMessage.Sticker.newBuilder();
-
-      stickerBuilder.setPackId(ByteString.copyFrom(message.getSticker().get().getPackId()));
-      stickerBuilder.setPackKey(ByteString.copyFrom(message.getSticker().get().getPackKey()));
-      stickerBuilder.setStickerId(message.getSticker().get().getStickerId());
-
-      if (message.getSticker().get().getAttachment().isStream()) {
-        stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asStream(), true, recipient));
-      } else {
-        stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asPointer()));
+        builder.setQuote(quoteBuilder);
       }
 
-      builder.setSticker(stickerBuilder.build());
-      hasDataContent = true;
-    }
+      if (message.getSharedContacts().isPresent()) {
+        builder.addAllContact(createSharedContactContent(message.getSharedContacts().get(), recipient));
+      }
 
-    // Loki - Send profile on pairing authorisation
-    if (hasDataContent || message.getPairingAuthorisation().isPresent()) {
+      if (message.getPreviews().isPresent()) {
+        for (SignalServiceDataMessage.Preview preview : message.getPreviews().get()) {
+          DataMessage.Preview.Builder previewBuilder = DataMessage.Preview.newBuilder();
+          previewBuilder.setTitle(preview.getTitle());
+          previewBuilder.setUrl(preview.getUrl());
+
+          if (preview.getImage().isPresent()) {
+            if (preview.getImage().get().isStream()) {
+              previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asStream(), recipient));
+            } else {
+              previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asPointer()));
+            }
+          }
+
+          builder.addPreview(previewBuilder.build());
+        }
+      }
+
+      if (message.getSticker().isPresent()) {
+        DataMessage.Sticker.Builder stickerBuilder = DataMessage.Sticker.newBuilder();
+
+        stickerBuilder.setPackId(ByteString.copyFrom(message.getSticker().get().getPackId()));
+        stickerBuilder.setPackKey(ByteString.copyFrom(message.getSticker().get().getPackKey()));
+        stickerBuilder.setStickerId(message.getSticker().get().getStickerId());
+
+        if (message.getSticker().get().getAttachment().isStream()) {
+          stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asStream(), true, recipient));
+        } else {
+          stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asPointer()));
+        }
+
+        builder.setSticker(stickerBuilder.build());
+      }
+
+      // Loki - Profile
       LokiProfile.Builder profile = LokiProfile.newBuilder();
       String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
       String url = userDatabase.getProfileAvatarUrl(userHexEncodedPublicKey);
       if (displayName != null) { profile.setDisplayName(displayName); }
       profile.setAvatar(url != null ? url : "");
       builder.setProfile(profile);
-      hasDataContent = true;
-    }
 
-    if (hasDataContent) {
       builder.setTimestamp(message.getTimestamp());
       container.setDataMessage(builder);
-    } else if (!message.getPairingAuthorisation().isPresent()) {
-      // Loki - Set an address message is we don't have any data content or a pairing authorisation
+    } else {
+      // Loki - Send an address message is we don't have any data content
       SignalServiceProtos.LokiAddressMessage.Builder addressMessage = SignalServiceProtos.LokiAddressMessage.newBuilder().setType(SignalServiceProtos.LokiAddressMessage.Type.HOST_UNREACHABLE);
       container.setLokiAddressMessage(addressMessage);
     }
