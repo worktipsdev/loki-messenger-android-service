@@ -193,7 +193,21 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
             .addFormDataPart("content", UUID.randomUUID().toString(), file) // avatar
             .build()
         val request = Request.Builder().url("$server/files").post(body)
-        return upload(server, request) { file.transmittedDigest }
+        return upload(server, request) { jsonString ->
+            val json = JsonUtil.fromJson(jsonString)
+            val data = json.get("data")
+            if (data == null) {
+                Log.d("Loki", "Couldn't parse attachment from: $jsonString.")
+                throw LokiAPI.Error.ParsingFailed
+            }
+            val id = data.get("id").asLong()
+            val url = data.get("url").asText()
+            if (url.isEmpty()) {
+                Log.d("Loki", "Couldn't parse upload from: $jsonString.")
+                throw LokiAPI.Error.ParsingFailed
+            }
+            UploadResult(id, url, file.transmittedDigest)
+        }
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
@@ -218,11 +232,25 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
             .addFormDataPart("avatar", UUID.randomUUID().toString(), file)
             .build()
         val request = Request.Builder().url("$server/users/me/avatar").post(body)
-        return upload(server, request) { file.transmittedDigest }
+        return upload(server, request) { jsonString ->
+            val json = JsonUtil.fromJson(jsonString)
+            val data = json.get("data")
+            if (data == null || !data.hasNonNull("avatar_image")) {
+                Log.d("Loki", "Couldn't parse profile photo from: $jsonString.")
+                throw LokiAPI.Error.ParsingFailed
+            }
+            val id = data.get("id").asLong()
+            val url = data.get("avatar_image").get("url").asText("")
+            if (url.isEmpty()) {
+                Log.d("Loki", "Couldn't parse profilePhoto from: $jsonString.")
+                throw LokiAPI.Error.ParsingFailed
+            }
+            UploadResult(id, url, file.transmittedDigest)
+        }
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    private fun upload(server: String, request: Request.Builder, digest: () -> ByteArray?): UploadResult {
+    private fun upload(server: String, request: Request.Builder, process: (String) -> UploadResult): UploadResult {
         val future = SettableFuture<UploadResult>()
         getAuthToken(server).then { token ->
             request.addHeader("Authorization", "Bearer $token")
@@ -230,20 +258,13 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                 override fun onResponse(call: Call, response: Response) {
                     when (response.code()) {
                         in 200..299 -> {
-                            val jsonString = response.body()!!.string()
-                            val body = JsonUtil.fromJson(jsonString)
-                            val data = body.get("data")
-                            if (data == null) {
-                                Log.d("Loki", "Couldn't parse upload from: $response.")
-                                future.setException(LokiAPI.Error.ParsingFailed)
+                            try {
+                                val jsonString = response.body()!!.string()
+                                val result = process(jsonString)
+                                future.set(result)
+                            } catch (e: Exception) {
+                                future.setException(e)
                             }
-                            val id = data.get("id").asLong()
-                            val url = data.get("url").asText()
-                            if (url.isEmpty()) {
-                                Log.d("Loki", "Couldn't parse upload from: $response.")
-                                future.setException(LokiAPI.Error.ParsingFailed)
-                            }
-                            future.set(UploadResult(id, url, digest()))
                         }
                         401 -> {
                             apiDatabase.setAuthToken(server, null)
