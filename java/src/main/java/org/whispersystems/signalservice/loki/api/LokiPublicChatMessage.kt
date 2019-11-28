@@ -9,12 +9,12 @@ public data class LokiPublicChatMessage(
     public val serverID: Long?,
     public val hexEncodedPublicKey: String,
     public val displayName: String,
-    public val avatarUrl: String,
     public val body: String,
     public val timestamp: Long,
     public val type: String,
     public val quote: Quote?,
     public val attachments: List<Attachment>,
+    public val avatar: Avatar?,
     public val signature: Signature?
 ) {
 
@@ -27,6 +27,11 @@ public data class LokiPublicChatMessage(
     // endregion
 
     // region Types
+    public data class Avatar(
+        public val profileKey: ByteArray,
+        public val url: String
+    )
+
     public data class Quote(
         public val quotedMessageTimestamp: Long,
         public val quoteeHexEncodedPublicKey: String,
@@ -74,8 +79,8 @@ public data class LokiPublicChatMessage(
     // endregion
 
     // region Initialization
-    constructor(hexEncodedPublicKey: String, displayName: String, avatarUrl: String, body: String, timestamp: Long, type: String, quote: Quote?, attachments: List<Attachment>)
-        : this(null, hexEncodedPublicKey, displayName, avatarUrl, body, timestamp, type, quote, attachments, null)
+    constructor(hexEncodedPublicKey: String, displayName: String, body: String, timestamp: Long, type: String, quote: Quote?, attachments: List<Attachment>)
+        : this(null, hexEncodedPublicKey, displayName, body, timestamp, type, quote, attachments, null, null)
     // endregion
 
     // region Crypto

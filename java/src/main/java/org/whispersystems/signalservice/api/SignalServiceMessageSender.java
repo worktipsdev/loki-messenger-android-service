@@ -1126,7 +1126,7 @@ public class SignalServiceMessageSender {
                 null
         ));
       }
-      LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, "", "", body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
+      LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, "", body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
       byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
       new LokiPublicChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, publicChat.getChannel(), publicChat.getServer()).success(new Function1<LokiPublicChatMessage, Unit>() {
 
