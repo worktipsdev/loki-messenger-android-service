@@ -313,11 +313,11 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         return execute(HTTPVerb.PATCH, server, "users/me", parameters = parameters).map { Unit }
     }
 
-    public fun setProfileAvatar(server: String, profileKey: ByteArray, url: String?): Promise<Unit, Exception> {
-        return setProfileAvatar(server, Base64.encodeBytes(profileKey), url)
+    public fun setProfilePicture(server: String, profileKey: ByteArray, url: String?): Promise<Unit, Exception> {
+        return setProfilePicture(server, Base64.encodeBytes(profileKey), url)
     }
 
-    public fun setProfileAvatar(server: String, profileKey: String, url: String?): Promise<Unit, Exception> {
+    public fun setProfilePicture(server: String, profileKey: String, url: String?): Promise<Unit, Exception> {
         Log.d("Loki", "Updating profile avatar on server: $server")
         val value = when (url) {
             null -> null
@@ -325,7 +325,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         }
         // NOTE: This may actually completely replace the annotations, have to double check it
         return setSelfAnnotation(server, avatarAnnotationType, value).map { Unit }.fail {
-            Log.d("Loki", "Failed to update profile avatar: $it")
+            Log.d("Loki", "Failed to update profile picture due to error: $it.")
         }
     }
     // endregion

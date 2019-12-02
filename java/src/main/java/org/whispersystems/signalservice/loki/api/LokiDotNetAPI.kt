@@ -193,17 +193,17 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
             .addFormDataPart("content", UUID.randomUUID().toString(), file) // avatar
             .build()
         val request = Request.Builder().url("$server/files").post(body)
-        return upload(server, request) { jsonString ->
-            val json = JsonUtil.fromJson(jsonString)
+        return upload(server, request) { jsonAsString ->
+            val json = JsonUtil.fromJson(jsonAsString)
             val data = json.get("data")
             if (data == null) {
-                Log.d("Loki", "Couldn't parse attachment from: $jsonString.")
+                Log.d("Loki", "Couldn't parse attachment from: $jsonAsString.")
                 throw LokiAPI.Error.ParsingFailed
             }
             val id = data.get("id").asLong()
             val url = data.get("url").asText()
             if (url.isEmpty()) {
-                Log.d("Loki", "Couldn't parse upload from: $jsonString.")
+                Log.d("Loki", "Couldn't parse upload from: $jsonAsString.")
                 throw LokiAPI.Error.ParsingFailed
             }
             UploadResult(id, url, file.transmittedDigest)
@@ -211,19 +211,19 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    fun uploadProfilePhoto(server: String, key: ByteArray, avatar: StreamDetails): UploadResult {
+    fun uploadProfilePicture(server: String, key: ByteArray, avatar: StreamDetails): UploadResult {
         val avatarData = ProfileAvatarData(avatar.stream, ProfileCipherOutputStream.getCiphertextLength(avatar.length), avatar.contentType, ProfileCipherOutputStreamFactory(key))
-        return uploadProfilePhoto(server, avatarData)
+        return uploadProfilePicture(server, avatarData)
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    fun uploadPublicProfilePhoto(server: String, data: ByteArray): UploadResult {
+    fun uploadPublicProfilePicture(server: String, data: ByteArray): UploadResult {
         val avatarData = ProfileAvatarData(ByteArrayInputStream(data), data.size.toLong(), "image/jpg", BasicOutputStreamFactory())
-        return uploadProfilePhoto(server, avatarData)
+        return uploadProfilePicture(server, avatarData)
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    fun uploadProfilePhoto(server: String, avatar: ProfileAvatarData): UploadResult {
+    private fun uploadProfilePicture(server: String, avatar: ProfileAvatarData): UploadResult {
         val file = DigestingRequestBody(avatar.data, avatar.outputStreamFactory, avatar.contentType, avatar.dataLength, null)
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
@@ -232,17 +232,17 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
             .addFormDataPart("avatar", UUID.randomUUID().toString(), file)
             .build()
         val request = Request.Builder().url("$server/users/me/avatar").post(body)
-        return upload(server, request) { jsonString ->
-            val json = JsonUtil.fromJson(jsonString)
+        return upload(server, request) { jsonAsString ->
+            val json = JsonUtil.fromJson(jsonAsString)
             val data = json.get("data")
             if (data == null || !data.hasNonNull("avatar_image")) {
-                Log.d("Loki", "Couldn't parse profile photo from: $jsonString.")
+                Log.d("Loki", "Couldn't parse profile picture from: $jsonAsString.")
                 throw LokiAPI.Error.ParsingFailed
             }
             val id = data.get("id").asLong()
             val url = data.get("avatar_image").get("url").asText("")
             if (url.isEmpty()) {
-                Log.d("Loki", "Couldn't parse profilePhoto from: $jsonString.")
+                Log.d("Loki", "Couldn't parse profile picture from: $jsonAsString.")
                 throw LokiAPI.Error.ParsingFailed
             }
             UploadResult(id, url, file.transmittedDigest)
@@ -259,8 +259,8 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                     when (response.code()) {
                         in 200..299 -> {
                             try {
-                                val jsonString = response.body()!!.string()
-                                val result = process(jsonString)
+                                val jsonAsString = response.body()!!.string()
+                                val result = process(jsonAsString)
                                 future.set(result)
                             } catch (e: Exception) {
                                 future.setException(e)
