@@ -43,14 +43,14 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
   }
 
   // region Private API
-  private fun fetchDeviceMappings(hexEncodedPublicKeys: List<String>): Promise<List<DeviceMappingFetchResult>, Exception> {
+  private fun internalFetchDeviceMappings(hexEncodedPublicKeys: List<String>): Promise<List<DeviceMappingFetchResult>, Exception> {
     return getUserProfiles(hexEncodedPublicKeys.toSet(), server, true).map { data ->
       data.map dataMap@ { node ->
         val device = node.get("username").asText()
         val annotations = node.get("annotations")
         val deviceMappingAnnotation = annotations.find { annotation ->
           annotation.get("type").asText() == deviceMappingType
-        } ?: return@dataMap DeviceMappingFetchResult(device, Error.ParsingFailed)
+        } ?: return@dataMap DeviceMappingFetchResult(device, listOf())
         val value = deviceMappingAnnotation.get("value")
         val authorisationsAsJSON = value.get("authorisations")
         val authorisations = authorisationsAsJSON.mapNotNull { authorisationAsJSON ->
@@ -85,7 +85,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
   }
 
   private fun fetchAndSaveDeviceMappings(hexEncodedPublicKeys: List<String>): Promise<List<DeviceMappingFetchResult>, Exception> {
-    return fetchDeviceMappings(hexEncodedPublicKeys).success { mappings ->
+    return internalFetchDeviceMappings(hexEncodedPublicKeys).success { mappings ->
       for (result in mappings) {
         if (result.isSuccess) {
           database.removePairingAuthorisations(result.pubKey)
@@ -116,6 +116,15 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
       }
     }.map { Unit }.success {
       Log.d("Loki", "Updated user device mappings")
+    }
+  }
+
+  fun fetchDeviceMappings(hexEncodedPublicKey: String): Promise<List<PairingAuthorisation>, Exception> {
+    return internalFetchDeviceMappings(listOf(hexEncodedPublicKey)).map { results ->
+      if (results.isEmpty()) { throw Error.ParsingFailed }
+      val result = results[0]
+      if (!result.isSuccess) { throw result.error!! }
+      result.authorisations
     }
   }
 

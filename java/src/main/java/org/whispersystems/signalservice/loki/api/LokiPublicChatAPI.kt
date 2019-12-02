@@ -6,6 +6,7 @@ import nl.komponents.kovenant.buildDispatcher
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.then
 import org.whispersystems.libsignal.logging.Log
+import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol
@@ -29,6 +30,8 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         private val attachmentType = "net.app.core.oembed"
         @JvmStatic
         public val publicChatMessageType = "network.loki.messenger.publicChat"
+        @JvmStatic
+        public val avatarAnnotationType = "network.loki.messenger.avatar"
 
         fun getDefaultChats(isDebug: Boolean = false): List<LokiPublicChat> {
             val result = mutableListOf<LokiPublicChat>()
@@ -92,6 +95,20 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                         val user = message.get("user")
                         val hexEncodedPublicKey = user.get("username").asText()
                         val displayName = if (user.hasNonNull("name")) user.get("name").asText() else "Anonymous"
+                        var avatar: LokiPublicChatMessage.Avatar? = null
+                        if (user.hasNonNull("annotations")) {
+                            val avatarAnnotation = user.get("annotations").find {
+                                (it.get("type").asText("") == avatarAnnotationType) && it.hasNonNull("value")
+                            }
+                            val avatarAnnotationValue = avatarAnnotation?.get("value")
+                            if (avatarAnnotationValue != null && avatarAnnotationValue.hasNonNull("profileKey") && avatarAnnotationValue.hasNonNull("url")) {
+                                try {
+                                    val profileKey = Base64.decode(avatarAnnotationValue.get("profileKey").asText())
+                                    val url = avatarAnnotationValue.get("url").asText()
+                                    avatar = LokiPublicChatMessage.Avatar(profileKey, url)
+                                } catch (e: Exception) {}
+                            }
+                        }
                         @Suppress("NAME_SHADOWING") val body = message.get("text").asText()
                         val timestamp = value.get("timestamp").asLong()
                         var quote: LokiPublicChatMessage.Quote? = null
@@ -135,7 +152,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                         val signatureVersion = value.get("sigver").asLong()
                         val signature = LokiPublicChatMessage.Signature(Hex.fromStringCondensed(hexEncodedSignature), signatureVersion)
                         // Verify the message
-                        val groupMessage = LokiPublicChatMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, attachments, signature)
+                        val groupMessage = LokiPublicChatMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, attachments, avatar, signature)
                         if (groupMessage.hasValidSignature()) groupMessage else null
                     } catch (exception: Exception) {
                         Log.d("Loki", "Couldn't parse message for public chat channel with ID: $channel on server: $server from: ${JsonUtil.toJson(message)}. Exception: ${exception.message}")
@@ -199,7 +216,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                     val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
                     val dateAsString = data.get("created_at").asText()
                     val timestamp = format.parse(dateAsString).time
-                    @Suppress("NAME_SHADOWING") val message = LokiPublicChatMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote, message.attachments, signedMessage.signature)
+                    @Suppress("NAME_SHADOWING") val message = LokiPublicChatMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote, message.attachments, null, signedMessage.signature)
                     message
                 } catch (exception: Exception) {
                     Log.d("Loki", "Couldn't parse message for public chat channel with ID: $channel on server: $server.")
@@ -294,6 +311,22 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         Log.d("Loki", "Updating display name on server: $server.")
         val parameters = mapOf( "name" to (newDisplayName ?: "") )
         return execute(HTTPVerb.PATCH, server, "users/me", parameters = parameters).map { Unit }
+    }
+
+    public fun setProfilePicture(server: String, profileKey: ByteArray, url: String?): Promise<Unit, Exception> {
+        return setProfilePicture(server, Base64.encodeBytes(profileKey), url)
+    }
+
+    public fun setProfilePicture(server: String, profileKey: String, url: String?): Promise<Unit, Exception> {
+        Log.d("Loki", "Updating profile avatar on server: $server")
+        val value = when (url) {
+            null -> null
+            else -> mapOf("profileKey" to profileKey, "url" to url)
+        }
+        // NOTE: This may actually completely replace the annotations, have to double check it
+        return setSelfAnnotation(server, avatarAnnotationType, value).map { Unit }.fail {
+            Log.d("Loki", "Failed to update profile picture due to error: $it.")
+        }
     }
     // endregion
 }
