@@ -317,7 +317,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         return setProfilePicture(server, Base64.encodeBytes(profileKey), url)
     }
 
-    public fun setProfilePicture(server: String, profileKey: String?, url: String?): Promise<Unit, Exception> {
+    public fun setProfilePicture(server: String, profileKey: String, url: String?): Promise<Unit, Exception> {
         Log.d("Loki", "Updating profile avatar on server: $server")
         val value = when (url) {
             null -> null
