@@ -317,11 +317,11 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         return setProfilePicture(server, Base64.encodeBytes(profileKey), url)
     }
 
-    public fun setProfilePicture(server: String, profileKey: String, url: String?): Promise<Unit, Exception> {
+    public fun setProfilePicture(server: String, profileKey: String?, url: String?): Promise<Unit, Exception> {
         Log.d("Loki", "Updating profile avatar on server: $server")
         val value = when (url) {
             null -> null
-            else -> mapOf("profileKey" to profileKey, "url" to url)
+            else -> mapOf( "profileKey" to profileKey, "url" to url )
         }
         // NOTE: This may actually completely replace the annotations, have to double check it
         return setSelfAnnotation(server, avatarAnnotationType, value).map { Unit }.fail {
