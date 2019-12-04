@@ -1,8 +1,6 @@
 package org.whispersystems.signalservice.loki.api
 
-import nl.komponents.kovenant.Kovenant
 import nl.komponents.kovenant.Promise
-import nl.komponents.kovenant.buildDispatcher
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.then
 import org.whispersystems.libsignal.logging.Log
@@ -55,19 +53,6 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
 
     // region Public API
     public fun getMessages(channel: Long, server: String): Promise<List<LokiPublicChatMessage>, Exception> {
-        val context = Kovenant.createContext {
-            callbackContext.dispatcher = buildDispatcher {
-                name = "callback_dispatcher"
-                concurrentTasks = 8
-            }
-            workerContext.dispatcher = buildDispatcher {
-                name = "worker_dispatcher"
-                concurrentTasks = 8
-            }
-            multipleCompletion = { lhs, rhs ->
-                Log.d("Loki", "Promise resolved more than once (first with $lhs, then with $rhs); ignoring $rhs.")
-            }
-        }
         Log.d("Loki", "Getting messages for public chat channel with ID: $channel on server: $server.")
         val parameters = mutableMapOf<String, Any>("include_annotations" to 1)
         val lastMessageServerID = apiDatabase.getLastMessageServerID(channel, server)
@@ -76,7 +61,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         } else {
             parameters["count"] = fallbackBatchCount
         }
-        return execute(HTTPVerb.GET, server, "channels/$channel/messages", false, parameters).then(context) { response ->
+        return execute(HTTPVerb.GET, server, "channels/$channel/messages", false, parameters).then(workContext) { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val body = JsonUtil.fromJson(bodyAsString)
@@ -176,7 +161,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         } else {
             parameters["count"] = fallbackBatchCount
         }
-        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/deletes", false, parameters).then { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/deletes", false, parameters).then(workContext) { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val body = JsonUtil.fromJson(bodyAsString)
@@ -256,7 +241,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     }
 
     public fun getModerators(channel: Long, server: String): Promise<Set<String>, Exception> {
-        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/get_moderators").then { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/get_moderators").then(workContext) { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
@@ -277,7 +262,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
 
     public fun getChannelInfo(channel: Long, server: String): Promise<String, Exception> {
         val parameters = mapOf( "include_annotations" to 1 )
-        return execute(HTTPVerb.GET, server, "/channels/$channel", false, parameters).then { response ->
+        return execute(HTTPVerb.GET, server, "/channels/$channel", false, parameters).then(workContext) { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 val body = JsonUtil.fromJson(bodyAsString)
@@ -294,7 +279,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     }
 
     public fun getDisplayNames(hexEncodedPublicKeys: Set<String>, server: String): Promise<Map<String, String>, Exception> {
-        return getUserProfiles(hexEncodedPublicKeys, server, false).map { data ->
+        return getUserProfiles(hexEncodedPublicKeys, server, false).map(workContext) { data ->
             val mapping = mutableMapOf<String, String>()
             for (user in data) {
                 if (user.hasNonNull("username")) {
