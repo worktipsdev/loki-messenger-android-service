@@ -1,6 +1,7 @@
 package org.whispersystems.signalservice.loki.api
 
 import com.fasterxml.jackson.databind.JsonNode
+import nl.komponents.kovenant.Kovenant
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
@@ -22,6 +23,7 @@ import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture
 import org.whispersystems.signalservice.loki.crypto.DiffieHellman
 import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory
+import org.whispersystems.signalservice.loki.utilities.createContext
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 import java.io.ByteArrayInputStream
 import java.io.IOException
@@ -44,6 +46,10 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         }
     }
 
+    // Context for network requests
+    val networkContext = Kovenant.createContext("network", 8)
+    val workContext = Kovenant.createContext("work", 8)
+
     public sealed class Error(val description: String) : Exception() {
         object Generic : Error("An error occurred.")
         object ParsingFailed : Error("Failed to parse object from JSON.")
@@ -57,7 +63,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         // Avoid multiple token requests to the server by caching
         var promise = authRequestCache[server]
         if (promise == null) {
-            promise = requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { newToken ->
+            promise = requestNewAuthToken(server).bind(workContext) { submitAuthToken(it, server) }.then(workContext) { newToken ->
                 apiDatabase.setAuthToken(server, newToken)
                 newToken
             }.always {
@@ -71,7 +77,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     private fun requestNewAuthToken(server: String): Promise<String, Exception> {
         Log.d("Loki", "Requesting auth token for server: $server.")
         val parameters: Map<String, Any> = mapOf( "pubKey" to userHexEncodedPublicKey )
-        return execute(HTTPVerb.GET, server, "loki/v1/get_challenge", false, parameters).map { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/get_challenge", false, parameters).map(workContext) { response ->
             try {
                 val bodyAsString = response.body()!!.string()
                 @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
@@ -98,11 +104,11 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     private fun submitAuthToken(token: String, server: String): Promise<String, Exception> {
         Log.d("Loki", "Submitting auth token for server: $server.")
         val parameters = mapOf( "pubKey" to userHexEncodedPublicKey, "token" to token )
-        return execute(HTTPVerb.POST, server, "loki/v1/submit_challenge", false, parameters).map { token }
+        return execute(HTTPVerb.POST, server, "loki/v1/submit_challenge", false, parameters).map(workContext) { token }
     }
 
     internal fun execute(verb: HTTPVerb, server: String, endpoint: String, isAuthRequired: Boolean = true, parameters: Map<String, Any> = mapOf()): Promise<Response, Exception> {
-        val deferred = deferred<Response, Exception>()
+        val deferred = deferred<Response, Exception>(networkContext)
         val sanitizedEndpoint = endpoint.removePrefix("/")
         fun execute(token: String?) {
             var url = "$server/$sanitizedEndpoint"
@@ -162,7 +168,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     internal fun getUserProfiles(hexEncodedPublicKeys: Set<String>, server: String, includeAnnotations: Boolean): Promise<JsonNode, Exception> {
         val parameters = mapOf( "include_user_annotations" to includeAnnotations.toInt(), "ids" to hexEncodedPublicKeys.joinToString { "@$it" } )
-        return execute(HTTPVerb.GET, server, "users", false, parameters).map { rawResponse ->
+        return execute(HTTPVerb.GET, server, "users", false, parameters).map(workContext) { rawResponse ->
             val bodyAsString = rawResponse.body()!!.string()
             val body = JsonUtil.fromJson(bodyAsString)
             val data = body.get("data")
@@ -252,7 +258,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
     private fun upload(server: String, request: Request.Builder, process: (String) -> UploadResult): UploadResult {
         val future = SettableFuture<UploadResult>()
-        getAuthToken(server).then { token ->
+        getAuthToken(server).then(networkContext) { token ->
             request.addHeader("Authorization", "Bearer $token")
             connection.newCall(request.build()).enqueue(object : Callback {
                 override fun onResponse(call: Call, response: Response) {
