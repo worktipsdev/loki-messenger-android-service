@@ -10624,6 +10624,10 @@ public final class SignalServiceProtos {
        * <code>UNPAIRING_REQUEST = 128;</code>
        */
       UNPAIRING_REQUEST(4, 128),
+      /**
+       * <code>SESSION_REQUEST = 256;</code>
+       */
+      SESSION_REQUEST(5, 256),
       ;
 
       /**
@@ -10646,6 +10650,10 @@ public final class SignalServiceProtos {
        * <code>UNPAIRING_REQUEST = 128;</code>
        */
       public static final int UNPAIRING_REQUEST_VALUE = 128;
+      /**
+       * <code>SESSION_REQUEST = 256;</code>
+       */
+      public static final int SESSION_REQUEST_VALUE = 256;
 
 
       public final int getNumber() { return value; }
@@ -10657,6 +10665,7 @@ public final class SignalServiceProtos {
           case 4: return PROFILE_KEY_UPDATE;
           case 64: return SESSION_RESTORE;
           case 128: return UNPAIRING_REQUEST;
+          case 256: return SESSION_REQUEST;
           default: return null;
         }
       }
@@ -36915,6 +36924,26 @@ public final class SignalServiceProtos {
      * <code>optional .signalservice.AttachmentPointer avatar = 5;</code>
      */
     org.whispersystems.signalservice.internal.push.SignalServiceProtos.AttachmentPointerOrBuilder getAvatarOrBuilder();
+
+    // repeated string admins = 6;
+    /**
+     * <code>repeated string admins = 6;</code>
+     */
+    java.util.List<java.lang.String>
+    getAdminsList();
+    /**
+     * <code>repeated string admins = 6;</code>
+     */
+    int getAdminsCount();
+    /**
+     * <code>repeated string admins = 6;</code>
+     */
+    java.lang.String getAdmins(int index);
+    /**
+     * <code>repeated string admins = 6;</code>
+     */
+    com.google.protobuf.ByteString
+        getAdminsBytes(int index);
   }
   /**
    * Protobuf type {@code signalservice.GroupContext}
@@ -37009,6 +37038,14 @@ public final class SignalServiceProtos {
               bitField0_ |= 0x00000008;
               break;
             }
+            case 50: {
+              if (!((mutable_bitField0_ & 0x00000020) == 0x00000020)) {
+                admins_ = new com.google.protobuf.LazyStringArrayList();
+                mutable_bitField0_ |= 0x00000020;
+              }
+              admins_.add(input.readBytes());
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -37019,6 +37056,9 @@ public final class SignalServiceProtos {
       } finally {
         if (((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
           members_ = new com.google.protobuf.UnmodifiableLazyStringList(members_);
+        }
+        if (((mutable_bitField0_ & 0x00000020) == 0x00000020)) {
+          admins_ = new com.google.protobuf.UnmodifiableLazyStringList(admins_);
         }
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -37288,12 +37328,43 @@ public final class SignalServiceProtos {
       return avatar_;
     }
 
+    // repeated string admins = 6;
+    public static final int ADMINS_FIELD_NUMBER = 6;
+    private com.google.protobuf.LazyStringList admins_;
+    /**
+     * <code>repeated string admins = 6;</code>
+     */
+    public java.util.List<java.lang.String>
+        getAdminsList() {
+      return admins_;
+    }
+    /**
+     * <code>repeated string admins = 6;</code>
+     */
+    public int getAdminsCount() {
+      return admins_.size();
+    }
+    /**
+     * <code>repeated string admins = 6;</code>
+     */
+    public java.lang.String getAdmins(int index) {
+      return admins_.get(index);
+    }
+    /**
+     * <code>repeated string admins = 6;</code>
+     */
+    public com.google.protobuf.ByteString
+        getAdminsBytes(int index) {
+      return admins_.getByteString(index);
+    }
+
     private void initFields() {
       id_ = com.google.protobuf.ByteString.EMPTY;
       type_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.GroupContext.Type.UNKNOWN;
       name_ = "";
       members_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       avatar_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.AttachmentPointer.getDefaultInstance();
+      admins_ = com.google.protobuf.LazyStringArrayList.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -37321,6 +37392,9 @@ public final class SignalServiceProtos {
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         output.writeMessage(5, avatar_);
+      }
+      for (int i = 0; i < admins_.size(); i++) {
+        output.writeBytes(6, admins_.getByteString(i));
       }
       getUnknownFields().writeTo(output);
     }
@@ -37355,6 +37429,15 @@ public final class SignalServiceProtos {
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
           .computeMessageSize(5, avatar_);
+      }
+      {
+        int dataSize = 0;
+        for (int i = 0; i < admins_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeBytesSizeNoTag(admins_.getByteString(i));
+        }
+        size += dataSize;
+        size += 1 * getAdminsList().size();
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -37487,6 +37570,8 @@ public final class SignalServiceProtos {
           avatarBuilder_.clear();
         }
         bitField0_ = (bitField0_ & ~0x00000010);
+        admins_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000020);
         return this;
       }
 
@@ -37541,6 +37626,12 @@ public final class SignalServiceProtos {
         } else {
           result.avatar_ = avatarBuilder_.build();
         }
+        if (((bitField0_ & 0x00000020) == 0x00000020)) {
+          admins_ = new com.google.protobuf.UnmodifiableLazyStringList(
+              admins_);
+          bitField0_ = (bitField0_ & ~0x00000020);
+        }
+        result.admins_ = admins_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -37580,6 +37671,16 @@ public final class SignalServiceProtos {
         }
         if (other.hasAvatar()) {
           mergeAvatar(other.getAvatar());
+        }
+        if (!other.admins_.isEmpty()) {
+          if (admins_.isEmpty()) {
+            admins_ = other.admins_;
+            bitField0_ = (bitField0_ & ~0x00000020);
+          } else {
+            ensureAdminsIsMutable();
+            admins_.addAll(other.admins_);
+          }
+          onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -37962,6 +38063,99 @@ public final class SignalServiceProtos {
           avatar_ = null;
         }
         return avatarBuilder_;
+      }
+
+      // repeated string admins = 6;
+      private com.google.protobuf.LazyStringList admins_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private void ensureAdminsIsMutable() {
+        if (!((bitField0_ & 0x00000020) == 0x00000020)) {
+          admins_ = new com.google.protobuf.LazyStringArrayList(admins_);
+          bitField0_ |= 0x00000020;
+         }
+      }
+      /**
+       * <code>repeated string admins = 6;</code>
+       */
+      public java.util.List<java.lang.String>
+          getAdminsList() {
+        return java.util.Collections.unmodifiableList(admins_);
+      }
+      /**
+       * <code>repeated string admins = 6;</code>
+       */
+      public int getAdminsCount() {
+        return admins_.size();
+      }
+      /**
+       * <code>repeated string admins = 6;</code>
+       */
+      public java.lang.String getAdmins(int index) {
+        return admins_.get(index);
+      }
+      /**
+       * <code>repeated string admins = 6;</code>
+       */
+      public com.google.protobuf.ByteString
+          getAdminsBytes(int index) {
+        return admins_.getByteString(index);
+      }
+      /**
+       * <code>repeated string admins = 6;</code>
+       */
+      public Builder setAdmins(
+          int index, java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureAdminsIsMutable();
+        admins_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string admins = 6;</code>
+       */
+      public Builder addAdmins(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureAdminsIsMutable();
+        admins_.add(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string admins = 6;</code>
+       */
+      public Builder addAllAdmins(
+          java.lang.Iterable<java.lang.String> values) {
+        ensureAdminsIsMutable();
+        super.addAll(values, admins_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string admins = 6;</code>
+       */
+      public Builder clearAdmins() {
+        admins_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000020);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string admins = 6;</code>
+       */
+      public Builder addAdminsBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureAdminsIsMutable();
+        admins_.add(value);
+        onChanged();
+        return this;
       }
 
       // @@protoc_insertion_point(builder_scope:signalservice.GroupContext)
@@ -42249,7 +42443,7 @@ public final class SignalServiceProtos {
       "d\030\001 \001(\004\022\023\n\013description\030\002 \001(\t\032K\n\tIceUpdat" +
       "e\022\n\n\002id\030\001 \001(\004\022\016\n\006sdpMid\030\002 \001(\t\022\025\n\rsdpMLin" +
       "eIndex\030\003 \001(\r\022\013\n\003sdp\030\004 \001(\t\032\022\n\004Busy\022\n\n\002id\030" +
-      "\001 \001(\004\032\024\n\006Hangup\022\n\n\002id\030\001 \001(\004\"\274\020\n\013DataMess" +
+      "\001 \001(\004\032\024\n\006Hangup\022\n\n\002id\030\001 \001(\004\"\323\020\n\013DataMess" +
       "age\022\014\n\004body\030\001 \001(\t\0225\n\013attachments\030\002 \003(\0132 " +
       ".signalservice.AttachmentPointer\022*\n\005grou" +
       "p\030\003 \001(\0132\033.signalservice.GroupContext\022\r\n\005",
@@ -42299,87 +42493,88 @@ public final class SignalServiceProtos {
       "rvice.AttachmentPointer\032m\n\007Sticker\022\016\n\006pa" +
       "ckId\030\001 \001(\014\022\017\n\007packKey\030\002 \001(\014\022\021\n\tstickerId" +
       "\030\003 \001(\r\022.\n\004data\030\004 \001(\0132 .signalservice.Att" +
-      "achmentPointer\"z\n\005Flags\022\017\n\013END_SESSION\020\001" +
-      "\022\033\n\027EXPIRATION_TIMER_UPDATE\020\002\022\026\n\022PROFILE" +
-      "_KEY_UPDATE\020\004\022\023\n\017SESSION_RESTORE\020@\022\026\n\021UN" +
-      "PAIRING_REQUEST\020\200\001\"2\n\013LokiProfile\022\023\n\013dis",
-      "playName\030\001 \001(\t\022\016\n\006avatar\030\002 \001(\t\"\036\n\013NullMe" +
-      "ssage\022\017\n\007padding\030\001 \001(\014\"u\n\016ReceiptMessage" +
-      "\0220\n\004type\030\001 \001(\0162\".signalservice.ReceiptMe" +
-      "ssage.Type\022\021\n\ttimestamp\030\002 \003(\004\"\036\n\004Type\022\014\n" +
-      "\010DELIVERY\020\000\022\010\n\004READ\020\001\"\214\001\n\rTypingMessage\022" +
-      "\021\n\ttimestamp\030\001 \001(\004\0223\n\006action\030\002 \001(\0162#.sig" +
-      "nalservice.TypingMessage.Action\022\017\n\007group" +
-      "Id\030\003 \001(\014\"\"\n\006Action\022\013\n\007STARTED\020\000\022\013\n\007STOPP" +
-      "ED\020\001\"\253\001\n\010Verified\022\023\n\013destination\030\001 \001(\t\022\023" +
-      "\n\013identityKey\030\002 \001(\014\022,\n\005state\030\003 \001(\0162\035.sig",
-      "nalservice.Verified.State\022\023\n\013nullMessage" +
-      "\030\004 \001(\014\"2\n\005State\022\013\n\007DEFAULT\020\000\022\014\n\010VERIFIED" +
-      "\020\001\022\016\n\nUNVERIFIED\020\002\"\322\013\n\013SyncMessage\022-\n\004se" +
-      "nt\030\001 \001(\0132\037.signalservice.SyncMessage.Sen" +
-      "t\0225\n\010contacts\030\002 \001(\0132#.signalservice.Sync" +
-      "Message.Contacts\0221\n\006groups\030\003 \001(\0132!.signa" +
-      "lservice.SyncMessage.Groups\0223\n\007request\030\004" +
-      " \001(\0132\".signalservice.SyncMessage.Request" +
-      "\022-\n\004read\030\005 \003(\0132\037.signalservice.SyncMessa" +
-      "ge.Read\0223\n\007blocked\030\006 \001(\0132\".signalservice",
-      ".SyncMessage.Blocked\022)\n\010verified\030\007 \001(\0132\027" +
-      ".signalservice.Verified\022?\n\rconfiguration" +
-      "\030\t \001(\0132(.signalservice.SyncMessage.Confi" +
-      "guration\022\017\n\007padding\030\010 \001(\014\022M\n\024stickerPack" +
-      "Operation\030\n \003(\0132/.signalservice.SyncMess" +
-      "age.StickerPackOperation\032\236\002\n\004Sent\022\023\n\013des" +
-      "tination\030\001 \001(\t\022\021\n\ttimestamp\030\002 \001(\004\022+\n\007mes" +
-      "sage\030\003 \001(\0132\032.signalservice.DataMessage\022 " +
-      "\n\030expirationStartTimestamp\030\004 \001(\004\022V\n\022unid" +
-      "entifiedStatus\030\005 \003(\0132:.signalservice.Syn",
-      "cMessage.Sent.UnidentifiedDeliveryStatus" +
-      "\032G\n\032UnidentifiedDeliveryStatus\022\023\n\013destin" +
-      "ation\030\001 \001(\t\022\024\n\014unidentified\030\002 \001(\010\032a\n\010Con" +
-      "tacts\022.\n\004blob\030\001 \001(\0132 .signalservice.Atta" +
-      "chmentPointer\022\027\n\010complete\030\002 \001(\010:\005false\022\014" +
-      "\n\004data\030e \001(\014\0328\n\006Groups\022.\n\004blob\030\001 \001(\0132 .s" +
-      "ignalservice.AttachmentPointer\032,\n\007Blocke" +
-      "d\022\017\n\007numbers\030\001 \003(\t\022\020\n\010groupIds\030\002 \003(\014\032\217\001\n" +
-      "\007Request\0225\n\004type\030\001 \001(\0162\'.signalservice.S" +
-      "yncMessage.Request.Type\"M\n\004Type\022\013\n\007UNKNO",
-      "WN\020\000\022\014\n\010CONTACTS\020\001\022\n\n\006GROUPS\020\002\022\013\n\007BLOCKE" +
-      "D\020\003\022\021\n\rCONFIGURATION\020\004\032)\n\004Read\022\016\n\006sender" +
-      "\030\001 \001(\t\022\021\n\ttimestamp\030\002 \001(\004\032}\n\rConfigurati" +
-      "on\022\024\n\014readReceipts\030\001 \001(\010\022&\n\036unidentified" +
-      "DeliveryIndicators\030\002 \001(\010\022\030\n\020typingIndica" +
-      "tors\030\003 \001(\010\022\024\n\014linkPreviews\030\004 \001(\010\032\234\001\n\024Sti" +
-      "ckerPackOperation\022\016\n\006packId\030\001 \001(\014\022\017\n\007pac" +
-      "kKey\030\002 \001(\014\022B\n\004type\030\003 \001(\01624.signalservice" +
-      ".SyncMessage.StickerPackOperation.Type\"\037" +
-      "\n\004Type\022\013\n\007INSTALL\020\000\022\n\n\006REMOVE\020\001\"\354\001\n\021Atta",
-      "chmentPointer\022\n\n\002id\030\001 \001(\006\022\023\n\013contentType" +
-      "\030\002 \001(\t\022\013\n\003key\030\003 \001(\014\022\014\n\004size\030\004 \001(\r\022\021\n\tthu" +
-      "mbnail\030\005 \001(\014\022\016\n\006digest\030\006 \001(\014\022\020\n\010fileName" +
-      "\030\007 \001(\t\022\r\n\005flags\030\010 \001(\r\022\r\n\005width\030\t \001(\r\022\016\n\006" +
-      "height\030\n \001(\r\022\017\n\007caption\030\013 \001(\t\022\013\n\003url\030e \001" +
-      "(\t\"\032\n\005Flags\022\021\n\rVOICE_MESSAGE\020\001\"\345\001\n\014Group" +
-      "Context\022\n\n\002id\030\001 \001(\014\022.\n\004type\030\002 \001(\0162 .sign" +
-      "alservice.GroupContext.Type\022\014\n\004name\030\003 \001(" +
-      "\t\022\017\n\007members\030\004 \003(\t\0220\n\006avatar\030\005 \001(\0132 .sig" +
-      "nalservice.AttachmentPointer\"H\n\004Type\022\013\n\007",
-      "UNKNOWN\020\000\022\n\n\006UPDATE\020\001\022\013\n\007DELIVER\020\002\022\010\n\004QU" +
-      "IT\020\003\022\020\n\014REQUEST_INFO\020\004\"\231\002\n\016ContactDetail" +
-      "s\022\016\n\006number\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\0224\n\006avata" +
-      "r\030\003 \001(\0132$.signalservice.ContactDetails.A" +
-      "vatar\022\r\n\005color\030\004 \001(\t\022)\n\010verified\030\005 \001(\0132\027" +
-      ".signalservice.Verified\022\022\n\nprofileKey\030\006 " +
-      "\001(\014\022\017\n\007blocked\030\007 \001(\010\022\023\n\013expireTimer\030\010 \001(" +
-      "\r\022\020\n\010nickname\030e \001(\t\032-\n\006Avatar\022\023\n\013content" +
-      "Type\030\001 \001(\t\022\016\n\006length\030\002 \001(\r\"\347\001\n\014GroupDeta" +
-      "ils\022\n\n\002id\030\001 \001(\014\022\014\n\004name\030\002 \001(\t\022\017\n\007members",
-      "\030\003 \003(\t\0222\n\006avatar\030\004 \001(\0132\".signalservice.G" +
-      "roupDetails.Avatar\022\024\n\006active\030\005 \001(\010:\004true" +
-      "\022\023\n\013expireTimer\030\006 \001(\r\022\r\n\005color\030\007 \001(\t\022\017\n\007" +
-      "blocked\030\010 \001(\010\032-\n\006Avatar\022\023\n\013contentType\030\001" +
-      " \001(\t\022\016\n\006length\030\002 \001(\rBE\n.org.whispersyste" +
-      "ms.signalservice.internal.pushB\023SignalSe" +
-      "rviceProtos"
+      "achmentPointer\"\220\001\n\005Flags\022\017\n\013END_SESSION\020" +
+      "\001\022\033\n\027EXPIRATION_TIMER_UPDATE\020\002\022\026\n\022PROFIL" +
+      "E_KEY_UPDATE\020\004\022\023\n\017SESSION_RESTORE\020@\022\026\n\021U" +
+      "NPAIRING_REQUEST\020\200\001\022\024\n\017SESSION_REQUEST\020\200",
+      "\002\"2\n\013LokiProfile\022\023\n\013displayName\030\001 \001(\t\022\016\n" +
+      "\006avatar\030\002 \001(\t\"\036\n\013NullMessage\022\017\n\007padding\030" +
+      "\001 \001(\014\"u\n\016ReceiptMessage\0220\n\004type\030\001 \001(\0162\"." +
+      "signalservice.ReceiptMessage.Type\022\021\n\ttim" +
+      "estamp\030\002 \003(\004\"\036\n\004Type\022\014\n\010DELIVERY\020\000\022\010\n\004RE" +
+      "AD\020\001\"\214\001\n\rTypingMessage\022\021\n\ttimestamp\030\001 \001(" +
+      "\004\0223\n\006action\030\002 \001(\0162#.signalservice.Typing" +
+      "Message.Action\022\017\n\007groupId\030\003 \001(\014\"\"\n\006Actio" +
+      "n\022\013\n\007STARTED\020\000\022\013\n\007STOPPED\020\001\"\253\001\n\010Verified" +
+      "\022\023\n\013destination\030\001 \001(\t\022\023\n\013identityKey\030\002 \001",
+      "(\014\022,\n\005state\030\003 \001(\0162\035.signalservice.Verifi" +
+      "ed.State\022\023\n\013nullMessage\030\004 \001(\014\"2\n\005State\022\013" +
+      "\n\007DEFAULT\020\000\022\014\n\010VERIFIED\020\001\022\016\n\nUNVERIFIED\020" +
+      "\002\"\322\013\n\013SyncMessage\022-\n\004sent\030\001 \001(\0132\037.signal" +
+      "service.SyncMessage.Sent\0225\n\010contacts\030\002 \001" +
+      "(\0132#.signalservice.SyncMessage.Contacts\022" +
+      "1\n\006groups\030\003 \001(\0132!.signalservice.SyncMess" +
+      "age.Groups\0223\n\007request\030\004 \001(\0132\".signalserv" +
+      "ice.SyncMessage.Request\022-\n\004read\030\005 \003(\0132\037." +
+      "signalservice.SyncMessage.Read\0223\n\007blocke",
+      "d\030\006 \001(\0132\".signalservice.SyncMessage.Bloc" +
+      "ked\022)\n\010verified\030\007 \001(\0132\027.signalservice.Ve" +
+      "rified\022?\n\rconfiguration\030\t \001(\0132(.signalse" +
+      "rvice.SyncMessage.Configuration\022\017\n\007paddi" +
+      "ng\030\010 \001(\014\022M\n\024stickerPackOperation\030\n \003(\0132/" +
+      ".signalservice.SyncMessage.StickerPackOp" +
+      "eration\032\236\002\n\004Sent\022\023\n\013destination\030\001 \001(\t\022\021\n" +
+      "\ttimestamp\030\002 \001(\004\022+\n\007message\030\003 \001(\0132\032.sign" +
+      "alservice.DataMessage\022 \n\030expirationStart" +
+      "Timestamp\030\004 \001(\004\022V\n\022unidentifiedStatus\030\005 ",
+      "\003(\0132:.signalservice.SyncMessage.Sent.Uni" +
+      "dentifiedDeliveryStatus\032G\n\032UnidentifiedD" +
+      "eliveryStatus\022\023\n\013destination\030\001 \001(\t\022\024\n\014un" +
+      "identified\030\002 \001(\010\032a\n\010Contacts\022.\n\004blob\030\001 \001" +
+      "(\0132 .signalservice.AttachmentPointer\022\027\n\010" +
+      "complete\030\002 \001(\010:\005false\022\014\n\004data\030e \001(\014\0328\n\006G" +
+      "roups\022.\n\004blob\030\001 \001(\0132 .signalservice.Atta" +
+      "chmentPointer\032,\n\007Blocked\022\017\n\007numbers\030\001 \003(" +
+      "\t\022\020\n\010groupIds\030\002 \003(\014\032\217\001\n\007Request\0225\n\004type\030" +
+      "\001 \001(\0162\'.signalservice.SyncMessage.Reques",
+      "t.Type\"M\n\004Type\022\013\n\007UNKNOWN\020\000\022\014\n\010CONTACTS\020" +
+      "\001\022\n\n\006GROUPS\020\002\022\013\n\007BLOCKED\020\003\022\021\n\rCONFIGURAT" +
+      "ION\020\004\032)\n\004Read\022\016\n\006sender\030\001 \001(\t\022\021\n\ttimesta" +
+      "mp\030\002 \001(\004\032}\n\rConfiguration\022\024\n\014readReceipt" +
+      "s\030\001 \001(\010\022&\n\036unidentifiedDeliveryIndicator" +
+      "s\030\002 \001(\010\022\030\n\020typingIndicators\030\003 \001(\010\022\024\n\014lin" +
+      "kPreviews\030\004 \001(\010\032\234\001\n\024StickerPackOperation" +
+      "\022\016\n\006packId\030\001 \001(\014\022\017\n\007packKey\030\002 \001(\014\022B\n\004typ" +
+      "e\030\003 \001(\01624.signalservice.SyncMessage.Stic" +
+      "kerPackOperation.Type\"\037\n\004Type\022\013\n\007INSTALL",
+      "\020\000\022\n\n\006REMOVE\020\001\"\354\001\n\021AttachmentPointer\022\n\n\002" +
+      "id\030\001 \001(\006\022\023\n\013contentType\030\002 \001(\t\022\013\n\003key\030\003 \001" +
+      "(\014\022\014\n\004size\030\004 \001(\r\022\021\n\tthumbnail\030\005 \001(\014\022\016\n\006d" +
+      "igest\030\006 \001(\014\022\020\n\010fileName\030\007 \001(\t\022\r\n\005flags\030\010" +
+      " \001(\r\022\r\n\005width\030\t \001(\r\022\016\n\006height\030\n \001(\r\022\017\n\007c" +
+      "aption\030\013 \001(\t\022\013\n\003url\030e \001(\t\"\032\n\005Flags\022\021\n\rVO" +
+      "ICE_MESSAGE\020\001\"\365\001\n\014GroupContext\022\n\n\002id\030\001 \001" +
+      "(\014\022.\n\004type\030\002 \001(\0162 .signalservice.GroupCo" +
+      "ntext.Type\022\014\n\004name\030\003 \001(\t\022\017\n\007members\030\004 \003(" +
+      "\t\0220\n\006avatar\030\005 \001(\0132 .signalservice.Attach",
+      "mentPointer\022\016\n\006admins\030\006 \003(\t\"H\n\004Type\022\013\n\007U" +
+      "NKNOWN\020\000\022\n\n\006UPDATE\020\001\022\013\n\007DELIVER\020\002\022\010\n\004QUI" +
+      "T\020\003\022\020\n\014REQUEST_INFO\020\004\"\231\002\n\016ContactDetails" +
+      "\022\016\n\006number\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\0224\n\006avatar" +
+      "\030\003 \001(\0132$.signalservice.ContactDetails.Av" +
+      "atar\022\r\n\005color\030\004 \001(\t\022)\n\010verified\030\005 \001(\0132\027." +
+      "signalservice.Verified\022\022\n\nprofileKey\030\006 \001" +
+      "(\014\022\017\n\007blocked\030\007 \001(\010\022\023\n\013expireTimer\030\010 \001(\r" +
+      "\022\020\n\010nickname\030e \001(\t\032-\n\006Avatar\022\023\n\013contentT" +
+      "ype\030\001 \001(\t\022\016\n\006length\030\002 \001(\r\"\347\001\n\014GroupDetai",
+      "ls\022\n\n\002id\030\001 \001(\014\022\014\n\004name\030\002 \001(\t\022\017\n\007members\030" +
+      "\003 \003(\t\0222\n\006avatar\030\004 \001(\0132\".signalservice.Gr" +
+      "oupDetails.Avatar\022\024\n\006active\030\005 \001(\010:\004true\022" +
+      "\023\n\013expireTimer\030\006 \001(\r\022\r\n\005color\030\007 \001(\t\022\017\n\007b" +
+      "locked\030\010 \001(\010\032-\n\006Avatar\022\023\n\013contentType\030\001 " +
+      "\001(\t\022\016\n\006length\030\002 \001(\rBE\n.org.whispersystem" +
+      "s.signalservice.internal.pushB\023SignalSer" +
+      "viceProtos"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -42619,7 +42814,7 @@ public final class SignalServiceProtos {
           internal_static_signalservice_GroupContext_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_GroupContext_descriptor,
-              new java.lang.String[] { "Id", "Type", "Name", "Members", "Avatar", });
+              new java.lang.String[] { "Id", "Type", "Name", "Members", "Avatar", "Admins", });
           internal_static_signalservice_ContactDetails_descriptor =
             getDescriptor().getMessageTypes().get(15);
           internal_static_signalservice_ContactDetails_fieldAccessorTable = new
