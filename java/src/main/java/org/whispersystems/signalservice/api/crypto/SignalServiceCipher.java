@@ -728,10 +728,10 @@ public class SignalServiceCipher {
                                                     pointer.getUrl());
       }
 
-      return new SignalServiceGroup(type, content.getGroup().getId().toByteArray(), name, members, avatar);
+      return new SignalServiceGroup(type, content.getGroup().getId().toByteArray(), SignalServiceGroup.GroupType.SIGNAL, name, members, avatar);
     }
 
-    return new SignalServiceGroup(content.getGroup().getId().toByteArray());
+    return new SignalServiceGroup(content.getGroup().getId().toByteArray(), SignalServiceGroup.GroupType.SIGNAL);
   }
 
   protected static class Metadata {
