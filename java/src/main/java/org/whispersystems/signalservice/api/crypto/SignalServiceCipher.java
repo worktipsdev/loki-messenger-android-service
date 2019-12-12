@@ -704,6 +704,7 @@ public class SignalServiceCipher {
       String                      name    = null;
       List<String>                members = null;
       SignalServiceAttachmentPointer avatar  = null;
+      List<String> admins = null;
 
       if (content.getGroup().hasName()) {
         name = content.getGroup().getName();
@@ -728,7 +729,11 @@ public class SignalServiceCipher {
                                                     pointer.getUrl());
       }
 
-      return new SignalServiceGroup(type, content.getGroup().getId().toByteArray(), SignalServiceGroup.GroupType.SIGNAL, name, members, avatar);
+      if (content.getGroup().getAdminsCount() > 0) {
+        admins = content.getGroup().getAdminsList();
+      }
+
+      return new SignalServiceGroup(type, content.getGroup().getId().toByteArray(), SignalServiceGroup.GroupType.SIGNAL, name, members, avatar, admins);
     }
 
     return new SignalServiceGroup(content.getGroup().getId().toByteArray(), SignalServiceGroup.GroupType.SIGNAL);

@@ -45,6 +45,7 @@ public class SignalServiceGroup {
   private final Optional<String>               name;
   private final Optional<List<String>>         members;
   private final Optional<SignalServiceAttachment> avatar;
+  private final Optional<List<String>>         admins;
 
 
   /**
@@ -52,7 +53,7 @@ public class SignalServiceGroup {
    * @param groupId
    */
   public SignalServiceGroup(byte[] groupId, GroupType groupType) {
-    this(Type.DELIVER, groupId, groupType,null, null, null);
+    this(Type.DELIVER, groupId, groupType,null, null, null, null);
   }
 
   /**
@@ -65,7 +66,8 @@ public class SignalServiceGroup {
    */
   public SignalServiceGroup(Type type, byte[] groupId, GroupType groupType, String name,
                             List<String> members,
-                            SignalServiceAttachment avatar)
+                            SignalServiceAttachment avatar,
+                            List<String> admins)
   {
     this.type    = type;
     this.groupId = groupId;
@@ -73,6 +75,7 @@ public class SignalServiceGroup {
     this.name    = Optional.fromNullable(name);
     this.members = Optional.fromNullable(members);
     this.avatar  = Optional.fromNullable(avatar);
+    this.admins  = Optional.fromNullable(admins);
   }
 
   public byte[] getGroupId() {
@@ -97,6 +100,10 @@ public class SignalServiceGroup {
     return avatar;
   }
 
+  public Optional<List<String>> getAdmins() {
+    return admins;
+  }
+
   public static Builder newUpdateBuilder() {
     return new Builder(Type.UPDATE);
   }
@@ -113,6 +120,7 @@ public class SignalServiceGroup {
     private String               name;
     private List<String>         members;
     private SignalServiceAttachment avatar;
+    private List<String>         admins;
 
     private Builder(Type type) {
       this.type = type;
@@ -120,7 +128,7 @@ public class SignalServiceGroup {
 
     public Builder withId(byte[] id, GroupType type) {
       this.id = id;
-      this.groupType = groupType;
+      this.groupType = type;
       return this;
     }
 
@@ -139,14 +147,19 @@ public class SignalServiceGroup {
       return this;
     }
 
+    public Builder withAdmins(List<String> admins) {
+      this.admins = admins;
+      return this;
+    }
+
     public SignalServiceGroup build() {
       if (id == null) throw new IllegalArgumentException("No group ID specified!");
 
-      if (type == Type.UPDATE && name == null && members == null && avatar == null) {
+      if (type == Type.UPDATE && name == null && members == null && avatar == null && admins == null) {
         throw new IllegalArgumentException("Group update with no updates!");
       }
 
-      return new SignalServiceGroup(type, id, groupType, name, members, avatar);
+      return new SignalServiceGroup(type, id, groupType, name, members, avatar, admins);
     }
 
   }
