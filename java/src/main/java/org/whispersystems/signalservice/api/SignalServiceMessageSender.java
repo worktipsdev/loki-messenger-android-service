@@ -1354,14 +1354,6 @@ public class SignalServiceMessageSender {
       }
     }
 
-    /* Loki - Disable this as we don't support multi-device sending yet
-    for (int deviceId : store.getSubDeviceSessions(recipient.getNumber())) {
-      if (store.containsSession(new SignalProtocolAddress(recipient.getNumber(), deviceId))) {
-        messages.add(getEncryptedMessage(socket, recipient, unidentifiedAccess, deviceId, plaintext));
-      }
-    }
-     */
-
     return new OutgoingPushMessageList(recipient.getNumber(), timestamp, messages, online);
   }
 
