@@ -73,12 +73,9 @@ import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture;
-import org.whispersystems.signalservice.loki.api.LokiDotNetAPI;
-import org.whispersystems.signalservice.loki.messaging.LokiSyncMessage;
-import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory;
 import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
-import org.whispersystems.signalservice.loki.api.LokiAttachmentAPI;
+import org.whispersystems.signalservice.loki.api.LokiDotNetAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChat;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatMessage;
@@ -88,11 +85,14 @@ import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiSessionDatabaseProtocol;
+import org.whispersystems.signalservice.loki.messaging.LokiSyncMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
 import org.whispersystems.signalservice.loki.utilities.Analytics;
+import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory;
+import org.whispersystems.signalservice.loki.utilities.Broadcaster;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -108,7 +108,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import kotlin.Triple;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function0;
 import kotlin.jvm.functions.Function1;
@@ -139,6 +138,7 @@ public class SignalServiceMessageSender {
   private final LokiPreKeyBundleDatabaseProtocol                    preKeyBundleDatabase;
   private final LokiSessionDatabaseProtocol                         sessionDatabase;
   private final LokiUserDatabaseProtocol                            userDatabase;
+  private final Broadcaster                                         broadcaster;
 
   /**
    * Construct a SignalServiceMessageSender.
@@ -164,9 +164,10 @@ public class SignalServiceMessageSender {
                                     LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
                                     LokiSessionDatabaseProtocol sessionDatabase,
-                                    LokiUserDatabaseProtocol userDatabase)
+                                    LokiUserDatabaseProtocol userDatabase,
+                                    Broadcaster broadcaster)
   {
-    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userHexEncodedPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase, sessionDatabase, userDatabase);
+    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userHexEncodedPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase, sessionDatabase, userDatabase, broadcaster);
   }
 
   public SignalServiceMessageSender(SignalServiceConfiguration urls,
@@ -183,7 +184,8 @@ public class SignalServiceMessageSender {
                                     LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
                                     LokiSessionDatabaseProtocol sessionDatabase,
-                                    LokiUserDatabaseProtocol userDatabase)
+                                    LokiUserDatabaseProtocol userDatabase,
+                                    Broadcaster broadcaster)
   {
     this.socket               = new PushServiceSocket(urls, credentialsProvider, userAgent);
     this.store                = store;
@@ -199,6 +201,7 @@ public class SignalServiceMessageSender {
     this.preKeyBundleDatabase = preKeyBundleDatabase;
     this.sessionDatabase      = sessionDatabase;
     this.userDatabase         = userDatabase;
+    this.broadcaster          = broadcaster;
   }
 
   /**
@@ -1163,7 +1166,7 @@ public class SignalServiceMessageSender {
   private SendMessageResult sendMessageToPrivateChat(final long                   messageID,
                                                      final SignalServiceAddress   recipient,
                                                      Optional<UnidentifiedAccess> unidentifiedAccess,
-                                                     long                         timestamp,
+                                                     final long                   timestamp,
                                                      byte[]                       content,
                                                      boolean                      online,
                                                      int                          ttl,
@@ -1182,7 +1185,7 @@ public class SignalServiceMessageSender {
       // TODO: PoW indicator
       // Update the message and thread if needed
       if (isFriendRequestMessage && eventListener.isPresent()) { eventListener.get().onFriendRequestSending(messageID, threadID); }
-      LokiAPI api = new LokiAPI(userHexEncodedPublicKey, apiDatabase);
+      LokiAPI api = new LokiAPI(userHexEncodedPublicKey, apiDatabase, broadcaster);
       api.sendSignalMessage(messageInfo, new Function0<Unit>() {
 
         @Override
@@ -1203,6 +1206,7 @@ public class SignalServiceMessageSender {
               @Override
               public Unit invoke(Map<?, ?> map) {
                 if (isSuccess[0]) { return Unit.INSTANCE; } // Succeed as soon as the first promise succeeds
+                broadcaster.broadcast("messageSent", timestamp);
                 Analytics.Companion.getShared().track("Sent Message Using Swarm API");
                 isSuccess[0] = true;
                 // Update the message and thread if needed
@@ -1219,6 +1223,7 @@ public class SignalServiceMessageSender {
               public Unit invoke(Exception exception) {
                 errorCount[0] += 1;
                 if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
+                broadcaster.broadcast("messageFailed", timestamp);
                 Analytics.Companion.getShared().track("Failed to Send Message Using Swarm API");
                 // Update the message and thread if needed
                 if (isFriendRequestMessage && eventListener.isPresent()) {

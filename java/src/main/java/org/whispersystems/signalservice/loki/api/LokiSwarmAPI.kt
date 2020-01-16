@@ -9,11 +9,12 @@ import okhttp3.*
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.utilities.Analytics
+import org.whispersystems.signalservice.loki.utilities.Broadcaster
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import java.io.IOException
 import java.security.SecureRandom
 
-internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
+internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, private val broadcaster: Broadcaster) {
 
     companion object {
         internal var failureCount: MutableMap<LokiAPITarget, Int> = mutableMapOf()
@@ -116,7 +117,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol) {
         } else {
             val parameters = mapOf( "pubKey" to hexEncodedPublicKey )
             return getRandomSnode().bind {
-                LokiAPI(hexEncodedPublicKey, database).invoke(LokiAPITarget.Method.GetSwarm, it, hexEncodedPublicKey, parameters)
+                LokiAPI(hexEncodedPublicKey, database, broadcaster).invoke(LokiAPITarget.Method.GetSwarm, it, hexEncodedPublicKey, parameters)
             }.map {
                 parseTargets(it).toSet()
             }.success {

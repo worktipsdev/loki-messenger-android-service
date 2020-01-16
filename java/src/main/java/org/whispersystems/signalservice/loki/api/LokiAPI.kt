@@ -12,6 +12,7 @@ import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.messaging.*
 import org.whispersystems.signalservice.loki.utilities.Analytics
+import org.whispersystems.signalservice.loki.utilities.Broadcaster
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.io.IOException
@@ -23,7 +24,7 @@ import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
-class LokiAPI(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol) {
+class LokiAPI(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol, private val broadcaster: Broadcaster) {
 
     companion object {
         var userHexEncodedPublicKeyCache = mutableMapOf<Long, Set<String>>() // Thread ID to set of user hex encoded public keys
@@ -145,7 +146,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             Analytics.shared.track("Unreachable Snode")
             if (newFailureCount >= LokiSwarmAPI.failureThreshold) {
                 Log.d("Loki", "Failure threshold reached for: $target; dropping it.")
-                LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
+                LokiSwarmAPI(database, broadcaster).dropIfNeeded(target, hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
                 LokiSwarmAPI.randomSnodePool.remove(target) // Remove it from the random snode pool
                 LokiSwarmAPI.failureCount[target] = 0
             }
@@ -166,7 +167,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                             // The snode isn't associated with the given public key anymore
                             Log.d("Loki", "Invalidating swarm for: $hexEncodedPublicKey.")
                             Analytics.shared.track("Migrated Snode")
-                            LokiSwarmAPI(database).dropIfNeeded(target, hexEncodedPublicKey)
+                            LokiSwarmAPI(database, broadcaster).dropIfNeeded(target, hexEncodedPublicKey)
                             deferred.reject(Error.SnodeMigrated)
                         }
                         432 -> {
@@ -216,7 +217,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
     // region Public API
     fun getMessages(): MessageListPromise {
         return retryIfNeeded(maxRetryCount) {
-            LokiSwarmAPI(database).getSingleTargetSnode(userHexEncodedPublicKey).bind { targetSnode ->
+            LokiSwarmAPI(database, broadcaster).getSingleTargetSnode(userHexEncodedPublicKey).bind { targetSnode ->
                 getRawMessages(targetSnode, false).map { parseRawMessagesResponse(it, targetSnode) }
             }
         }
@@ -231,10 +232,13 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             return invoke(LokiAPITarget.Method.SendMessage, target, destination, parameters)
         }
         fun sendLokiMessageUsingSwarmAPI(): Promise<Set<RawResponsePromise>, Exception> {
+            broadcaster.broadcast("calculatingPoW", message.timestamp)
             return lokiMessage.calculatePoW().bind { lokiMessageWithPoW ->
+                broadcaster.broadcast("contactingNetwork", message.timestamp)
                 retryIfNeeded(maxRetryCount) {
-                    LokiSwarmAPI(database).getTargetSnodes(destination).map { swarm ->
+                    LokiSwarmAPI(database, broadcaster).getTargetSnodes(destination).map { swarm ->
                         swarm.map { target ->
+                            broadcaster.broadcast("sendingMessage", message.timestamp)
                             sendLokiMessage(lokiMessageWithPoW, target).map { rawResponse ->
                                 val json = rawResponse as? Map<*, *>
                                 val powDifficulty = json?.get("difficulty") as? Int
