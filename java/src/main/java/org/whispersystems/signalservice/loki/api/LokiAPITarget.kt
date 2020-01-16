@@ -1,6 +1,6 @@
 package org.whispersystems.signalservice.loki.api
 
-class LokiAPITarget(val address: String, val port: Int) {
+class LokiAPITarget(val address: String, val port: Int, val publicKeys: Keys?) {
 
     internal enum class Method(val rawValue: String) {
         /**
@@ -13,6 +13,8 @@ class LokiAPITarget(val address: String, val port: Int) {
         GetMessages("retrieve"),
         SendMessage("store")
     }
+
+    data class Keys(val identification: String, val encryption: String)
 
     override fun equals(other: Any?): Boolean {
         return if (other is LokiAPITarget) {

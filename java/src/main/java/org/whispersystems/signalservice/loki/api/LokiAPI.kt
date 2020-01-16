@@ -15,16 +15,11 @@ import org.whispersystems.signalservice.loki.utilities.Analytics
 import org.whispersystems.signalservice.loki.utilities.Broadcaster
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
-import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
-import java.util.concurrent.TimeUnit
-import javax.net.ssl.SSLContext
-import javax.net.ssl.X509TrustManager
 
 class LokiAPI(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol, private val broadcaster: Broadcaster) {
+    private val swarmAPI = LokiSwarmAPI(database, broadcaster)
 
     companion object {
         var userHexEncodedPublicKeyCache = mutableMapOf<Long, Set<String>>() // Thread ID to set of user hex encoded public keys
@@ -98,33 +93,6 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
     }
     // endregion
 
-    // region Clearnet Setup
-    private fun getClearnetConnection(timeout: Long): OkHttpClient {
-        var connection = okHTTPCache[timeout]
-        if (connection == null) {
-            val trustManager = object : X509TrustManager {
-
-                override fun checkClientTrusted(chain: Array<out X509Certificate>?, authorizationType: String?) {}
-                override fun checkServerTrusted(chain: Array<out X509Certificate>?, authorizationType: String?) {}
-                override fun getAcceptedIssuers(): Array<X509Certificate> {
-                    return arrayOf()
-                }
-            }
-            val sslContext = SSLContext.getInstance("SSL")
-            sslContext.init(null, arrayOf(trustManager), SecureRandom())
-            connection = OkHttpClient().newBuilder()
-                .sslSocketFactory(sslContext.socketFactory, trustManager)
-                .hostnameVerifier { _, _ -> true }
-                .connectTimeout(timeout, TimeUnit.SECONDS)
-                .readTimeout(timeout, TimeUnit.SECONDS)
-                .writeTimeout(timeout, TimeUnit.SECONDS)
-                .build()
-            okHTTPCache[timeout] = connection
-        }
-        return connection!!
-    }
-    // endregion
-
     // region Internal API
     /**
      * `hexEncodedPublicKey` is the hex encoded public key of the user the call is associated with. This is needed for swarm cache maintenance.
@@ -136,8 +104,8 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         val request = Request.Builder().url(url).post(body)
         if (headers != null) { request.headers(headers) }
         val headersDescription = headers?.toMultimap()?.mapValues { it.value.prettifiedDescription() }?.prettifiedDescription() ?: "no custom headers specified"
-        val connection = getClearnetConnection(timeout ?: defaultTimeout)
         Log.d("Loki", "Invoking ${method.rawValue} on $target with ${parameters.prettifiedDescription()} ($headersDescription).")
+
         fun dropSnodeIfNeeded() {
             val oldFailureCount = LokiSwarmAPI.failureCount[target] ?: 0
             val newFailureCount = oldFailureCount + 1
@@ -146,63 +114,58 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             Analytics.shared.track("Unreachable Snode")
             if (newFailureCount >= LokiSwarmAPI.failureThreshold) {
                 Log.d("Loki", "Failure threshold reached for: $target; dropping it.")
-                LokiSwarmAPI(database, broadcaster).dropIfNeeded(target, hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
+                swarmAPI.dropIfNeeded(target, hexEncodedPublicKey) // Remove it from the swarm cache associated with the given public key
                 LokiSwarmAPI.randomSnodePool.remove(target) // Remove it from the random snode pool
                 LokiSwarmAPI.failureCount[target] = 0
             }
         }
-        val deferred = deferred<Map<*, *>, Exception>()
-        Thread {
-            connection.newCall(request.build()).enqueue(object : Callback {
 
-                override fun onResponse(call: Call, response: Response) {
-                    when (response.code()) {
-                        200 -> {
-                            val jsonAsString = response.body()!!.string()
-                            @Suppress("NAME_SHADOWING") val json = JsonUtil.fromJson(jsonAsString, Map::class.java)
-                            deferred.resolve(json)
-                        }
-                        400 -> dropSnodeIfNeeded()
-                        421 -> {
-                            // The snode isn't associated with the given public key anymore
-                            Log.d("Loki", "Invalidating swarm for: $hexEncodedPublicKey.")
-                            Analytics.shared.track("Migrated Snode")
-                            LokiSwarmAPI(database, broadcaster).dropIfNeeded(target, hexEncodedPublicKey)
-                            deferred.reject(Error.SnodeMigrated)
-                        }
-                        432 -> {
-                            // The PoW difficulty is too low
-                            val jsonAsString = response.body()!!.string()
-                            @Suppress("NAME_SHADOWING") val json = JsonUtil.fromJson(jsonAsString, Map::class.java)
-                            val powDifficulty = json?.get("difficulty") as? Int
-                            if (powDifficulty != null) {
-                                Log.d("Loki", "Setting proof of work difficulty to $powDifficulty.")
-                                LokiAPI.powDifficulty = powDifficulty
-                            } else {
-                                Log.d("Loki", "Failed to update proof of work difficulty.")
-                            }
-                            deferred.reject(Error.InsufficientProofOfWork)
-                        }
-                        500 -> dropSnodeIfNeeded()
-                        503 -> dropSnodeIfNeeded()
-                        else -> {
-                            Log.d("Loki", "Unhandled response code: ${response.code()}.")
-                            deferred.reject(Error.Generic)
-                        }
-                    }
-                }
-
-                override fun onFailure(call: Call, exception: IOException) {
-                    if (exception is ConnectException || exception is SocketTimeoutException) {
+        // Loki - Use this once we don't need proxy
+        // val client = LokiHttpClient(timeout ?: defaultTimeout)
+        val client = LokiSnodeProxy(target, timeout ?: defaultTimeout)
+        return client.execute(request.build()).fail { exception ->
+            if (exception is ConnectException || exception is SocketTimeoutException) {
+                dropSnodeIfNeeded()
+            } else {
+                Log.d("Loki", "Unhandled exception: $exception.")
+            }
+        }.map { response ->
+            if (response.success) {
+                val responseBody = response.body ?: throw Error.ParsingFailed
+                return@map JsonUtil.fromJson(responseBody, Map::class.java)
+            } else {
+                when (response.code) {
+                    400, 500, 503 -> {
                         dropSnodeIfNeeded()
-                    } else {
-                        Log.d("Loki", "Unhandled exception: $exception.")
+                        throw Error.HTTPRequestFailed(response.code)
                     }
-                    deferred.reject(exception)
+                    421 -> {
+                        // The snode isn't associated with the given public key anymore
+                        Log.d("Loki", "Invalidating swarm for: $hexEncodedPublicKey.")
+                        Analytics.shared.track("Migrated Snode")
+                        swarmAPI.dropIfNeeded(target, hexEncodedPublicKey)
+                        throw Error.SnodeMigrated
+                    }
+                    432 -> {
+                        // The PoW difficulty is too low
+                        val jsonAsString = response.body ?: throw Error.ParsingFailed
+                        @Suppress("NAME_SHADOWING") val json = JsonUtil.fromJson(jsonAsString, Map::class.java)
+                        val powDifficulty = json?.get("difficulty") as? Int
+                        if (powDifficulty != null) {
+                            Log.d("Loki", "Setting proof of work difficulty to $powDifficulty.")
+                            LokiAPI.powDifficulty = powDifficulty
+                        } else {
+                            Log.d("Loki", "Failed to update proof of work difficulty.")
+                        }
+                        throw Error.InsufficientProofOfWork
+                    }
+                    else -> {
+                        Log.d("Loki", "Unhandled response code: ${response.code}.")
+                        throw Error.Generic
+                    }
                 }
-            })
-        }.start()
-        return deferred.promise
+            }
+        }
     }
 
     internal fun getRawMessages(target: LokiAPITarget, useLongPolling: Boolean): RawResponsePromise {
@@ -217,7 +180,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
     // region Public API
     fun getMessages(): MessageListPromise {
         return retryIfNeeded(maxRetryCount) {
-            LokiSwarmAPI(database, broadcaster).getSingleTargetSnode(userHexEncodedPublicKey).bind { targetSnode ->
+            swarmAPI.getSingleTargetSnode(userHexEncodedPublicKey).bind { targetSnode ->
                 getRawMessages(targetSnode, false).map { parseRawMessagesResponse(it, targetSnode) }
             }
         }
@@ -236,7 +199,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             return lokiMessage.calculatePoW().bind { lokiMessageWithPoW ->
                 broadcaster.broadcast("contactingNetwork", message.timestamp)
                 retryIfNeeded(maxRetryCount) {
-                    LokiSwarmAPI(database, broadcaster).getTargetSnodes(destination).map { swarm ->
+                    swarmAPI.getTargetSnodes(destination).map { swarm ->
                         swarm.map { target ->
                             broadcaster.broadcast("sendingMessage", message.timestamp)
                             sendLokiMessage(lokiMessageWithPoW, target).map { rawResponse ->
@@ -259,7 +222,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         }
         val peer = LokiP2PAPI.shared.peerInfo[destination]
         if (peer != null && (lokiMessage.isPing || peer.isOnline)) {
-            val target = LokiAPITarget(peer.address, peer.port)
+            val target = LokiAPITarget(peer.address, peer.port, null)
             val deferred = deferred<Set<RawResponsePromise>, Exception>()
             retryIfNeeded(maxRetryCount) {
                 task { listOf(target) }.map { it.map { sendLokiMessage(lokiMessage, it) } }.map { it.toSet() }
