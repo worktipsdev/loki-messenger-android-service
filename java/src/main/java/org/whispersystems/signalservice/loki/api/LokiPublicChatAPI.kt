@@ -32,12 +32,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         public val avatarAnnotationType = "network.loki.messenger.avatar"
 
         fun getDefaultChats(isDebug: Boolean = false): List<LokiPublicChat> {
-            val result = mutableListOf<LokiPublicChat>()
-            result.add(LokiPublicChat(1, "https://chat.lokinet.org", "Loki Public Chat", true))
-            if (isDebug) {
-                result.add(LokiPublicChat(1, "https://chat-dev.lokinet.org", "Loki Dev Chat", true))
-            }
-            return result
+            return listOf()
         }
         // endregion
 
