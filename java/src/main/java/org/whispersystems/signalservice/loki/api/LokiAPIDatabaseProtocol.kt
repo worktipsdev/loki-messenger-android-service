@@ -17,4 +17,5 @@ interface LokiAPIDatabaseProtocol {
     fun getPairingAuthorisations(hexEncodedPublicKey: String): List<PairingAuthorisation>
     fun insertOrUpdatePairingAuthorisation(authorisation: PairingAuthorisation)
     fun removePairingAuthorisations(hexEncodedPublicKey: String)
+    fun setUserCount(userCount: Int, group: Long, server: String)
 }
