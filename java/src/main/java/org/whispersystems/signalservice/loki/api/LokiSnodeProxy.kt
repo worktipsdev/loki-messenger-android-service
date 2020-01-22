@@ -9,7 +9,6 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import okio.Buffer
 import org.whispersystems.curve25519.Curve25519
-import org.whispersystems.curve25519.Curve25519KeyPair
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
@@ -23,27 +22,14 @@ internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) 
     companion object {
         private val kContext = Kovenant.createContext("proxyContext", 8)
         private val curve = Curve25519.getInstance(Curve25519.BEST)
-
-        // region Ephemeral Key Pair
-        private lateinit var _kp: Curve25519KeyPair
-        private var _lastGenerated: Long = 0
-        private val keyPairRefreshTime = 3 * 60 * 1000 // 3 minutes
-
-        private fun getKeyPair(): Curve25519KeyPair {
-            val now = System.currentTimeMillis()
-            if (now > _lastGenerated + keyPairRefreshTime) {
-                _kp = curve.generateKeyPair()
-                _lastGenerated = now
-            }
-            return _kp
-        }
-        // endregion
     }
 
     sealed class Error(val description: String) : Exception() {
         class InvalidPublicKey(target: LokiAPITarget) : Error("Invalid public key found on $target: ${target.publicKeys}")
         object FailedToBuildRequestBody : Error("Failed to build request body")
     }
+
+    private val keyPair = curve.generateKeyPair()
 
     // region Private functions
     private fun getBody(request: Request): String {
@@ -79,7 +65,6 @@ internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) 
     // endregion
 
     override fun execute(request: Request): Promise<Response, Exception> {
-        val keyPair = getKeyPair()
         val targetHexEncodedPublicKeys = target.publicKeys ?: return Promise.ofFail(Error.InvalidPublicKey(target))
         val symmetricKey = curve.calculateAgreement(Hex.fromStringCondensed(targetHexEncodedPublicKeys.encryption), keyPair.privateKey)
 
