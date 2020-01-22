@@ -27,7 +27,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
         // endregion
 
         // region Clearnet Setup
-        private val seedNodePool: Set<String> = setOf( "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://imaginary.stream:38157" )
+        private val seedNodePool: Set<String> = setOf( "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://imaginary.stream:38157", "http://public.loki.foundation:22023" )
         internal var randomSnodePool: MutableSet<LokiAPITarget> = mutableSetOf()
         // endregion
 
