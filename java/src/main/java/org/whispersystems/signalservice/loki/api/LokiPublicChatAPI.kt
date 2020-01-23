@@ -58,7 +58,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         }
         return execute(HTTPVerb.GET, server, "channels/$channel/messages", false, parameters).then(workContext) { response ->
             try {
-                val bodyAsString = response.body()!!.string()
+                val bodyAsString = response.body!!
                 val body = JsonUtil.fromJson(bodyAsString)
                 val data = body.get("data")
                 val messages = data.mapNotNull { message ->
@@ -158,7 +158,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         }
         return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/deletes", false, parameters).then(workContext) { response ->
             try {
-                val bodyAsString = response.body()!!.string()
+                val bodyAsString = response.body!!
                 val body = JsonUtil.fromJson(bodyAsString)
                 val deletedMessageServerIDs = body.get("data").mapNotNull { deletion ->
                     try {
@@ -187,7 +187,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
             val parameters = signedMessage.toJSON()
             execute(HTTPVerb.POST, server, "channels/$channel/messages", parameters = parameters).then { response ->
                 try {
-                    val bodyAsString = response.body()!!.string()
+                    val bodyAsString = response.body!!
                     val body = JsonUtil.fromJson(bodyAsString)
                     val data = body.get("data")
                     val serverID = data.get("id").asLong()
@@ -238,7 +238,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     public fun getModerators(channel: Long, server: String): Promise<Set<String>, Exception> {
         return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/get_moderators").then(workContext) { response ->
             try {
-                val bodyAsString = response.body()!!.string()
+                val bodyAsString = response.body!!
                 @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
                 @Suppress("UNCHECKED_CAST") val moderators = body["moderators"] as? List<String>
                 val moderatorsAsSet = moderators.orEmpty().toSet()
@@ -259,7 +259,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         val parameters = mapOf( "include_annotations" to 1 )
         return execute(HTTPVerb.GET, server, "/channels/$channel", false, parameters).then(workContext) { response ->
             try {
-                val bodyAsString = response.body()!!.string()
+                val bodyAsString = response.body!!
                 val body = JsonUtil.fromJson(bodyAsString)
                 val data = body.get("data")
                 val annotations = data.get("annotations")
@@ -289,7 +289,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         val parameters = mapOf( "count" to 2500 )
         return execute(HTTPVerb.GET, server, "/channels/$channel/subscribers", true, parameters).then(workContext) { response ->
             try {
-                val bodyAsString = response.body()!!.string()
+                val bodyAsString = response.body!!
                 val body = JsonUtil.fromJson(bodyAsString)
                 val userCount = body.get("data").count()
                 apiDatabase.setUserCount(userCount, channel, server)

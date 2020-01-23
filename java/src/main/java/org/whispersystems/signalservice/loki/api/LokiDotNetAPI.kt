@@ -3,7 +3,6 @@ package org.whispersystems.signalservice.loki.api
 import com.fasterxml.jackson.databind.JsonNode
 import nl.komponents.kovenant.Kovenant
 import nl.komponents.kovenant.Promise
-import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.then
@@ -20,13 +19,12 @@ import org.whispersystems.signalservice.internal.push.http.ProfileCipherOutputSt
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
-import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture
 import org.whispersystems.signalservice.loki.crypto.DiffieHellman
 import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory
 import org.whispersystems.signalservice.loki.utilities.createContext
+import org.whispersystems.signalservice.loki.utilities.recover
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 import java.io.ByteArrayInputStream
-import java.io.IOException
 import java.util.*
 
 /**
@@ -79,7 +77,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         val parameters: Map<String, Any> = mapOf( "pubKey" to userHexEncodedPublicKey )
         return execute(HTTPVerb.GET, server, "loki/v1/get_challenge", false, parameters).map(workContext) { response ->
             try {
-                val bodyAsString = response.body()!!.string()
+                val bodyAsString = response.body!!
                 @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
                 val base64EncodedChallenge = body["cipherText64"] as String
                 val challenge = Base64.decode(base64EncodedChallenge)
@@ -107,10 +105,9 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         return execute(HTTPVerb.POST, server, "loki/v1/submit_challenge", false, parameters).map(workContext) { token }
     }
 
-    internal fun execute(verb: HTTPVerb, server: String, endpoint: String, isAuthRequired: Boolean = true, parameters: Map<String, Any> = mapOf()): Promise<Response, Exception> {
-        val deferred = deferred<Response, Exception>(networkContext)
-        val sanitizedEndpoint = endpoint.removePrefix("/")
-        fun execute(token: String?) {
+    internal fun execute(verb: HTTPVerb, server: String, endpoint: String, isAuthRequired: Boolean = true, parameters: Map<String, Any> = mapOf()): Promise<LokiHTTPClient.Response, Exception> {
+        fun execute(token: String?): Promise<LokiHTTPClient.Response, Exception> {
+            val sanitizedEndpoint = endpoint.removePrefix("/")
             var url = "$server/$sanitizedEndpoint"
             if (verb == HTTPVerb.GET || verb == HTTPVerb.DELETE) {
                 val queryParameters = parameters.map { "${it.key}=${it.value}" }.joinToString("&")
@@ -137,39 +134,29 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                     }
                 }
             }
-            Thread {
-                connection.newCall(request.build()).enqueue(object : Callback {
 
-                    override fun onResponse(call: Call, response: Response) {
-                        when (response.code()) {
-                            in 200..299 -> deferred.resolve(response)
-                            401 -> {
-                                apiDatabase.setAuthToken(server, null)
-                                deferred.reject(LokiAPI.Error.TokenExpired)
-                            }
-                            else -> deferred.reject(LokiAPI.Error.HTTPRequestFailed(response.code()))
-                        }
+            return LokiFileServerProxy(server).execute(request.build()).map { response ->
+                if (!response.isSuccess) {
+                    if (response.statusCode == 401) {
+                        apiDatabase.setAuthToken(server, null)
+                        throw LokiAPI.Error.TokenExpired
                     }
-
-                    override fun onFailure(call: Call, exception: IOException) {
-                        Log.d("Loki", "Couldn't reach server: $server.")
-                        deferred.reject(exception)
-                    }
-                })
-            }.start()
+                    throw LokiAPI.Error.HTTPRequestFailed(response.statusCode)
+                }
+                return@map response
+            }
         }
-        if (isAuthRequired) {
-            getAuthToken(server).success { execute(it) }.fail { deferred.reject(it) }
+        return if (isAuthRequired) {
+            getAuthToken(server).bind { execute(it) }
         } else {
             execute(null)
         }
-        return deferred.promise
     }
 
     internal fun getUserProfiles(hexEncodedPublicKeys: Set<String>, server: String, includeAnnotations: Boolean): Promise<JsonNode, Exception> {
         val parameters = mapOf( "include_user_annotations" to includeAnnotations.toInt(), "ids" to hexEncodedPublicKeys.joinToString { "@$it" } )
         return execute(HTTPVerb.GET, server, "users", false, parameters).map(workContext) { rawResponse ->
-            val bodyAsString = rawResponse.body()!!.string()
+            val bodyAsString = rawResponse.body!!
             val body = JsonUtil.fromJson(bodyAsString)
             val data = body.get("data")
             if (data == null) {
@@ -180,7 +167,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         }
     }
 
-    internal fun setSelfAnnotation(server: String, type: String, newValue: Any?): Promise<Response, Exception> {
+    internal fun setSelfAnnotation(server: String, type: String, newValue: Any?): Promise<LokiHTTPClient.Response, Exception> {
         val annotation = mutableMapOf<String, Any>( "type" to type )
         if (newValue != null) { annotation["value"] = newValue }
         val parameters = mapOf( "annotations" to listOf( annotation ) )
@@ -257,44 +244,26 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
     private fun upload(server: String, request: Request.Builder, process: (String) -> UploadResult): UploadResult {
-        val future = SettableFuture<UploadResult>()
-        getAuthToken(server).then(networkContext) { token ->
+        return getAuthToken(server).bind(networkContext) { token ->
             request.addHeader("Authorization", "Bearer $token")
-            connection.newCall(request.build()).enqueue(object : Callback {
-                override fun onResponse(call: Call, response: Response) {
-                    when (response.code()) {
-                        in 200..299 -> {
-                            try {
-                                val jsonAsString = response.body()!!.string()
-                                val result = process(jsonAsString)
-                                future.set(result)
-                            } catch (e: Exception) {
-                                future.setException(e)
-                            }
-                        }
-                        401 -> {
-                            apiDatabase.setAuthToken(server, null)
-                            future.setException(LokiAPI.Error.TokenExpired)
-                        }
-                        else -> future.setException(LokiAPI.Error.HTTPRequestFailed(response.code()))
-                    }
+            LokiFileServerProxy(server).execute(request.build())
+        }.map { response ->
+            if (!response.isSuccess) {
+                if (response.statusCode == 401) {
+                    apiDatabase.setAuthToken(server, null)
+                    throw LokiAPI.Error.TokenExpired
                 }
-
-                override fun onFailure(call: Call, exception: IOException) {
-                    Log.d("Loki", "Couldn't reach server: $server.")
-                    future.setException(exception)
-                }
-            })
-        }
-        try {
-            return future.get()
-        } catch (exception: Exception) {
+                throw LokiAPI.Error.HTTPRequestFailed(response.statusCode)
+            }
+            val jsonAsString = response.body ?: throw LokiAPI.Error.ParsingFailed
+            process(jsonAsString)
+        }.recover { exception ->
             val nestedException = exception.cause ?: exception
             if (nestedException is LokiAPI.Error.HTTPRequestFailed) {
                 throw NonSuccessfulResponseCodeException("Request returned with ${nestedException.code}.")
             }
             throw PushNetworkException(exception)
-        }
+        }.get()
     }
 }
 
