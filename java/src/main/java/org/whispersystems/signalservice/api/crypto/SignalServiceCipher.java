@@ -345,6 +345,7 @@ public class SignalServiceCipher {
     List<Preview>                  previews         = createPreviews(content);
     Sticker                        sticker          = createSticker(content);
     boolean                        unpairingRequest = ((content.getFlags() & DataMessage.Flags.UNPAIRING_REQUEST_VALUE     ) != 0);
+    boolean                        sessionRestore   = ((content.getFlags() & DataMessage.Flags.SESSION_RESTORE_VALUE       ) != 0);
 
     for (AttachmentPointer pointer : content.getAttachmentsList()) {
       attachments.add(createAttachmentPointer(pointer));
@@ -369,7 +370,7 @@ public class SignalServiceCipher {
                                         sharedContacts,
                                         previews,
                                         sticker,
-                                        isFriendRequest, null, null, unpairingRequest);
+                                        isFriendRequest, null, null, unpairingRequest, sessionRestore);
   }
 
   private SignalServiceSyncMessage createSynchronizeMessage(Metadata metadata, SyncMessage content)
