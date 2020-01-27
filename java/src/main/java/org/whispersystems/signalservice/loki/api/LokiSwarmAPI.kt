@@ -27,8 +27,84 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
         // endregion
 
         // region Clearnet Setup
-        private val seedNodePool: Set<String> = setOf( "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://imaginary.stream:38157" )
+        private val seedNodePool: Set<String> = setOf( "http://storage.seed1.loki.network:22023", "http://storage.seed2.loki.network:38157", "http://imaginary.stream:38157", "http://public.loki.foundation:22023" )
         internal var randomSnodePool: MutableSet<LokiAPITarget> = mutableSetOf()
+        // endregion
+
+        // region Internal API
+        internal fun getRandomSnode(): Promise<LokiAPITarget, Exception> {
+            if (randomSnodePool.isEmpty()) {
+                val target = seedNodePool.random()
+                val url = "$target/json_rpc"
+                Log.d("Loki", "Invoking get_n_service_nodes on $target.")
+                val parameters = mapOf(
+                    "method" to "get_n_service_nodes",
+                    "params" to mapOf(
+                        "active_only" to true,
+                        "limit" to 24,
+                        "fields" to mapOf( "public_ip" to true,  "storage_port" to true,  "pubkey_x25519" to true,  "pubkey_ed25519" to true )
+                    )
+                )
+                val body = RequestBody.create(MediaType.get("application/json"), JsonUtil.toJson(parameters))
+                val request = Request.Builder().url(url).post(body)
+                val deferred = deferred<LokiAPITarget, Exception>()
+                Thread {
+                    connection.newCall(request.build()).enqueue(object : Callback {
+
+                        override fun onResponse(call: Call, response: Response) {
+                            when (response.code()) {
+                                200 -> {
+                                    val bodyAsString = response.body()!!.string()
+                                    @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
+                                    val intermediate = body?.get("result") as? Map<*, *>
+                                    val rawTargets = intermediate?.get("service_node_states") as? List<*>
+                                    if (rawTargets != null) {
+                                        randomSnodePool = rawTargets.mapNotNull { rawTarget ->
+                                            val rawTargetAsJSON = rawTarget as? Map<*, *>
+                                            val address = rawTargetAsJSON?.get("public_ip") as? String
+                                            val port = rawTargetAsJSON?.get("storage_port") as? Int
+                                            val idKey = rawTargetAsJSON?.get("pubkey_ed25519") as? String
+                                            val encryptionKey = rawTargetAsJSON?.get("pubkey_x25519") as? String
+                                            if (address != null && port != null && idKey != null && encryptionKey != null && address != "0.0.0.0") {
+                                                LokiAPITarget("https://$address", port, LokiAPITarget.KeySet(idKey, encryptionKey))
+                                            } else {
+                                                Log.d("Loki", "Failed to update random snode pool from: ${rawTarget?.prettifiedDescription()}.")
+                                                null
+                                            }
+                                        }.toMutableSet()
+                                        try {
+                                            deferred.resolve(randomSnodePool.random())
+                                        } catch (exception: Exception) {
+                                            Log.d("Loki", "Got an empty random snode pool from: $target.")
+                                            deferred.reject(LokiAPI.Error.Generic)
+                                        }
+                                    } else {
+                                        Log.d("Loki", "Failed to update random snode pool from: ${(rawTargets as List<*>?)?.prettifiedDescription()}.")
+                                        deferred.reject(LokiAPI.Error.Generic)
+                                    }
+                                }
+                                else -> {
+                                    Analytics.shared.track("Seed Node Failed")
+                                    Log.d("Loki", "Couldn't reach $target.")
+                                    deferred.reject(LokiAPI.Error.Generic)
+                                }
+                            }
+                        }
+
+                        override fun onFailure(call: Call, exception: IOException) {
+                            Analytics.shared.track("Seed Node Failed")
+                            Log.d("Loki", "Couldn't reach $target.")
+                            deferred.reject(exception)
+                        }
+                    })
+                }.start()
+                return deferred.promise
+            } else {
+                return task {
+                    randomSnodePool.random()
+                }
+            }
+        }
         // endregion
     }
 
@@ -43,71 +119,6 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
     // endregion
 
     // region Internal API
-    private fun getRandomSnode(): Promise<LokiAPITarget, Exception> {
-        if (randomSnodePool.isEmpty()) {
-            val target = seedNodePool.random()
-            val url = "$target/json_rpc"
-            Log.d("Loki", "Invoking get_n_service_nodes on $target.")
-            val parameters = "{ \"method\" : \"get_n_service_nodes\", \"params\" : { \"active_only\" : true, \"limit\" : 24, \"fields\" : { \"public_ip\" : true, \"storage_port\" : true } } }"
-            val body = RequestBody.create(MediaType.get("application/json"), parameters)
-            val request = Request.Builder().url(url).post(body)
-            val deferred = deferred<LokiAPITarget, Exception>()
-            Thread {
-                connection.newCall(request.build()).enqueue(object : Callback {
-
-                    override fun onResponse(call: Call, response: Response) {
-                        when (response.code()) {
-                            200 -> {
-                                val bodyAsString = response.body()!!.string()
-                                @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
-                                val intermediate = body?.get("result") as? Map<*, *>
-                                val rawTargets = intermediate?.get("service_node_states") as? List<*>
-                                if (rawTargets != null) {
-                                    randomSnodePool = rawTargets.mapNotNull { rawTarget ->
-                                        val rawTargetAsJSON = rawTarget as? Map<*, *>
-                                        val address = rawTargetAsJSON?.get("public_ip") as? String
-                                        val port = rawTargetAsJSON?.get("storage_port") as? Int
-                                        if (address != null && port != null && address != "0.0.0.0") {
-                                            LokiAPITarget("https://$address", port)
-                                        } else {
-                                            Log.d("Loki", "Failed to update random snode pool from: ${rawTarget?.prettifiedDescription()}.")
-                                            null
-                                        }
-                                    }.toMutableSet()
-                                    try {
-                                        deferred.resolve(randomSnodePool.random())
-                                    } catch (exception: Exception) {
-                                        Log.d("Loki", "Got an empty random snode pool from: $target.")
-                                        deferred.reject(LokiAPI.Error.Generic)
-                                    }
-                                } else {
-                                    Log.d("Loki", "Failed to update random snode pool from: ${(rawTargets as List<*>?)?.prettifiedDescription()}.")
-                                    deferred.reject(LokiAPI.Error.Generic)
-                                }
-                            }
-                            else -> {
-                                Analytics.shared.track("Seed Node Failed")
-                                Log.d("Loki", "Couldn't reach $target.")
-                                deferred.reject(LokiAPI.Error.Generic)
-                            }
-                        }
-                    }
-
-                    override fun onFailure(call: Call, exception: IOException) {
-                        Analytics.shared.track("Seed Node Failed")
-                        Log.d("Loki", "Couldn't reach $target.")
-                        deferred.reject(exception)
-                    }
-                })
-            }.start()
-            return deferred.promise
-        } else {
-            return task {
-                randomSnodePool.random()
-            }
-        }
-    }
-
     internal fun getSwarm(hexEncodedPublicKey: String): Promise<Set<LokiAPITarget>, Exception> {
         val cachedSwarm = database.getSwarmCache(hexEncodedPublicKey)
         if (cachedSwarm != null && cachedSwarm.size >= minimumSnodeCount) {
@@ -149,8 +160,10 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
                 val address = rawSnodeAsJSON?.get("ip") as? String
                 val portAsString = rawSnodeAsJSON?.get("port") as? String
                 val port = portAsString?.toInt()
-                if (address != null && port != null && address != "0.0.0.0") {
-                    LokiAPITarget("https://$address", port)
+                val identificationKey = rawSnodeAsJSON?.get("pubkey_ed25519") as? String
+                val encryptionKey = rawSnodeAsJSON?.get("pubkey_x25519") as? String
+                if (address != null && port != null && identificationKey != null && encryptionKey != null && address != "0.0.0.0") {
+                    LokiAPITarget("https://$address", port, LokiAPITarget.KeySet(identificationKey, encryptionKey))
                 } else {
                     Log.d("Loki", "Failed to parse target from: ${rawSnode?.prettifiedDescription()}.")
                     null
