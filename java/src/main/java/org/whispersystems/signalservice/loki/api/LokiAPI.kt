@@ -19,7 +19,8 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 
 class LokiAPI(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol, private val broadcaster: Broadcaster) {
-    private val swarmAPI = LokiSwarmAPI(database, broadcaster)
+
+    private val swarmAPI by lazy { LokiSwarmAPI(database, broadcaster) }
 
     companion object {
         var userHexEncodedPublicKeyCache = mutableMapOf<Long, Set<String>>() // Thread ID to set of user hex encoded public keys
@@ -105,7 +106,6 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         if (headers != null) { request.headers(headers) }
         val headersDescription = headers?.toMultimap()?.mapValues { it.value.prettifiedDescription() }?.prettifiedDescription() ?: "no custom headers specified"
         Log.d("Loki", "Invoking ${method.rawValue} on $target with ${parameters.prettifiedDescription()} ($headersDescription).")
-
         fun dropSnodeIfNeeded() {
             val oldFailureCount = LokiSwarmAPI.failureCount[target] ?: 0
             val newFailureCount = oldFailureCount + 1
@@ -119,25 +119,21 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                 LokiSwarmAPI.failureCount[target] = 0
             }
         }
-
-        // Loki - Use this once we don't need proxy
-        // val client = LokiHttpClient(timeout ?: defaultTimeout)
-        val client = LokiSnodeProxy(target, timeout ?: defaultTimeout)
-        return client.execute(request.build()).fail { exception ->
+        return LokiSnodeProxy(target, timeout ?: defaultTimeout).execute(request.build()).fail { exception ->
             if (exception is ConnectException || exception is SocketTimeoutException) {
                 dropSnodeIfNeeded()
             } else {
                 Log.d("Loki", "Unhandled exception: $exception.")
             }
         }.map { response ->
-            if (response.success) {
-                val responseBody = response.body ?: throw Error.ParsingFailed
-                return@map JsonUtil.fromJson(responseBody, Map::class.java)
+            if (response.isSuccess) {
+                @Suppress("NAME_SHADOWING") val body = response.body ?: throw Error.ParsingFailed
+                return@map JsonUtil.fromJson(body, Map::class.java)
             } else {
-                when (response.code) {
+                when (response.statusCode) {
                     400, 500, 503 -> {
                         dropSnodeIfNeeded()
-                        throw Error.HTTPRequestFailed(response.code)
+                        throw Error.HTTPRequestFailed(response.statusCode)
                     }
                     421 -> {
                         // The snode isn't associated with the given public key anymore
@@ -160,7 +156,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                         throw Error.InsufficientProofOfWork
                     }
                     else -> {
-                        Log.d("Loki", "Unhandled response code: ${response.code}.")
+                        Log.d("Loki", "Unhandled response code: ${response.statusCode}.")
                         throw Error.Generic
                     }
                 }

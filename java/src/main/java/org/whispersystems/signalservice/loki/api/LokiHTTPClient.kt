@@ -11,29 +11,26 @@ import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
-internal open class LokiHttpClient(private val timeout: Long) {
+internal open class LokiHTTPClient(private val timeout: Long) {
 
-    data class Response(val success: Boolean, val code: Int, val body: String?)
+    internal data class Response(val isSuccess: Boolean, val statusCode: Int, val body: String?)
 
     companion object {
-        // region Settings
         internal val okHTTPCache = hashMapOf<Long, OkHttpClient>()
-        // endregion
     }
 
-    // region Clearnet Setup
-    fun getClearnetConnection(): OkHttpClient {
+    internal fun getClearnetConnection(): OkHttpClient {
         var connection = okHTTPCache[timeout]
         if (connection == null) {
             val trustManager = object : X509TrustManager {
-                override fun checkClientTrusted(chain: Array<out X509Certificate>?, authorizationType: String?) {}
-                override fun checkServerTrusted(chain: Array<out X509Certificate>?, authorizationType: String?) {}
+                override fun checkClientTrusted(chain: Array<out X509Certificate>?, authorizationType: String?) { }
+                override fun checkServerTrusted(chain: Array<out X509Certificate>?, authorizationType: String?) { }
                 override fun getAcceptedIssuers(): Array<X509Certificate> {
                     return arrayOf()
                 }
             }
             val sslContext = SSLContext.getInstance("SSL")
-            sslContext.init(null, arrayOf(trustManager), SecureRandom())
+            sslContext.init(null, arrayOf( trustManager ), SecureRandom())
             connection = OkHttpClient().newBuilder()
                 .sslSocketFactory(sslContext.socketFactory, trustManager)
                 .hostnameVerifier { _, _ -> true }
@@ -45,7 +42,6 @@ internal open class LokiHttpClient(private val timeout: Long) {
         }
         return connection!!
     }
-    // endregion
 
     internal fun execute(request: Request, client: OkHttpClient): Promise<okhttp3.Response, Exception> {
         val deferred = deferred<okhttp3.Response, Exception>()
@@ -60,7 +56,7 @@ internal open class LokiHttpClient(private val timeout: Long) {
         return deferred.promise
     }
 
-    open fun execute(request: Request): Promise<Response, Exception> {
+    internal open fun execute(request: Request): Promise<Response, Exception> {
         val connection = getClearnetConnection()
         return execute(request, connection).map {
             Response(it.isSuccessful, it.code(), it.body()?.string())

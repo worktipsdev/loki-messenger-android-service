@@ -31,8 +31,8 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
         internal var randomSnodePool: MutableSet<LokiAPITarget> = mutableSetOf()
         // endregion
 
-        // region Snode
-        fun getRandomSnode(): Promise<LokiAPITarget, Exception> {
+        // region Internal API
+        internal fun getRandomSnode(): Promise<LokiAPITarget, Exception> {
             if (randomSnodePool.isEmpty()) {
                 val target = seedNodePool.random()
                 val url = "$target/json_rpc"
@@ -42,12 +42,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
                     "params" to mapOf(
                         "active_only" to true,
                         "limit" to 24,
-                        "fields" to mapOf(
-                            "public_ip" to true,
-                            "storage_port" to true,
-                            "pubkey_x25519" to true,
-                            "pubkey_ed25519" to true
-                        )
+                        "fields" to mapOf( "public_ip" to true,  "storage_port" to true,  "pubkey_x25519" to true,  "pubkey_ed25519" to true )
                     )
                 )
                 val body = RequestBody.create(MediaType.get("application/json"), JsonUtil.toJson(parameters))
@@ -68,10 +63,10 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
                                             val rawTargetAsJSON = rawTarget as? Map<*, *>
                                             val address = rawTargetAsJSON?.get("public_ip") as? String
                                             val port = rawTargetAsJSON?.get("storage_port") as? Int
-                                            val identificationKey = rawTargetAsJSON?.get("pubkey_ed25519") as? String
+                                            val idKey = rawTargetAsJSON?.get("pubkey_ed25519") as? String
                                             val encryptionKey = rawTargetAsJSON?.get("pubkey_x25519") as? String
-                                            if (address != null && port != null && identificationKey != null && encryptionKey != null && address != "0.0.0.0") {
-                                                LokiAPITarget("https://$address", port, LokiAPITarget.Keys(identificationKey, encryptionKey))
+                                            if (address != null && port != null && idKey != null && encryptionKey != null && address != "0.0.0.0") {
+                                                LokiAPITarget("https://$address", port, LokiAPITarget.KeySet(idKey, encryptionKey))
                                             } else {
                                                 Log.d("Loki", "Failed to update random snode pool from: ${rawTarget?.prettifiedDescription()}.")
                                                 null
@@ -168,7 +163,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
                 val identificationKey = rawSnodeAsJSON?.get("pubkey_ed25519") as? String
                 val encryptionKey = rawSnodeAsJSON?.get("pubkey_x25519") as? String
                 if (address != null && port != null && identificationKey != null && encryptionKey != null && address != "0.0.0.0") {
-                    LokiAPITarget("https://$address", port, LokiAPITarget.Keys(identificationKey, encryptionKey))
+                    LokiAPITarget("https://$address", port, LokiAPITarget.KeySet(identificationKey, encryptionKey))
                 } else {
                     Log.d("Loki", "Failed to parse target from: ${rawSnode?.prettifiedDescription()}.")
                     null

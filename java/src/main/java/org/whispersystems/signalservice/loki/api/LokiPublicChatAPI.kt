@@ -274,13 +274,13 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     }
 
     public fun join(channel: Long, server: String): Promise<Unit, Exception> {
-        return execute(HTTPVerb.POST, server, "/channels/$channel/subscribe", true).then(workContext) { response ->
+        return execute(HTTPVerb.POST, server, "/channels/$channel/subscribe", true).then(workContext) { _ ->
             Log.d("Loki", "Joined channel with ID: $channel on server: $server.")
         }
     }
 
     public fun leave(channel: Long, server: String): Promise<Unit, Exception> {
-        return execute(HTTPVerb.DELETE, server, "/channels/$channel/subscribe", true).then(workContext) { response ->
+        return execute(HTTPVerb.DELETE, server, "/channels/$channel/subscribe", true).then(workContext) { _ ->
             Log.d("Loki", "Left channel with ID: $channel on server: $server.")
         }
     }
