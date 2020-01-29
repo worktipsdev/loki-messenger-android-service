@@ -1,8 +1,8 @@
 buildscript {
     repositories {
+        mavenLocal()
         google()
         jcenter()
-        mavenLocal()
         mavenCentral()
     }
 
@@ -20,9 +20,9 @@ version          = version_number
 group            = group_info
 
 repositories {
+    mavenLocal()
     google()
     jcenter()
-    mavenLocal()
     mavenCentral()
 }
 
