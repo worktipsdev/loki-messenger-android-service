@@ -140,6 +140,7 @@ public class SignalServiceCipher {
       switch (message.getType()) {
         case CiphertextMessage.PREKEY_TYPE:  type = Type.PREKEY_BUNDLE_VALUE; break;
         case CiphertextMessage.WHISPER_TYPE: type = Type.CIPHERTEXT_VALUE;    break;
+        case CiphertextMessage.LOKI_FRIEND_REQUEST_TYPE: type = Type.FRIEND_REQUEST_VALUE; break;
         default: throw new AssertionError("Bad type: " + message.getType());
       }
 
@@ -196,7 +197,7 @@ public class SignalServiceCipher {
           byte[] grantSignature = pairingAuthorisationMessage.hasGrantSignature() ? pairingAuthorisationMessage.getGrantSignature().toByteArray() : null;
           PairingAuthorisation authorisation = new PairingAuthorisation(primaryDevicePublicKey, secondaryDevicePublicKey, requestSignature, grantSignature);
           SignalServiceCipher.Metadata metadata = plaintext.getMetadata();
-          SignalServiceContent content = new SignalServiceContent(authorisation, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false);
+          SignalServiceContent content = new SignalServiceContent(authorisation, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false, metadata.isFriendRequest());
           content.setLokiServiceMessage(lokiServiceMessage);
           if (message.hasSyncMessage() && message.getSyncMessage().hasContacts()) {
             SignalServiceSyncMessage syncMessage = createSynchronizeMessage(metadata, message.getSyncMessage());
@@ -215,7 +216,8 @@ public class SignalServiceCipher {
                   plaintext.getMetadata().getSender(),
                   plaintext.getMetadata().getSenderDevice(),
                   plaintext.getMetadata().getTimestamp(),
-                  plaintext.getMetadata().isNeedsReceipt());
+                  plaintext.getMetadata().isNeedsReceipt(),
+                  plaintext.getMetadata().isFriendRequest());
 
           content.setLokiServiceMessage(lokiServiceMessage);
           setProfile(dataMessage, content);
@@ -226,7 +228,8 @@ public class SignalServiceCipher {
                   plaintext.getMetadata().getSender(),
                   plaintext.getMetadata().getSenderDevice(),
                   plaintext.getMetadata().getTimestamp(),
-                  plaintext.getMetadata().isNeedsReceipt());
+                  plaintext.getMetadata().isNeedsReceipt(),
+                  plaintext.getMetadata().isFriendRequest());
 
           // Loki - Profile
           if (message.getSyncMessage().hasSent() && message.getSyncMessage().getSent().hasMessage()) {
@@ -240,26 +243,29 @@ public class SignalServiceCipher {
                                           plaintext.getMetadata().getSender(),
                                           plaintext.getMetadata().getSenderDevice(),
                                           plaintext.getMetadata().getTimestamp(),
-                                          plaintext.getMetadata().isNeedsReceipt());
+                                          plaintext.getMetadata().isNeedsReceipt(),
+                                          plaintext.getMetadata().isFriendRequest());
         } else if (message.hasReceiptMessage()) {
           return new SignalServiceContent(createReceiptMessage(plaintext.getMetadata(), message.getReceiptMessage()),
                                           plaintext.getMetadata().getSender(),
                                           plaintext.getMetadata().getSenderDevice(),
                                           plaintext.getMetadata().getTimestamp(),
-                                          plaintext.getMetadata().isNeedsReceipt());
+                                          plaintext.getMetadata().isNeedsReceipt(),
+                                          plaintext.getMetadata().isFriendRequest());
         } else if (message.hasTypingMessage()) {
           return new SignalServiceContent(createTypingMessage(plaintext.getMetadata(), message.getTypingMessage()),
                                           plaintext.getMetadata().getSender(),
                                           plaintext.getMetadata().getSenderDevice(),
                                           plaintext.getMetadata().getTimestamp(),
-                                          false);
+                                          false,
+                                          plaintext.getMetadata().isFriendRequest());
         }
 
       // Check if we have any of the Loki specific data set. If so then return that content.
       // This will be triggered on desktop friend request background messages.
       if (lokiServiceMessage.isValid()) {
         SignalServiceCipher.Metadata metadata = plaintext.getMetadata();
-        return new SignalServiceContent(lokiServiceMessage, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false);
+        return new SignalServiceContent(lokiServiceMessage, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false, metadata.isFriendRequest());
       }
 
       // No content is set at all; return null
@@ -296,16 +302,17 @@ public class SignalServiceCipher {
 
       if (envelope.isPreKeySignalMessage()) {
         paddedMessage  = sessionCipher.decrypt(new PreKeySignalMessage(ciphertext));
-        metadata       = new Metadata(envelope.getSource(), envelope.getSourceDevice(), envelope.getTimestamp(), false);
+        metadata       = new Metadata(envelope.getSource(), envelope.getSourceDevice(), envelope.getTimestamp(), false, false);
         sessionVersion = sessionCipher.getSessionVersion();
       } else if (envelope.isSignalMessage()) {
         paddedMessage  = sessionCipher.decrypt(new SignalMessage(ciphertext));
-        metadata       = new Metadata(envelope.getSource(), envelope.getSourceDevice(), envelope.getTimestamp(), false);
+        metadata       = new Metadata(envelope.getSource(), envelope.getSourceDevice(), envelope.getTimestamp(), false, false);
         sessionVersion = sessionCipher.getSessionVersion();
       } else if (envelope.isUnidentifiedSender()) {
-        Pair<SignalProtocolAddress, byte[]> results = sealedSessionCipher.decrypt(certificateValidator, ciphertext, envelope.getServerTimestamp());
-        paddedMessage  = results.second();
-        metadata       = new Metadata(results.first().getName(), results.first().getDeviceId(), envelope.getTimestamp(), true);
+        Pair<SignalProtocolAddress, Pair<Integer, byte[]>> results = sealedSessionCipher.decrypt(certificateValidator, ciphertext, envelope.getServerTimestamp());
+        Pair<Integer, byte[]> data = results.second();
+        paddedMessage  = data.second();
+        metadata       = new Metadata(results.first().getName(), results.first().getDeviceId(), envelope.getTimestamp(), true, data.first().equals(CiphertextMessage.LOKI_FRIEND_REQUEST_TYPE));
         sessionVersion = sealedSessionCipher.getSessionVersion(new SignalProtocolAddress(metadata.getSender(), metadata.getSenderDevice()));
       } else {
         throw new InvalidMetadataMessageException("Unknown type: " + envelope.getType());
@@ -738,12 +745,14 @@ public class SignalServiceCipher {
     private final int     senderDevice;
     private final long    timestamp;
     private final boolean needsReceipt;
+    private final boolean isFriendRequest;
 
-    public Metadata(String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+    public Metadata(String sender, int senderDevice, long timestamp, boolean needsReceipt, boolean isFriendRequest) {
       this.sender       = sender;
       this.senderDevice = senderDevice;
       this.timestamp    = timestamp;
       this.needsReceipt = needsReceipt;
+      this.isFriendRequest = isFriendRequest;
     }
 
     public String getSender() {
@@ -761,6 +770,8 @@ public class SignalServiceCipher {
     public boolean isNeedsReceipt() {
       return needsReceipt;
     }
+
+    public boolean isFriendRequest() { return isFriendRequest; }
   }
 
   protected static class Plaintext {

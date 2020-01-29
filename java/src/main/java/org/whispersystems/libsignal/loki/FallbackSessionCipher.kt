@@ -29,7 +29,7 @@ class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val h
 
     // region Settings
     companion object {
-        val sessionVersion = 3
+        @JvmStatic val sessionVersion = 3
     }
     // endregion
 
