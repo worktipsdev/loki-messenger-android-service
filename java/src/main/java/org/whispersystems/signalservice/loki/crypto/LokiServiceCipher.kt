@@ -3,6 +3,7 @@ package org.whispersystems.signalservice.loki.crypto
 import org.signal.libsignal.metadata.certificate.CertificateValidator
 import org.whispersystems.libsignal.InvalidMessageException
 import org.whispersystems.libsignal.SignalProtocolAddress
+import org.whispersystems.libsignal.loki.FallbackSessionCipher
 import org.whispersystems.libsignal.protocol.PreKeySignalMessage
 import org.whispersystems.libsignal.state.SessionState
 import org.whispersystems.libsignal.state.SignalProtocolStore

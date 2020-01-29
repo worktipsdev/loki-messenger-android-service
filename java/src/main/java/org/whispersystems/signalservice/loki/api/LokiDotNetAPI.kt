@@ -21,7 +21,7 @@ import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture
-import org.whispersystems.signalservice.loki.crypto.DiffieHellman
+import org.whispersystems.libsignal.loki.DiffieHellman
 import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory
 import org.whispersystems.signalservice.loki.utilities.createContext
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded

@@ -1,4 +1,4 @@
-package org.whispersystems.signalservice.loki.crypto
+package org.whispersystems.libsignal.loki
 
 import org.whispersystems.curve25519.Curve25519
 import org.whispersystems.signalservice.internal.util.Util

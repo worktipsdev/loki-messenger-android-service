@@ -13,7 +13,7 @@ import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
-import org.whispersystems.signalservice.loki.crypto.DiffieHellman
+import org.whispersystems.libsignal.loki.DiffieHellman
 import org.whispersystems.signalservice.loki.utilities.createContext
 import java.io.IOException
 import java.util.*
