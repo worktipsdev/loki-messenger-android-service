@@ -8,7 +8,6 @@ import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol
-import org.whispersystems.signalservice.loki.utilities.Analytics
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.text.SimpleDateFormat
 import java.util.*
@@ -203,10 +202,6 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                     throw exception
                 }
             }
-        }.success {
-            Analytics.shared.track("Group Message Sent") // Should ideally be Public Chat Message Sent
-        }.fail {
-            Analytics.shared.track("Failed to Send Group Message") // Should ideally be Failed to Send Public Chat Message
         }
     }
 

@@ -8,7 +8,6 @@ import nl.komponents.kovenant.task
 import okhttp3.*
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.util.JsonUtil
-import org.whispersystems.signalservice.loki.utilities.Analytics
 import org.whispersystems.signalservice.loki.utilities.Broadcaster
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import java.io.IOException
@@ -84,7 +83,6 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
                                     }
                                 }
                                 else -> {
-                                    Analytics.shared.track("Seed Node Failed")
                                     Log.d("Loki", "Couldn't reach $target.")
                                     deferred.reject(LokiAPI.Error.Generic)
                                 }
@@ -92,7 +90,6 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
                         }
 
                         override fun onFailure(call: Call, exception: IOException) {
-                            Analytics.shared.track("Seed Node Failed")
                             Log.d("Loki", "Couldn't reach $target.")
                             deferred.reject(exception)
                         }

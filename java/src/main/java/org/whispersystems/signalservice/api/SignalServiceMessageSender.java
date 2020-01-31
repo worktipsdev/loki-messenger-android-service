@@ -90,7 +90,6 @@ import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtoco
 import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
-import org.whispersystems.signalservice.loki.utilities.Analytics;
 import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory;
 import org.whispersystems.signalservice.loki.utilities.Broadcaster;
 
@@ -1198,7 +1197,6 @@ public class SignalServiceMessageSender {
               public Unit invoke(Map<?, ?> map) {
                 if (isSuccess[0]) { return Unit.INSTANCE; } // Succeed as soon as the first promise succeeds
                 broadcaster.broadcast("messageSent", timestamp);
-                Analytics.Companion.getShared().track("Sent Message Using Swarm API");
                 isSuccess[0] = true;
                 // Update the message and thread if needed
                 if (isFriendRequestMessage && eventListener.isPresent()) {
@@ -1215,7 +1213,6 @@ public class SignalServiceMessageSender {
                 errorCount[0] += 1;
                 if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
                 broadcaster.broadcast("messageFailed", timestamp);
-                Analytics.Companion.getShared().track("Failed to Send Message Using Swarm API");
                 // Update the message and thread if needed
                 if (isFriendRequestMessage && eventListener.isPresent()) {
                     eventListener.get().onFriendRequestSendingFail(messageID, threadID);
