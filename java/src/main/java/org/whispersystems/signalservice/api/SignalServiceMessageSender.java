@@ -649,7 +649,7 @@ public class SignalServiceMessageSender {
       // Loki - Profile
       LokiProfile.Builder profile = LokiProfile.newBuilder();
       String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
-      String url = userDatabase.getProfileAvatarUrl(userHexEncodedPublicKey);
+      String url = userDatabase.getProfilePictureURL(userHexEncodedPublicKey);
       if (displayName != null) { profile.setDisplayName(displayName); }
       profile.setAvatar(url != null ? url : "");
       builder.setProfile(profile);

@@ -32,14 +32,12 @@ class LokiServiceCipher(localAddress: SignalServiceAddress, private val signalPr
         val cipher = FallbackSessionCipher(userPrivateKey, destination.name)
         val transportDetails = PushTransportDetails(FallbackSessionCipher.sessionVersion)
         val bytes = cipher.encrypt(transportDetails.getPaddedMessageBody(unpaddedMessageBody)) ?: ByteArray(0)
-
         if (unidentifiedAccess.isPresent) {
             val sessionCipher = SealedSessionCipher(signalProtocolStore, destination)
             val message = LokiFriendRequestMessage(bytes)
             val ciphertext = sessionCipher.encrypt(destination, unidentifiedAccess.get().unidentifiedCertificate, message)
             return OutgoingPushMessage(Type.UNIDENTIFIED_SENDER_VALUE, destination.deviceId, 0, Base64.encodeBytes(ciphertext))
         }
-
         return OutgoingPushMessage(Type.FRIEND_REQUEST_VALUE, destination.deviceId, 0, Base64.encodeBytes(bytes))
     }
 

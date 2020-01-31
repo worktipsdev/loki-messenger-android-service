@@ -11,6 +11,7 @@ import java.io.OutputStream
  * For encrypted profile, see `ProfileCipherOutputStreamFactory`.
  */
 class BasicOutputStreamFactory : OutputStreamFactory {
+
   override fun createFor(outputStream: OutputStream?): DigestingOutputStream {
     return object : DigestingOutputStream(outputStream) { }
   }
