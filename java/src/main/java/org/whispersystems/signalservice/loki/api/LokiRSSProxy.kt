@@ -6,14 +6,15 @@ import okhttp3.Request
 import org.whispersystems.signalservice.internal.util.JsonUtil
 
 object LokiRSSProxy {
+
     fun fetch(url: String): Promise<String, Exception> {
         var client = LokiHTTPClient(60)
         val builder = Request.Builder().url(url).get()
-        val rssMap = mapOf("messenger-updates/feed" to "loki/v1/rss/messenger", "loki.network/feed" to "loki/v1/rss/loki")
-        for (mapping in rssMap) {
-            if (url.toLowerCase().contains(mapping.key)) {
+        val feeds = mapOf( "messenger-updates/feed" to "loki/v1/rss/messenger", "loki.network/feed" to "loki/v1/rss/loki" )
+        for (feed in feeds) {
+            if (url.toLowerCase().contains(feed.key)) {
                 val fileServer = "https://file.lokinet.org"
-                builder.url("$fileServer/${mapping.value}")
+                builder.url("$fileServer/${feed.value}")
                 client = LokiFileServerProxy(fileServer)
                 break
             }
@@ -22,7 +23,7 @@ object LokiRSSProxy {
             if (!response.isSuccess) {
                 throw LokiAPI.Error.HTTPRequestFailed(response.statusCode)
             }
-            val body = response.body ?: throw LokiAPI.Error.InvalidBody
+            val body = response.body ?: throw LokiAPI.Error.ResponseBodyMissing
             val json = JsonUtil.fromJson(body)
             json.get("data").asText()
         }

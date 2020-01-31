@@ -39,7 +39,7 @@ internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) 
         return LokiSwarmAPI.getRandomSnode().bind { p ->
             proxy = p
             val url = "${proxy.address}:${proxy.port}/proxy"
-            Log.d("LokiSnodeProxy", "Proxying request to $target through $proxy.")
+            Log.d("Loki", "Proxying request to $target through $proxy.")
             val unencryptedProxyRequestBody = mapOf( "method" to request.method(), "body" to requestBodyAsString, "headers" to canonicalRequestHeaders )
             val ivAndCipherText = DiffieHellman.encrypt(JsonUtil.toJson(unencryptedProxyRequestBody).toByteArray(Charsets.UTF_8), symmetricKey)
             val proxyRequest = Request.Builder()
@@ -54,21 +54,19 @@ internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) 
                 // Prune snodes that don't implement the proxying endpoint
                 LokiSwarmAPI.randomSnodePool.remove(proxy)
             }
-
-            // Extract the body if possible
             var statusCode = response.code()
-            var bodyAsString: String? = response.body()?.string()
-            if (response.isSuccessful && bodyAsString != null) {
-                val cipherText = Base64.decode(bodyAsString)
-                val decrypted = DiffieHellman.decrypt(cipherText, symmetricKey)
-                val responseBody = decrypted.toString(Charsets.UTF_8)
-                val json = JsonUtil.fromJson(responseBody)
+            var body: String? = response.body()?.string()
+            if (response.isSuccessful && body != null) {
+                val cipherText = Base64.decode(body)
+                val decryptedBody = DiffieHellman.decrypt(cipherText, symmetricKey)
+                val bodyAsString = decryptedBody.toString(Charsets.UTF_8)
+                val json = JsonUtil.fromJson(bodyAsString)
                 statusCode = json.get("status").asInt()
                 if (json.hasNonNull("body")) {
-                    bodyAsString = json.get("body").asText()
+                    body = json.get("body").asText()
                 }
             }
-            return@map Response(statusCode.isHTTPSuccess(), statusCode, bodyAsString)
+            return@map Response(statusCode.isSuccessfulHTTPStatusCode(), statusCode, body)
         }
     }
     // endregion

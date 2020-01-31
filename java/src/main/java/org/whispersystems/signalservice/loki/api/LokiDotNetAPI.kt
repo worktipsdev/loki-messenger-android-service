@@ -134,7 +134,6 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                     }
                 }
             }
-
             return LokiFileServerProxy(server).execute(request.build()).map { response ->
                 if (!response.isSuccess) {
                     if (response.statusCode == 401) {

@@ -56,7 +56,7 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
                 try {
                     val info = unwrap(body)
                     code = info.first
-                    if (code.isHTTPSuccess()) {
+                    if (code.isSuccessfulHTTPStatusCode()) {
                         val base64Data = info.second!!
                         val ivAndCipherText = Base64.decode(base64Data)
                         val decrypted = DiffieHellman.decrypt(ivAndCipherText, symmetricKey)
@@ -75,7 +75,7 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
                     body = "Failed to parse JSON"
                 }
             }
-            return@map Response(code.isHTTPSuccess(), code, body)
+            return@map Response(code.isSuccessfulHTTPStatusCode(), code, body)
         }.recover { exception ->
             throw exception
         }

@@ -25,50 +25,6 @@ internal open class LokiHTTPClient(private val timeout: Long) {
         private var networkContext = Kovenant.createContext("LokiHttpClient", 8)
     }
 
-    // region Private functions
-    internal open fun getBody(request: Request): ByteArray? {
-        try {
-            val copy = request.newBuilder().build()
-            val buffer = Buffer()
-            val body = copy.body() ?: return null
-            val charset = body.contentType()?.charset() ?: Charsets.UTF_8
-            body.writeTo(buffer)
-            return buffer.readByteArray()
-        } catch (e: IOException) {
-            throw Error("Failed to build request body")
-        }
-    }
-
-    internal open fun getBodyAsString(request: Request): String? {
-        val body = this.getBody(request)
-        val charset = request.body()?.contentType()?.charset() ?: Charsets.UTF_8
-        return body?.toString(charset)
-    }
-
-    internal open fun getCanonicalHeaders(request: Request): Map<String, Any> {
-        val map = mutableMapOf<String, Any>()
-        val contentType = request.body()?.contentType()
-        if (contentType != null) {
-            map["content-type"] = contentType.toString()
-        }
-        val headers = request.headers()
-        for (name in headers.names()) {
-            val value = headers.get(name)
-            if (value != null) {
-                if (value.toLowerCase(Locale.getDefault()) == "true" || value.toLowerCase(Locale.getDefault()) == "false") {
-                    map[name] = value.toBoolean()
-                } else if (value.toIntOrNull() != null) {
-                    map[name] = value.toInt()
-                } else {
-                    map[name] = value
-                }
-            }
-        }
-        return map
-    }
-    // endregion
-
-    // region Clearnet Setup
     fun getClearnetConnection(): OkHttpClient {
         var connection = okHTTPCache[timeout]
         if (connection == null) {
@@ -112,8 +68,48 @@ internal open class LokiHTTPClient(private val timeout: Long) {
             Response(it.isSuccessful, it.code(), it.body()?.string())
         }
     }
+
+    internal open fun getBody(request: Request): ByteArray? {
+        try {
+            val copy = request.newBuilder().build()
+            val buffer = Buffer()
+            val body = copy.body() ?: return null
+            body.writeTo(buffer)
+            return buffer.readByteArray()
+        } catch (e: IOException) {
+            throw Error("Failed to build request body")
+        }
+    }
+
+    internal open fun getBodyAsString(request: Request): String? {
+        val body = this.getBody(request)
+        val charset = request.body()?.contentType()?.charset() ?: Charsets.UTF_8
+        return body?.toString(charset)
+    }
+
+    internal open fun getCanonicalHeaders(request: Request): Map<String, Any> {
+        val map = mutableMapOf<String, Any>()
+        val contentType = request.body()?.contentType()
+        if (contentType != null) {
+            map["content-type"] = contentType.toString()
+        }
+        val headers = request.headers()
+        for (name in headers.names()) {
+            val value = headers.get(name)
+            if (value != null) {
+                if (value.toLowerCase(Locale.getDefault()) == "true" || value.toLowerCase(Locale.getDefault()) == "false") {
+                    map[name] = value.toBoolean()
+                } else if (value.toIntOrNull() != null) {
+                    map[name] = value.toInt()
+                } else {
+                    map[name] = value
+                }
+            }
+        }
+        return map
+    }
 }
 
-internal fun Int.isHTTPSuccess(): Boolean {
+internal fun Int.isSuccessfulHTTPStatusCode(): Boolean {
     return this in 200..299
 }
