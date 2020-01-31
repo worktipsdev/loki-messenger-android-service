@@ -205,7 +205,7 @@ public class SealedSessionCipher {
               byte[] privateKey = signalProtocolStore.getIdentityKeyPair().getPrivateKey().serialize();
               return new FallbackSessionCipher(privateKey, sender.getName()).decrypt(message.getContent());
           } catch (Exception e) {
-              throw new InvalidMessageException("Failed to decrypt friend request message");
+              throw new InvalidMessageException("Failed to decrypt friend request message.");
           }
       }
       default:                             throw new InvalidMessageException("Unknown type: " + message.getType());
