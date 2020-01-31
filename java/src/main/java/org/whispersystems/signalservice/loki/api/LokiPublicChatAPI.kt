@@ -32,12 +32,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         public val avatarAnnotationType = "network.loki.messenger.avatar"
 
         fun getDefaultChats(isDebug: Boolean = false): List<LokiPublicChat> {
-            val result = mutableListOf<LokiPublicChat>()
-            result.add(LokiPublicChat(1, "https://chat.lokinet.org", "Loki Public Chat", true))
-            if (isDebug) {
-                result.add(LokiPublicChat(1, "https://chat-dev.lokinet.org", "Loki Dev Chat", true))
-            }
-            return result
+            return listOf()
         }
         // endregion
 
@@ -273,6 +268,34 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                 info.get("name").asText()
             } catch (exception: Exception) {
                 Log.d("Loki", "Couldn't parse info for public chat channel with ID: $channel on server: $server.")
+                throw exception
+            }
+        }
+    }
+
+    public fun join(channel: Long, server: String): Promise<Unit, Exception> {
+        return execute(HTTPVerb.POST, server, "/channels/$channel/subscribe", true).then(workContext) { _ ->
+            Log.d("Loki", "Joined channel with ID: $channel on server: $server.")
+        }
+    }
+
+    public fun leave(channel: Long, server: String): Promise<Unit, Exception> {
+        return execute(HTTPVerb.DELETE, server, "/channels/$channel/subscribe", true).then(workContext) { _ ->
+            Log.d("Loki", "Left channel with ID: $channel on server: $server.")
+        }
+    }
+
+    public fun getUserCount(channel: Long, server: String): Promise<Int, Exception> {
+        val parameters = mapOf( "count" to 2500 )
+        return execute(HTTPVerb.GET, server, "/channels/$channel/subscribers", true, parameters).then(workContext) { response ->
+            try {
+                val bodyAsString = response.body()!!.string()
+                val body = JsonUtil.fromJson(bodyAsString)
+                val userCount = body.get("data").count()
+                apiDatabase.setUserCount(userCount, channel, server)
+                userCount
+            } catch (exception: Exception) {
+                Log.d("Loki", "Couldn't parse user count for public chat channel with ID: $channel on server: $server.")
                 throw exception
             }
         }
