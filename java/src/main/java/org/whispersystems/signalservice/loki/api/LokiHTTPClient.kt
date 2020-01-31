@@ -26,21 +26,31 @@ internal open class LokiHTTPClient(private val timeout: Long) {
     }
 
     // region Private functions
-    internal open fun getBodyAsString(request: Request): Any? {
+    internal open fun getBody(request: Request): ByteArray? {
         try {
             val copy = request.newBuilder().build()
             val buffer = Buffer()
             val body = copy.body() ?: return null
             val charset = body.contentType()?.charset() ?: Charsets.UTF_8
             body.writeTo(buffer)
-            return buffer.readString(charset)
+            return buffer.readByteArray()
         } catch (e: IOException) {
             throw Error("Failed to build request body")
         }
     }
 
+    internal open fun getBodyAsString(request: Request): String? {
+        val body = this.getBody(request)
+        val charset = request.body()?.contentType()?.charset() ?: Charsets.UTF_8
+        return body?.toString(charset)
+    }
+
     internal open fun getCanonicalHeaders(request: Request): Map<String, Any> {
         val map = mutableMapOf<String, Any>()
+        val contentType = request.body()?.contentType()
+        if (contentType != null) {
+            map["content-type"] = contentType.toString()
+        }
         val headers = request.headers()
         for (name in headers.names()) {
             val value = headers.get(name)

@@ -33,10 +33,10 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
         return LokiSwarmAPI.getRandomSnode().bind { randomSnode ->
             val url =  "${randomSnode.address}:${randomSnode.port}/file_proxy"
             Log.d("LokiFileServerProxy", "Proxying request to $server via $randomSnode")
-            val bodyAsString = getBodyAsString(request)
+            val requestBody = getRequestBody(request)
             val canonicalHeaders = getCanonicalHeaders(request)
             val endpoint = request.url().toString().removePrefix(server).removePrefix("/")
-            val body = mapOf("body" to bodyAsString, "endpoint" to endpoint, "method" to request.method(), "headers" to canonicalHeaders)
+            val body = mapOf("body" to requestBody, "endpoint" to endpoint, "method" to request.method(), "headers" to canonicalHeaders)
             val ivAndCipherText = DiffieHellman.encrypt(JsonUtil.toJson(body).toByteArray(Charsets.UTF_8), symmetricKey)
             val params = mapOf( "cipherText64" to Base64.encodeBytes(ivAndCipherText) )
             val headers = mapOf( "X-Loki-File-Server-Ephemeral-Key" to getBase64PublicKey(keyPair.publicKey))
@@ -54,13 +54,21 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
             var body: String? = response.body()?.string()
             if (response.isSuccessful && body != null) {
                 try {
-                    val json = JsonUtil.fromJson(body)
-                    code = json.get("meta").get("code").asInt()
+                    val info = unwrap(body)
+                    code = info.first
                     if (code in 200..299) {
-                        val base64Data = json.get("data").asText()
+                        val base64Data = info.second!!
                         val ivAndCipherText = Base64.decode(base64Data)
                         val decrypted = DiffieHellman.decrypt(ivAndCipherText, symmetricKey)
                         body = decrypted.toString(Charsets.UTF_8)
+
+                        // We need to extract the inner status code of the decrypted request
+                        try {
+                            val innerInfo = unwrap(body)
+                            code = innerInfo.first
+                        } catch (e: Exception) {
+                            // Do nothing
+                        }
                     }
                 } catch (e: Error) {
                     code = -1
@@ -73,6 +81,13 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
         }
     }
 
+    private fun unwrap(body: String): Pair<Int, String?> {
+        val json = JsonUtil.fromJson(body)
+        val code = json.get("meta").get("code").asInt()
+        val data = if (json.hasNonNull("data")) json.get("data").asText() else null
+        return Pair(code, data)
+    }
+
     private fun getBase64PublicKey(data: ByteArray): String {
         var string = Hex.toStringCondensed(data)
         // File server expects a 05 public key
@@ -81,27 +96,13 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
         return Base64.encodeBytes(sessionPublicKey)
     }
 
-    override fun getBodyAsString(request: Request): Any? {
+    private fun getRequestBody(request: Request): Any? {
         val requestBody = request.body()
-        val body = super.getBodyAsString(request)
-        if (requestBody is MultipartBody && body is String) {
-            val data = body.toByteArray()
-            return mapOf("fileUpload" to Base64.encodeBytes(data))
+        val body = super.getBody(request)
+        if (requestBody is MultipartBody && body != null) {
+            return mapOf("fileUpload" to Base64.encodeBytes(body))
         }
-        return body
-    }
-
-    override fun getCanonicalHeaders(request: Request): Map<String, Any> {
-        val headers = super.getCanonicalHeaders(request).toMutableMap()
-        // Add any multi-part headers to the original request
-        val body = request.body()
-        if (body is MultipartBody) {
-            headers["content-length"] = body.contentLength()
-            val contentType = body.contentType()
-            if (contentType != null) {
-                headers["content-type"] = contentType.toString()
-            }
-        }
-        return headers
+        val charset = requestBody?.contentType()?.charset() ?: Charsets.UTF_8
+        return body?.toString(charset)
     }
 }
