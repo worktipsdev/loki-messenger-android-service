@@ -113,3 +113,7 @@ internal open class LokiHTTPClient(private val timeout: Long) {
         }
     }
 }
+
+internal fun Int.isHTTPSuccess(): Boolean {
+    return this in 200..299
+}

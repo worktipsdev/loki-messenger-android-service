@@ -68,7 +68,7 @@ internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) 
                     bodyAsString = json.get("body").asText()
                 }
             }
-            return@map Response(statusCode in 200..299, statusCode, bodyAsString)
+            return@map Response(statusCode.isHTTPSuccess(), statusCode, bodyAsString)
         }
     }
     // endregion
