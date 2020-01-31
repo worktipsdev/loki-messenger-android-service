@@ -31,7 +31,6 @@ configurations.all {
 }
 
 dependencies {
-    implementation "org.signal:signal-metadata-android:${signal_version}"
     implementation (project(':java')) {
         exclude group: 'org.signal', module: 'signal-metadata-java'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'

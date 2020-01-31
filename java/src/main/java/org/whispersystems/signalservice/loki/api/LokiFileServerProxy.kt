@@ -9,10 +9,10 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import org.whispersystems.curve25519.Curve25519
 import org.whispersystems.libsignal.logging.Log
+import org.whispersystems.libsignal.loki.DiffieHellman
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
-import org.whispersystems.signalservice.loki.crypto.DiffieHellman
 import org.whispersystems.signalservice.loki.utilities.recover
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 

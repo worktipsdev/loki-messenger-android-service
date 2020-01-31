@@ -1,4 +1,4 @@
-package org.whispersystems.signalservice.loki.crypto
+package org.whispersystems.libsignal.loki
 
 import org.whispersystems.curve25519.Curve25519
 import org.whispersystems.libsignal.util.Hex
@@ -29,7 +29,7 @@ class FallbackSessionCipher(private val userPrivateKey: ByteArray, private val h
 
     // region Settings
     companion object {
-        val sessionVersion = 3
+        @JvmStatic val sessionVersion = 3
     }
     // endregion
 
