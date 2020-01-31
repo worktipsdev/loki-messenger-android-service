@@ -360,15 +360,6 @@ public class SignalServiceMessageSender {
   }
 
   /**
-   * Send a sync message to a specific recipient
-   */
-  public void sendMessage(long messageID, SignalServiceSyncMessage message, SignalServiceAddress recipient)
-          throws IOException, UntrustedIdentityException
-  {
-    sendMessage(messageID, message, Optional.<UnidentifiedAccessPair>absent(), Optional.fromNullable(recipient));
-  }
-
-  /**
    * Send a sync message to all linked devices
    */
   public void sendMessage(long messageID, SignalServiceSyncMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess)
@@ -377,7 +368,7 @@ public class SignalServiceMessageSender {
     sendMessage(messageID, message, unidentifiedAccess, Optional.<SignalServiceAddress>absent());
   }
 
-  private void sendMessage(long messageID, SignalServiceSyncMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess, Optional<SignalServiceAddress> recipient)
+  public void sendMessage(long messageID, SignalServiceSyncMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess, Optional<SignalServiceAddress> recipient)
           throws IOException, UntrustedIdentityException
   {
     byte[] content;
@@ -408,7 +399,7 @@ public class SignalServiceMessageSender {
 
     // Loki - Trigger an event to send sync message
     if (recipient.isPresent()) {
-      sendMessage(messageID, recipient.get(), Optional.<UnidentifiedAccess>absent(), System.currentTimeMillis(), content, false, message.getTTL());
+      sendMessage(messageID, recipient.get(), getTargetUnidentifiedAccess(unidentifiedAccess), System.currentTimeMillis(), content, false, message.getTTL());
     } else if (eventListener.isPresent()) {
       eventListener.get().onSyncEvent(messageID, timestamp, content, message.getTTL());
     }
@@ -1039,8 +1030,8 @@ public class SignalServiceMessageSender {
     return results;
   }
 
-  public SendMessageResult lokiSendSyncMessage(long messageID, SignalServiceAddress recipient, long timestamp, byte[] content, int ttl) {
-    return sendMessage(messageID, recipient, Optional.<UnidentifiedAccess>absent(), timestamp, content, false, ttl, false, true);
+  public SendMessageResult lokiSendSyncMessage(long messageID, SignalServiceAddress recipient, Optional<UnidentifiedAccessPair> unidentifiedAccess, long timestamp, byte[] content, int ttl) {
+    return sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, ttl, false, true);
   }
 
   private SendMessageResult sendMessage(long                         messageID,
@@ -1180,7 +1171,7 @@ public class SignalServiceMessageSender {
       OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
       OutgoingPushMessage message = messages.getMessages().get(0);
       final SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
-      final boolean isFriendRequestMessage = type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST;
+      final boolean isFriendRequestMessage = isFriendRequest;
       // Make sure we have a valid ttl; otherwise default to a day
       if (ttl <= 0) { ttl = 24 * 60 * 60 * 1000; }
       SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userHexEncodedPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
@@ -1355,7 +1346,7 @@ public class SignalServiceMessageSender {
 
     if (!recipient.equals(localAddress) || unidentifiedAccess.isPresent()) {
       if (isFriendRequest) {
-        messages.add(getEncryptedFriendRequestMessage(recipient, SignalServiceAddress.DEFAULT_DEVICE_ID, plaintext));
+        messages.add(getEncryptedFriendRequestMessage(recipient, SignalServiceAddress.DEFAULT_DEVICE_ID, plaintext, unidentifiedAccess));
       } else {
         messages.add(getEncryptedMessage(socket, recipient, unidentifiedAccess, SignalServiceAddress.DEFAULT_DEVICE_ID, plaintext));
       }
@@ -1409,10 +1400,10 @@ public class SignalServiceMessageSender {
     }
   }
 
-  private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceID, byte[] plaintext) {
-      SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceID);
+  private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceID, byte[] plaintext, Optional<UnidentifiedAccess> unidentifiedAccess) {
+        SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceID);
       LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store, null, null, null);
-      return cipher.encryptFriendRequest(signalProtocolAddress, plaintext);
+      return cipher.encryptFriendRequest(signalProtocolAddress, unidentifiedAccess, plaintext);
   }
 
   private void handleMismatchedDevices(PushServiceSocket socket, SignalServiceAddress recipient,

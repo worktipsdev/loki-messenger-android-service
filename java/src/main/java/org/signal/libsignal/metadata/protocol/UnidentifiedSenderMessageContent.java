@@ -8,7 +8,6 @@ import org.signal.libsignal.metadata.InvalidMetadataMessageException;
 import org.signal.libsignal.metadata.SignalProtos;
 import org.signal.libsignal.metadata.certificate.InvalidCertificateException;
 import org.signal.libsignal.metadata.certificate.SenderCertificate;
-import org.whispersystems.libsignal.InvalidMessageException;
 import org.whispersystems.libsignal.protocol.CiphertextMessage;
 
 public class UnidentifiedSenderMessageContent {
@@ -29,6 +28,7 @@ public class UnidentifiedSenderMessageContent {
       switch (message.getType()) {
         case MESSAGE:        this.type = CiphertextMessage.WHISPER_TYPE;        break;
         case PREKEY_MESSAGE: this.type = CiphertextMessage.PREKEY_TYPE;         break;
+        case LOKI_FRIEND_REQUEST: this.type = CiphertextMessage.LOKI_FRIEND_REQUEST_TYPE; break;
         default:             throw new InvalidMetadataMessageException("Unknown type: " + message.getType().getNumber());
       }
 
@@ -77,6 +77,7 @@ public class UnidentifiedSenderMessageContent {
     switch (type) {
       case CiphertextMessage.WHISPER_TYPE: return SignalProtos.UnidentifiedSenderMessage.Message.Type.MESSAGE_VALUE;
       case CiphertextMessage.PREKEY_TYPE:  return SignalProtos.UnidentifiedSenderMessage.Message.Type.PREKEY_MESSAGE_VALUE;
+      case CiphertextMessage.LOKI_FRIEND_REQUEST_TYPE: return SignalProtos.UnidentifiedSenderMessage.Message.Type.LOKI_FRIEND_REQUEST_VALUE;
       default:                             throw new AssertionError(type);
     }
   }

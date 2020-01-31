@@ -18,6 +18,7 @@ public class SignalServiceContent {
   private final int     senderDevice;
   private final long    timestamp;
   private final boolean needsReceipt;
+  private final boolean isFriendRequest;
 
   private Optional<SignalServiceDataMessage>          message;
   private Optional<SignalServiceSyncMessage>          synchronizeMessage;
@@ -31,11 +32,12 @@ public class SignalServiceContent {
   public Optional<String> senderDisplayName = Optional.absent();
   public Optional<String> senderProfileAvatarUrl = Optional.absent();
 
-  public SignalServiceContent(LokiServiceMessage lokiServiceMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+  public SignalServiceContent(LokiServiceMessage lokiServiceMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt, boolean isFriendRequest) {
     this.sender       = sender;
     this.senderDevice = senderDevice;
     this.timestamp    = timestamp;
     this.needsReceipt = needsReceipt;
+    this.isFriendRequest = isFriendRequest;
 
     this.message              = Optional.absent();
     this.synchronizeMessage   = Optional.absent();
@@ -46,11 +48,12 @@ public class SignalServiceContent {
     this.lokiServiceMessage   = Optional.fromNullable(lokiServiceMessage);
   }
 
-  public SignalServiceContent(SignalServiceDataMessage message, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+  public SignalServiceContent(SignalServiceDataMessage message, String sender, int senderDevice, long timestamp, boolean needsReceipt, boolean isFriendRequest) {
     this.sender       = sender;
     this.senderDevice = senderDevice;
     this.timestamp    = timestamp;
     this.needsReceipt = needsReceipt;
+    this.isFriendRequest = isFriendRequest;
 
     this.message            = Optional.fromNullable(message);
     this.synchronizeMessage = Optional.absent();
@@ -60,11 +63,12 @@ public class SignalServiceContent {
     this.pairingAuthorisation = Optional.absent();
   }
 
-  public SignalServiceContent(SignalServiceSyncMessage synchronizeMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+  public SignalServiceContent(SignalServiceSyncMessage synchronizeMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt, boolean isFriendRequest) {
     this.sender       = sender;
     this.senderDevice = senderDevice;
     this.timestamp    = timestamp;
     this.needsReceipt = needsReceipt;
+    this.isFriendRequest = isFriendRequest;
 
     this.message            = Optional.absent();
     this.synchronizeMessage = Optional.fromNullable(synchronizeMessage);
@@ -74,11 +78,12 @@ public class SignalServiceContent {
     this.pairingAuthorisation = Optional.absent();
   }
 
-  public SignalServiceContent(SignalServiceCallMessage callMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+  public SignalServiceContent(SignalServiceCallMessage callMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt, boolean isFriendRequest) {
     this.sender       = sender;
     this.senderDevice = senderDevice;
     this.timestamp    = timestamp;
     this.needsReceipt = needsReceipt;
+    this.isFriendRequest = isFriendRequest;
 
     this.message            = Optional.absent();
     this.synchronizeMessage = Optional.absent();
@@ -88,11 +93,12 @@ public class SignalServiceContent {
     this.pairingAuthorisation = Optional.absent();
   }
 
-  public SignalServiceContent(SignalServiceReceiptMessage receiptMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+  public SignalServiceContent(SignalServiceReceiptMessage receiptMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt, boolean isFriendRequest) {
     this.sender       = sender;
     this.senderDevice = senderDevice;
     this.timestamp    = timestamp;
     this.needsReceipt = needsReceipt;
+    this.isFriendRequest = isFriendRequest;
 
     this.message            = Optional.absent();
     this.synchronizeMessage = Optional.absent();
@@ -102,11 +108,12 @@ public class SignalServiceContent {
     this.pairingAuthorisation = Optional.absent();
   }
 
-  public SignalServiceContent(SignalServiceTypingMessage typingMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+  public SignalServiceContent(SignalServiceTypingMessage typingMessage, String sender, int senderDevice, long timestamp, boolean needsReceipt, boolean isFriendRequest) {
     this.sender       = sender;
     this.senderDevice = senderDevice;
     this.timestamp    = timestamp;
     this.needsReceipt = needsReceipt;
+    this.isFriendRequest = isFriendRequest;
 
     this.message            = Optional.absent();
     this.synchronizeMessage = Optional.absent();
@@ -116,11 +123,12 @@ public class SignalServiceContent {
     this.pairingAuthorisation = Optional.absent();
   }
 
-  public SignalServiceContent(PairingAuthorisation authorisation, String sender, int senderDevice, long timestamp, boolean needsReceipt) {
+  public SignalServiceContent(PairingAuthorisation authorisation, String sender, int senderDevice, long timestamp, boolean needsReceipt, boolean isFriendRequest) {
     this.sender       = sender;
     this.senderDevice = senderDevice;
     this.timestamp    = timestamp;
     this.needsReceipt = needsReceipt;
+    this.isFriendRequest = isFriendRequest;
 
     this.message            = Optional.absent();
     this.synchronizeMessage = Optional.absent();
@@ -167,6 +175,8 @@ public class SignalServiceContent {
   public boolean isNeedsReceipt() {
     return needsReceipt;
   }
+
+  public boolean isFriendRequest() { return isFriendRequest; }
 
   // Loki
   public void setLokiServiceMessage(LokiServiceMessage lokiServiceMessage) { this.lokiServiceMessage = Optional.fromNullable(lokiServiceMessage); }

@@ -8,6 +8,7 @@ import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.then
 import okhttp3.*
 import org.whispersystems.libsignal.logging.Log
+import org.whispersystems.libsignal.loki.DiffieHellman
 import org.whispersystems.signalservice.api.crypto.ProfileCipherOutputStream
 import org.whispersystems.signalservice.api.push.exceptions.NonSuccessfulResponseCodeException
 import org.whispersystems.signalservice.api.push.exceptions.PushNetworkException
@@ -19,7 +20,6 @@ import org.whispersystems.signalservice.internal.push.http.ProfileCipherOutputSt
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
-import org.whispersystems.signalservice.loki.crypto.DiffieHellman
 import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory
 import org.whispersystems.signalservice.loki.utilities.createContext
 import org.whispersystems.signalservice.loki.utilities.recover
