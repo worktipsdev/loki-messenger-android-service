@@ -34,7 +34,7 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
         val canonicalHeaders = getCanonicalHeaders(request)
         return LokiSwarmAPI.getRandomSnode().bind { proxy ->
             val url =  "${proxy.address}:${proxy.port}/file_proxy"
-            Log.d("LokiFileServerProxy", "Proxying request to $server through $proxy.")
+            Log.d("Loki", "Proxying request to $server through $proxy.")
             val endpoint = request.url().toString().removePrefix(server).removePrefix("/")
             val unencryptedProxyRequestBody = mapOf( "body" to body, "endpoint" to endpoint, "method" to request.method(), "headers" to canonicalHeaders )
             val ivAndCipherText = DiffieHellman.encrypt(JsonUtil.toJson(unencryptedProxyRequestBody).toByteArray(Charsets.UTF_8), symmetricKey)

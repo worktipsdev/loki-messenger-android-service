@@ -21,8 +21,8 @@ object LokiAttachmentAPI {
   }
 
   fun getAttachment(outputStream: OutputStream, url: String, maxByteCount: Int, listener: SignalServiceAttachment.ProgressListener?) {
-    // We need to throw PushNetworkException or NonSuccessfulResponseCodeException
-    // as the underlying signal logic requires these to work correctly
+    // We need to throw a PushNetworkException or NonSuccessfulResponseCodeException
+    // as the underlying Signal logic requires these to work correctly
     val connection = OkHttpClient()
         .newBuilder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -35,11 +35,11 @@ object LokiAttachmentAPI {
         val body = response.body()
         if (body == null) {
           Log.d("Loki", "Couldn't parse attachment.")
-          throw PushNetworkException("No response body!")
+          throw PushNetworkException("Missing response body.")
         }
         if (body.contentLength() > maxByteCount) {
           Log.d("Loki", "Attachment size limit exceeded.")
-          throw PushNetworkException("Response exceeded max size!")
+          throw PushNetworkException("Max response size exceeded.")
         }
         val input = body.byteStream()
         val buffer = ByteArray(32768)
@@ -50,7 +50,7 @@ object LokiAttachmentAPI {
           bytesCopied += bytes
           if (bytesCopied > maxByteCount) {
             Log.d("Loki", "Attachment size limit exceeded.")
-            throw PushNetworkException("Response exceeded max size!")
+            throw PushNetworkException("Max response size exceeded.")
           }
           listener?.onAttachmentProgress(body.contentLength(), bytesCopied.toLong())
           bytes = input.read(buffer)

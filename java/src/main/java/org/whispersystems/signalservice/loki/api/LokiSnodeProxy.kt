@@ -8,10 +8,10 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import org.whispersystems.curve25519.Curve25519
 import org.whispersystems.libsignal.logging.Log
+import org.whispersystems.libsignal.loki.DiffieHellman
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
-import org.whispersystems.libsignal.loki.DiffieHellman
 
 internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) : LokiHTTPClient(timeout) {
 
@@ -26,10 +26,10 @@ internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) 
     // region Error
     sealed class Error(val description: String) : Exception() {
         class TargetPublicKeySetMissing(target: LokiAPITarget) : Error("Missing public key set for: $target.")
-        object FailedToBuildRequestBody : Error("Failed to build request body")
     }
     // endregion
 
+    // region Proxying
     override fun execute(request: Request): Promise<Response, Exception> {
         val targetHexEncodedPublicKeySet = target.publicKeySet ?: return Promise.ofFail(Error.TargetPublicKeySetMissing(target))
         val symmetricKey = curve.calculateAgreement(Hex.fromStringCondensed(targetHexEncodedPublicKeySet.encryptionKey), keyPair.privateKey)
