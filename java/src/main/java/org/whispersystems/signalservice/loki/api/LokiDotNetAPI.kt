@@ -175,7 +175,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
     fun uploadAttachment(server: String, attachment: PushAttachmentData): UploadResult {
-        // This function mimicks what Signal does in PushServiceSocket
+        // This function mimics what Signal does in PushServiceSocket
         val contentType = "application/octet-stream"
         val file = DigestingRequestBody(attachment.data, attachment.outputStreamFactory, contentType, attachment.dataSize, attachment.listener)
         val body = MultipartBody.Builder()
