@@ -281,7 +281,11 @@ public class SignalServiceDataMessage {
     // If any of the Loki fields are present then don't sync the message
     if (isFriendRequest || preKeyBundle.isPresent() || pairingAuthorisation.isPresent()) return false;
     // Only sync if the message has valid content
-    return body.isPresent() || attachments.isPresent() || sticker.isPresent() || quote.isPresent() || contacts.isPresent() || previews.isPresent();
+    return body.isPresent() || attachments.isPresent() || sticker.isPresent() || quote.isPresent() || contacts.isPresent() || previews.isPresent() || canSyncGroupMessage();
+  }
+
+  private boolean canSyncGroupMessage() {
+      return group.isPresent() && group.get().getGroupType() == SignalServiceGroup.GroupType.SIGNAL;
   }
 
   public int getTTL() {
