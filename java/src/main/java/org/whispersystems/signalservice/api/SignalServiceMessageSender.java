@@ -885,6 +885,7 @@ public class SignalServiceMessageSender {
 
       if (group.getName().isPresent()) builder.setName(group.getName().get());
       if (group.getMembers().isPresent()) builder.addAllMembers(group.getMembers().get());
+      if (group.getAdmins().isPresent()) builder.addAllAdmins(group.getAdmins().get());
 
       if (group.getAvatar().isPresent()) {
         if (group.getAvatar().get().isStream()) {

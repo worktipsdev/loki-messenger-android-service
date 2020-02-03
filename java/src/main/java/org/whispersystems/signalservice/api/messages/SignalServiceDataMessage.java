@@ -236,6 +236,10 @@ public class SignalServiceDataMessage {
     return profileKeyUpdate;
   }
 
+  public boolean isGroupMessage() {
+      return group.isPresent();
+  }
+
   public boolean isGroupUpdate() {
     return group.isPresent() && group.get().getType() != SignalServiceGroup.Type.DELIVER;
   }
