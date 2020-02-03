@@ -444,7 +444,7 @@ public class SignalServiceDataMessage {
     }
 
     public Builder asSessionRequest(boolean sessionRequest) {
-      this.sessionRestore = sessionRequest;
+      this.sessionRequest = sessionRequest;
       return this;
     }
 
