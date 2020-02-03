@@ -30,7 +30,7 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
         if (!isLokiServer) { return super.execute(request) }
         val symmetricKey = curve.calculateAgreement(lokiServerPublicKey, keyPair.privateKey)
 
-        return LokiSwarmAPI.getRandomSnode().bind { randomSnode ->
+        return LokiSwarmAPI.getRandomSnode().bind(workContext) { randomSnode ->
             val url =  "${randomSnode.address}:${randomSnode.port}/file_proxy"
             Log.d("LokiFileServerProxy", "Proxying request to $server via $randomSnode")
             val requestBody = getRequestBody(request)
@@ -49,7 +49,7 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
                 .header("Connection", "close")
                 .build()
             execute(proxyRequest, getClearnetConnection())
-        }.map { response ->
+        }.map(workContext) { response ->
             var code = response.code()
             var body: String? = response.body()?.string()
             if (response.isSuccessful && body != null) {

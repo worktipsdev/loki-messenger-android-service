@@ -22,7 +22,8 @@ internal open class LokiHTTPClient(private val timeout: Long) {
 
     companion object {
         internal val okHTTPCache = hashMapOf<Long, OkHttpClient>()
-        private var networkContext = Kovenant.createContext("LokiHttpClient", 8)
+        internal var networkContext = Kovenant.createContext("LokiHttpClientNetwork", 8)
+        internal var workContext = Kovenant.createContext("LokiHttpClientWork", 8)
     }
 
     fun getClearnetConnection(): OkHttpClient {
@@ -64,7 +65,7 @@ internal open class LokiHTTPClient(private val timeout: Long) {
 
     internal open fun execute(request: Request): Promise<Response, Exception> {
         val connection = getClearnetConnection()
-        return execute(request, connection).map {
+        return execute(request, connection).map(workContext) {
             Response(it.isSuccessful, it.code(), it.body()?.string())
         }
     }
