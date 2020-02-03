@@ -89,7 +89,7 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
 
     private fun getBase64EncodedPublicKey(data: ByteArray): String {
         var string = Hex.toStringCondensed(data)
-        // File server expects an 05 prefixed public key
+        // The file server expects an 05 prefixed public key
         if (data.size == 32) { string = "05$string" }
         val sessionID = Hex.fromStringCondensed(string)
         return Base64.encodeBytes(sessionID)
