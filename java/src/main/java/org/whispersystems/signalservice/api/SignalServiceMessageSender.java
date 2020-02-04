@@ -580,6 +580,14 @@ public class SignalServiceMessageSender {
         builder.setFlags(DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE);
       }
 
+      if (message.isSessionRestore()) {
+          builder.setFlags(DataMessage.Flags.SESSION_RESTORE_VALUE);
+      }
+
+      if (message.isSessionRequest()) {
+          builder.setFlags(DataMessage.Flags.SESSION_REQUEST_VALUE);
+      }
+
       if (message.getExpiresInSeconds() > 0) {
         builder.setExpireTimer(message.getExpiresInSeconds());
       }
