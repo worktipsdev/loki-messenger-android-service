@@ -1,5 +1,6 @@
 package org.whispersystems.signalservice.loki.api
 
+import nl.komponents.kovenant.Kovenant
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
@@ -12,6 +13,7 @@ import org.whispersystems.libsignal.loki.DiffieHellman
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
+import org.whispersystems.signalservice.loki.utilities.createContext
 
 internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) : LokiHTTPClient(timeout) {
 
@@ -20,6 +22,7 @@ internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) 
     // region Settings
     companion object {
         private val curve = Curve25519.getInstance(Curve25519.BEST)
+        internal var snodeNetworkContext = Kovenant.createContext("LokiSnodeProxyNetwork")
     }
     // endregion
 
@@ -48,7 +51,7 @@ internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) 
                 .header("X-Sender-Public-Key", Hex.toStringCondensed(keyPair.publicKey))
                 .header("X-Target-Snode-Key", targetHexEncodedPublicKeySet.idKey)
                 .build()
-            execute(proxyRequest, getClearnetConnection())
+            execute(proxyRequest, getClearnetConnection(), snodeNetworkContext)
         }.map(workContext) { response ->
             if (response.code() == 404) {
                 // Prune snodes that don't implement the proxying endpoint

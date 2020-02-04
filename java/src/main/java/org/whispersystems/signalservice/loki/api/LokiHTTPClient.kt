@@ -1,5 +1,6 @@
 package org.whispersystems.signalservice.loki.api
 
+import nl.komponents.kovenant.Context
 import nl.komponents.kovenant.Kovenant
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.deferred
@@ -22,8 +23,8 @@ internal open class LokiHTTPClient(private val timeout: Long) {
 
     companion object {
         internal val okHTTPCache = hashMapOf<Long, OkHttpClient>()
-        internal var networkContext = Kovenant.createContext("LokiHttpClientNetwork", 8)
-        internal var workContext = Kovenant.createContext("LokiHttpClientWork", 8)
+        internal var networkContext = Kovenant.createContext("LokiHttpClientNetwork")
+        internal var workContext = Kovenant.createContext("LokiHttpClientWork")
     }
 
     fun getClearnetConnection(): OkHttpClient {
@@ -50,8 +51,8 @@ internal open class LokiHTTPClient(private val timeout: Long) {
         return connection!!
     }
 
-    internal fun execute(request: Request, client: OkHttpClient): Promise<okhttp3.Response, Exception> {
-        val deferred = deferred<okhttp3.Response, Exception>(networkContext)
+    internal fun execute(request: Request, client: OkHttpClient, context: Context = networkContext): Promise<okhttp3.Response, Exception> {
+        val deferred = deferred<okhttp3.Response, Exception>(context)
         Thread {
             try {
                 val response = client.newCall(request).execute()

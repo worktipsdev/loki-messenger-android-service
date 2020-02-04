@@ -45,8 +45,8 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     }
 
     // Context for network requests
-    val networkContext = Kovenant.createContext("network", 8)
-    val workContext = Kovenant.createContext("work", 8)
+    val networkContext = Kovenant.createContext("network")
+    val workContext = Kovenant.createContext("work")
 
     public sealed class Error(val description: String) : Exception() {
         object Generic : Error("An error occurred.")
