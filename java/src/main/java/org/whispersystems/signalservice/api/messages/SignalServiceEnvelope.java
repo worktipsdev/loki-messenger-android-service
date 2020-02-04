@@ -163,7 +163,7 @@ public class SignalServiceEnvelope {
   }
 
   public boolean hasSource() {
-    return envelope.hasSource();
+    return envelope.hasSource() && envelope.getSource().length() > 0;
   }
 
   /**
