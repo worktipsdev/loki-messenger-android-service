@@ -36,7 +36,7 @@ internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) 
         val requestBodyAsString = getBodyAsString(request)
         val canonicalRequestHeaders = getCanonicalHeaders(request)
         lateinit var proxy: LokiAPITarget
-        return LokiSwarmAPI.getRandomSnode().bind { p ->
+        return LokiSwarmAPI.getRandomSnode().bind(workContext) { p ->
             proxy = p
             val url = "${proxy.address}:${proxy.port}/proxy"
             Log.d("Loki", "Proxying request to $target through $proxy.")
@@ -49,7 +49,7 @@ internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) 
                 .header("X-Target-Snode-Key", targetHexEncodedPublicKeySet.idKey)
                 .build()
             execute(proxyRequest, getClearnetConnection())
-        }.map { response ->
+        }.map(workContext) { response ->
             if (response.code() == 404) {
                 // Prune snodes that don't implement the proxying endpoint
                 LokiSwarmAPI.randomSnodePool.remove(proxy)

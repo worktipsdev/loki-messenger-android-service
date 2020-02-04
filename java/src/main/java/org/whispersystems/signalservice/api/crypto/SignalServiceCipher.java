@@ -353,6 +353,7 @@ public class SignalServiceCipher {
     Sticker                        sticker          = createSticker(content);
     boolean                        unpairingRequest = ((content.getFlags() & DataMessage.Flags.UNPAIRING_REQUEST_VALUE     ) != 0);
     boolean                        sessionRestore   = ((content.getFlags() & DataMessage.Flags.SESSION_RESTORE_VALUE       ) != 0);
+    boolean                        sessionRequest   = ((content.getFlags() & DataMessage.Flags.SESSION_REQUEST_VALUE       ) != 0);
 
     for (AttachmentPointer pointer : content.getAttachmentsList()) {
       attachments.add(createAttachmentPointer(pointer));
@@ -377,7 +378,7 @@ public class SignalServiceCipher {
                                         sharedContacts,
                                         previews,
                                         sticker,
-                                        isFriendRequest, null, null, unpairingRequest, sessionRestore);
+                                        isFriendRequest, null, null, unpairingRequest, sessionRestore, sessionRequest);
   }
 
   private SignalServiceSyncMessage createSynchronizeMessage(Metadata metadata, SyncMessage content)
@@ -710,6 +711,7 @@ public class SignalServiceCipher {
       String                      name    = null;
       List<String>                members = null;
       SignalServiceAttachmentPointer avatar  = null;
+      List<String> admins = null;
 
       if (content.getGroup().hasName()) {
         name = content.getGroup().getName();
@@ -734,10 +736,14 @@ public class SignalServiceCipher {
                                                     pointer.getUrl());
       }
 
-      return new SignalServiceGroup(type, content.getGroup().getId().toByteArray(), name, members, avatar);
+      if (content.getGroup().getAdminsCount() > 0) {
+        admins = content.getGroup().getAdminsList();
+      }
+
+      return new SignalServiceGroup(type, content.getGroup().getId().toByteArray(), SignalServiceGroup.GroupType.SIGNAL, name, members, avatar, admins);
     }
 
-    return new SignalServiceGroup(content.getGroup().getId().toByteArray());
+    return new SignalServiceGroup(content.getGroup().getId().toByteArray(), SignalServiceGroup.GroupType.SIGNAL);
   }
 
   protected static class Metadata {

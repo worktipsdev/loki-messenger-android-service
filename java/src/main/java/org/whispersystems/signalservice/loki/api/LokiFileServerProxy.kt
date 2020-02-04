@@ -32,9 +32,9 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
         val symmetricKey = curve.calculateAgreement(lokiServerPublicKey, keyPair.privateKey)
         val body = getRequestBody(request)
         val canonicalHeaders = getCanonicalHeaders(request)
-        return LokiSwarmAPI.getRandomSnode().bind { proxy ->
+        return LokiSwarmAPI.getRandomSnode().bind(workContext) { proxy ->
             val url =  "${proxy.address}:${proxy.port}/file_proxy"
-            Log.d("Loki", "Proxying request to $server through $proxy.")
+            Log.d("Loki", "Proxying file server request through $proxy.")
             val endpoint = request.url().toString().removePrefix(server).removePrefix("/")
             val unencryptedProxyRequestBody = mapOf( "body" to body, "endpoint" to endpoint, "method" to request.method(), "headers" to canonicalHeaders )
             val ivAndCipherText = DiffieHellman.encrypt(JsonUtil.toJson(unencryptedProxyRequestBody).toByteArray(Charsets.UTF_8), symmetricKey)
@@ -49,7 +49,7 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
                 .header("Connection", "close")
                 .build()
             execute(proxyRequest, getClearnetConnection())
-        }.map { response ->
+        }.map(workContext) { response ->
             var statusCode = response.code()
             var body: String? = response.body()?.string()
             if (response.isSuccessful && body != null) {

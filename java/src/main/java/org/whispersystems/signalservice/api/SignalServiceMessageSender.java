@@ -295,7 +295,8 @@ public class SignalServiceMessageSender {
   {
     byte[]            content   = createMessageContent(message, recipient);
     long              timestamp = message.getTimestamp();
-    SendMessageResult result    = sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL(), message.isFriendRequest());
+    boolean updateFriendRequest = !message.isSessionRequest() && !message.isGroupMessage();
+    SendMessageResult result    = sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL(), message.isFriendRequest(), updateFriendRequest);
 
     if (lokiSyncMessage.isPresent() && (result.getSuccess() != null && message.canSyncMessage() || (unidentifiedAccess.isPresent() && isMultiDevice.get()))) {
       byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.of(lokiSyncMessage.get().getRecipient()), timestamp, Collections.singletonList(result));
@@ -341,7 +342,7 @@ public class SignalServiceMessageSender {
     byte[]                  content            = createMessageContent(message, recipients.get(0));
     long                    timestamp          = message.getTimestamp();
     List<SendMessageResult> results            = sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL());
-    boolean                 needsSyncInResults = false;
+    boolean                 needsSyncInResults = recipients.contains(localAddress) && message.canSyncMessage();
 
     for (SendMessageResult result : results) {
       if (result.getSuccess() != null && result.getSuccess().isNeedsSync()) {
@@ -352,7 +353,10 @@ public class SignalServiceMessageSender {
 
     if (needsSyncInResults || (isMultiDevice.get())) {
       byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.<SignalServiceAddress>absent(), timestamp, results);
-      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false, message.getTTL());
+        // Trigger an event to send a sync message
+        if (eventListener.isPresent()) {
+            eventListener.get().onSyncEvent(messageID, timestamp, syncMessage, message.getTTL());
+        }
     }
 
     return results;
@@ -884,6 +888,7 @@ public class SignalServiceMessageSender {
 
       if (group.getName().isPresent()) builder.setName(group.getName().get());
       if (group.getMembers().isPresent()) builder.addAllMembers(group.getMembers().get());
+      if (group.getAdmins().isPresent()) builder.addAllAdmins(group.getAdmins().get());
 
       if (group.getAvatar().isPresent()) {
         if (group.getAvatar().get().isStream()) {
@@ -1030,7 +1035,7 @@ public class SignalServiceMessageSender {
   }
 
   public SendMessageResult lokiSendSyncMessage(long messageID, SignalServiceAddress recipient, Optional<UnidentifiedAccessPair> unidentifiedAccess, long timestamp, byte[] content, int ttl) {
-    return sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, ttl, false);
+    return sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, ttl, false, true);
   }
 
   private SendMessageResult sendMessage(long                         messageID,
@@ -1041,7 +1046,7 @@ public class SignalServiceMessageSender {
                                         boolean                      online,
                                         int                          ttl)
           throws UntrustedIdentityException, IOException {
-    return sendMessage(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, false);
+    return sendMessage(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, false, true);
   }
 
   private SendMessageResult sendMessage(final long                   messageID,
@@ -1051,7 +1056,8 @@ public class SignalServiceMessageSender {
                                         byte[]                       content,
                                         boolean                      online,
                                         int                          ttl,
-                                        boolean                      isFriendRequest)
+                                        boolean                      isFriendRequest,
+                                        boolean                      updateFriendRequestStatus)
   {
     long threadID = threadDatabase.getThreadID(recipient.getNumber());
     LokiPublicChat publicChat = threadDatabase.getPublicChat(threadID);
@@ -1060,7 +1066,7 @@ public class SignalServiceMessageSender {
     } else if (publicChat != null) {
       return sendMessageToPublicChat(messageID, recipient, timestamp, content, publicChat);
     } else {
-      return sendMessageToPrivateChat(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, isFriendRequest);
+      return sendMessageToPrivateChat(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, isFriendRequest, updateFriendRequestStatus);
     }
   }
 
@@ -1160,7 +1166,8 @@ public class SignalServiceMessageSender {
                                                      byte[]                       content,
                                                      boolean                      online,
                                                      int                          ttl,
-                                                     boolean                      isFriendRequest)
+                                                     boolean                      isFriendRequest,
+                                                     final boolean                updateFriendRequestStatus)
   {
     final SettableFuture<?>[] future = {new SettableFuture<Unit>()};
     final long threadID = threadDatabase.getThreadID(recipient.getNumber());
@@ -1174,7 +1181,7 @@ public class SignalServiceMessageSender {
       SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userHexEncodedPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
       // TODO: PoW indicator
       // Update the message and thread if needed
-      if (isFriendRequestMessage && eventListener.isPresent()) { eventListener.get().onFriendRequestSending(messageID, threadID); }
+      if (isFriendRequestMessage && updateFriendRequestStatus && eventListener.isPresent()) { eventListener.get().onFriendRequestSending(messageID, threadID); }
       LokiAPI api = new LokiAPI(userHexEncodedPublicKey, apiDatabase, broadcaster);
       api.sendSignalMessage(messageInfo, new Function0<Unit>() {
 
@@ -1199,7 +1206,7 @@ public class SignalServiceMessageSender {
                 broadcaster.broadcast("messageSent", timestamp);
                 isSuccess[0] = true;
                 // Update the message and thread if needed
-                if (isFriendRequestMessage && eventListener.isPresent()) {
+                if (isFriendRequestMessage && updateFriendRequestStatus && eventListener.isPresent()) {
                     eventListener.get().onFriendRequestSent(messageID, threadID);
                 }
                 @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
@@ -1214,7 +1221,7 @@ public class SignalServiceMessageSender {
                 if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
                 broadcaster.broadcast("messageFailed", timestamp);
                 // Update the message and thread if needed
-                if (isFriendRequestMessage && eventListener.isPresent()) {
+                if (isFriendRequestMessage && updateFriendRequestStatus && eventListener.isPresent()) {
                     eventListener.get().onFriendRequestSendingFail(messageID, threadID);
                 }
                 @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
@@ -1346,14 +1353,6 @@ public class SignalServiceMessageSender {
         messages.add(getEncryptedMessage(socket, recipient, unidentifiedAccess, SignalServiceAddress.DEFAULT_DEVICE_ID, plaintext));
       }
     }
-
-    /* Loki - Disable this as we don't support multi-device sending yet
-    for (int deviceId : store.getSubDeviceSessions(recipient.getNumber())) {
-      if (store.containsSession(new SignalProtocolAddress(recipient.getNumber(), deviceId))) {
-        messages.add(getEncryptedMessage(socket, recipient, unidentifiedAccess, deviceId, plaintext));
-      }
-    }
-     */
 
     return new OutgoingPushMessageList(recipient.getNumber(), timestamp, messages, online);
   }
