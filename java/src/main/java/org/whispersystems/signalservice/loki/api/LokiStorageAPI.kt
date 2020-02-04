@@ -38,7 +38,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
     fun configure(isDebugMode: Boolean, userHexEncodedPublicKey: String,  userPrivateKey: ByteArray, database: LokiAPIDatabaseProtocol) {
       if (::shared.isInitialized) { return }
       // TODO: Re-enable when we have dev file server
-      val server = if (false && isDebugMode) "https://file-dev.lokinet.org" else "https://file.lokinet.org"
+      val server = if (false && isDebugMode) "https://file-dev.lokinet.org" else "https://file.getsession.org"
       shared = LokiStorageAPI(server, userHexEncodedPublicKey, userPrivateKey, database)
     }
     // endregion

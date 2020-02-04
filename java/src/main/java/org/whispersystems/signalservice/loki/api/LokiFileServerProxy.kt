@@ -24,7 +24,7 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
         private val curve = Curve25519.getInstance(Curve25519.BEST)
     }
 
-    private val isLokiServer = server.contains("file.lokinet.org", true) || server.contains("file-dev.lokinet.org", true)
+    private val isLokiServer = server.contains("file.getsession.org", true) || server.contains("file-dev.lokinet.org", true)
     private val keyPair = curve.generateKeyPair()
 
     override fun execute(request: Request): Promise<Response, Exception> {

@@ -13,7 +13,7 @@ object LokiRSSProxy {
         val feeds = mapOf( "messenger-updates/feed" to "loki/v1/rss/messenger", "loki.network/feed" to "loki/v1/rss/loki" )
         for (feed in feeds) {
             if (url.toLowerCase().contains(feed.key)) {
-                val fileServer = "https://file.lokinet.org"
+                val fileServer = "https://file.getsession.org"
                 builder.url("$fileServer/${feed.value}")
                 client = LokiFileServerProxy(fileServer)
                 break
