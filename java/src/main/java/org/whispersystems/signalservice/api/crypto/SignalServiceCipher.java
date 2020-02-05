@@ -312,7 +312,7 @@ public class SignalServiceCipher {
         Pair<SignalProtocolAddress, Pair<Integer, byte[]>> results = sealedSessionCipher.decrypt(certificateValidator, ciphertext, envelope.getServerTimestamp());
         Pair<Integer, byte[]> data = results.second();
         paddedMessage  = data.second();
-        metadata       = new Metadata(results.first().getName(), results.first().getDeviceId(), envelope.getTimestamp(), true, data.first().equals(CiphertextMessage.LOKI_FRIEND_REQUEST_TYPE));
+        metadata       = new Metadata(results.first().getName(), results.first().getDeviceId(), envelope.getTimestamp(), false, data.first().equals(CiphertextMessage.LOKI_FRIEND_REQUEST_TYPE));
         sessionVersion = sealedSessionCipher.getSessionVersion(new SignalProtocolAddress(metadata.getSender(), metadata.getSenderDevice()));
       } else {
         throw new InvalidMetadataMessageException("Unknown type: " + envelope.getType());
