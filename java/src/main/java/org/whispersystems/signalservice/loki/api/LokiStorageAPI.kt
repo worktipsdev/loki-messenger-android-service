@@ -12,6 +12,8 @@ import org.whispersystems.signalservice.loki.utilities.successBackground
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 
+// TODO: Clean
+
 private data class DeviceMappingFetchResult private constructor(val pubKey: String, val error: Exception?, val authorisations: List<PairingAuthorisation>) {
   constructor(pubKey: String, authorisations: List<PairingAuthorisation>): this(pubKey, null, authorisations)
   constructor(pubKey: String, error: Exception): this(pubKey, error, listOf())

@@ -44,7 +44,6 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         }
     }
 
-    // Context for network requests
     val networkContext = Kovenant.createContext("network")
     val workContext = Kovenant.createContext("work")
 
@@ -111,9 +110,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
             var url = "$server/$sanitizedEndpoint"
             if (verb == HTTPVerb.GET || verb == HTTPVerb.DELETE) {
                 val queryParameters = parameters.map { "${it.key}=${it.value}" }.joinToString("&")
-                if (queryParameters.isNotEmpty()) {
-                    url += "?$queryParameters"
-                }
+                if (queryParameters.isNotEmpty()) { url += "?$queryParameters" }
             }
             var request = Request.Builder().url(url)
             if (isAuthRequired) {
@@ -242,11 +239,17 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    private fun upload(server: String, request: Request.Builder, process: (String) -> UploadResult): UploadResult {
-        return getAuthToken(server).bind(networkContext) { token ->
-            request.addHeader("Authorization", "Bearer $token")
-            LokiFileServerProxy(server).execute(request.build())
-        }.map { response ->
+    private fun upload(server: String, request: Request.Builder, parse: (String) -> UploadResult): UploadResult {
+        val promise: Promise<LokiHTTPClient.Response, Exception>
+        if (server == LokiStorageAPI.shared.server) {
+            promise = LokiFileServerProxy(server).execute(request.build()) // Uploads to the Loki File Server shouldn't include any personally identifiable information so don't include an auth token
+        } else {
+            promise = getAuthToken(server).bind(networkContext) { token ->
+                request.addHeader("Authorization", "Bearer $token")
+                LokiFileServerProxy(server).execute(request.build())
+            }
+        }
+        return promise.map { response ->
             if (!response.isSuccess) {
                 if (response.statusCode == 401) {
                     apiDatabase.setAuthToken(server, null)
@@ -255,7 +258,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
                 throw LokiAPI.Error.HTTPRequestFailed(response.statusCode)
             }
             val jsonAsString = response.body ?: throw LokiAPI.Error.ParsingFailed
-            process(jsonAsString)
+            parse(jsonAsString)
         }.recover { exception ->
             val nestedException = exception.cause ?: exception
             if (nestedException is LokiAPI.Error.HTTPRequestFailed) {

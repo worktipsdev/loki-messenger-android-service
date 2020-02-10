@@ -17,6 +17,7 @@ import org.whispersystems.signalservice.loki.utilities.recover
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 
 internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
+    private val keyPair = curve.generateKeyPair()
 
     companion object {
         // The Loki file server public keys are hard coded for now
@@ -24,11 +25,8 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
         private val curve = Curve25519.getInstance(Curve25519.BEST)
     }
 
-    private val isLokiServer = server.contains("file.getsession.org", true) || server.contains("file-dev.lokinet.org", true)
-    private val keyPair = curve.generateKeyPair()
-
     override fun execute(request: Request): Promise<Response, Exception> {
-        if (!isLokiServer) { return super.execute(request) }
+        if (server != LokiStorageAPI.shared.server) { return super.execute(request) }
         val symmetricKey = curve.calculateAgreement(lokiServerPublicKey, keyPair.privateKey)
         val body = getRequestBody(request)
         val canonicalHeaders = getCanonicalHeaders(request)
