@@ -12,13 +12,15 @@ import org.whispersystems.signalservice.loki.utilities.successBackground
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 
+// TODO: Clean
+
 private data class DeviceMappingFetchResult private constructor(val pubKey: String, val error: Exception?, val authorisations: List<PairingAuthorisation>) {
   constructor(pubKey: String, authorisations: List<PairingAuthorisation>): this(pubKey, null, authorisations)
   constructor(pubKey: String, error: Exception): this(pubKey, error, listOf())
   val isSuccess = error == null
 }
 
-class LokiStorageAPI(public val server: String, private val userHexEncodedPublicKey: String, userPrivateKey: ByteArray, private val database: LokiAPIDatabaseProtocol) : LokiDotNetAPI(userHexEncodedPublicKey, userPrivateKey, database) {
+class LokiFileServerAPI(public val server: String, private val userHexEncodedPublicKey: String, userPrivateKey: ByteArray, private val database: LokiAPIDatabaseProtocol) : LokiDotNetAPI(userHexEncodedPublicKey, userPrivateKey, database) {
 
   companion object {
     // region Settings
@@ -30,16 +32,15 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
     // endregion
 
     // region Initialization
-    lateinit var shared: LokiStorageAPI
+    lateinit var shared: LokiFileServerAPI
 
     /**
      * Must be called before `LokiAPI` is used.
      */
     fun configure(isDebugMode: Boolean, userHexEncodedPublicKey: String,  userPrivateKey: ByteArray, database: LokiAPIDatabaseProtocol) {
       if (::shared.isInitialized) { return }
-      // TODO: Re-enable when we have dev file server
-      val server = if (false && isDebugMode) "https://file-dev.lokinet.org" else "https://file.getsession.org"
-      shared = LokiStorageAPI(server, userHexEncodedPublicKey, userPrivateKey, database)
+      val server = if (isDebugMode) "https://file-dev.lokinet.org" else "https://file.getsession.org"
+      shared = LokiFileServerAPI(server, userHexEncodedPublicKey, userPrivateKey, database)
     }
     // endregion
   }

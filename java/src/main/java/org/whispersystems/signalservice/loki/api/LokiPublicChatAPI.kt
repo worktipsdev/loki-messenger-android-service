@@ -281,7 +281,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     }
 
     public fun getUserCount(channel: Long, server: String): Promise<Int, Exception> {
-        val parameters = mapOf( "count" to 2500 )
+        val parameters = mapOf( "count" to 200 )
         return execute(HTTPVerb.GET, server, "/channels/$channel/subscribers", true, parameters).then(workContext) { response ->
             try {
                 val bodyAsString = response.body!!
@@ -321,12 +321,12 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     }
 
     public fun setProfilePicture(server: String, profileKey: String, url: String?): Promise<Unit, Exception> {
-        Log.d("Loki", "Updating profile avatar on server: $server")
+        Log.d("Loki", "Updating profile picture on server: $server.")
         val value = when (url) {
             null -> null
             else -> mapOf( "profileKey" to profileKey, "url" to url )
         }
-        // NOTE: This may actually completely replace the annotations, have to double check it
+        // TODO: This may actually completely replace the annotations, have to double check it
         return setSelfAnnotation(server, avatarAnnotationType, value).map { Unit }.fail {
             Log.d("Loki", "Failed to update profile picture due to error: $it.")
         }
