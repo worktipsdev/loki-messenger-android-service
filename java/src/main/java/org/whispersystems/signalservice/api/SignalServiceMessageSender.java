@@ -79,7 +79,7 @@ import org.whispersystems.signalservice.loki.api.LokiDotNetAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChat;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatMessage;
-import org.whispersystems.signalservice.loki.api.LokiStorageAPI;
+import org.whispersystems.signalservice.loki.api.LokiFileServerAPI;
 import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
@@ -111,7 +111,6 @@ import kotlin.Unit;
 import kotlin.jvm.functions.Function0;
 import kotlin.jvm.functions.Function1;
 import nl.komponents.kovenant.Promise;
-import sun.misc.Signal;
 
 /**
  * The main interface for sending Signal Service messages.
@@ -428,7 +427,7 @@ public class SignalServiceMessageSender {
 
   public SignalServiceAttachmentPointer uploadAttachment(SignalServiceAttachmentStream attachment, boolean usePadding, @Nullable SignalServiceAddress recipient) throws IOException {
     boolean shouldUseEncryption = true;
-    String server = LokiStorageAPI.shared.getServer();
+    String server = LokiFileServerAPI.shared.getServer();
 
     // Check if we are sending to a public chat
     if (recipient != null) {
@@ -449,7 +448,7 @@ public class SignalServiceMessageSender {
     PushAttachmentData attachmentData   = new PushAttachmentData(attachment.getContentType(), dataStream, ciphertextLength, outputStreamFactory, attachment.getListener());
 
     // Loki - Upload attachment
-    LokiDotNetAPI.UploadResult result = LokiStorageAPI.shared.uploadAttachment(server, attachmentData);
+    LokiDotNetAPI.UploadResult result = LokiFileServerAPI.shared.uploadAttachment(server, attachmentData);
     return new SignalServiceAttachmentPointer(result.getId(),
                                               attachment.getContentType(),
                                               attachmentKey,

@@ -26,7 +26,7 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
     }
 
     override fun execute(request: Request): Promise<Response, Exception> {
-        if (server != LokiStorageAPI.shared.server) { return super.execute(request) }
+        if (server != LokiFileServerAPI.shared.server) { return super.execute(request) }
         val symmetricKey = curve.calculateAgreement(lokiServerPublicKey, keyPair.privateKey)
         val body = getRequestBody(request)
         val canonicalHeaders = getCanonicalHeaders(request)

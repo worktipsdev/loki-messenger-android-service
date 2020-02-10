@@ -241,7 +241,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
     private fun upload(server: String, request: Request.Builder, parse: (String) -> UploadResult): UploadResult {
         val promise: Promise<LokiHTTPClient.Response, Exception>
-        if (server == LokiStorageAPI.shared.server) {
+        if (server == LokiFileServerAPI.shared.server) {
             request.addHeader("Authorization", "Bearer loki")
             promise = LokiFileServerProxy(server).execute(request.build()) // Uploads to the Loki File Server shouldn't include any personally identifiable information so use a dummy auth token
         } else {

@@ -20,7 +20,7 @@ private data class DeviceMappingFetchResult private constructor(val pubKey: Stri
   val isSuccess = error == null
 }
 
-class LokiStorageAPI(public val server: String, private val userHexEncodedPublicKey: String, userPrivateKey: ByteArray, private val database: LokiAPIDatabaseProtocol) : LokiDotNetAPI(userHexEncodedPublicKey, userPrivateKey, database) {
+class LokiFileServerAPI(public val server: String, private val userHexEncodedPublicKey: String, userPrivateKey: ByteArray, private val database: LokiAPIDatabaseProtocol) : LokiDotNetAPI(userHexEncodedPublicKey, userPrivateKey, database) {
 
   companion object {
     // region Settings
@@ -32,7 +32,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
     // endregion
 
     // region Initialization
-    lateinit var shared: LokiStorageAPI
+    lateinit var shared: LokiFileServerAPI
 
     /**
      * Must be called before `LokiAPI` is used.
@@ -40,7 +40,7 @@ class LokiStorageAPI(public val server: String, private val userHexEncodedPublic
     fun configure(isDebugMode: Boolean, userHexEncodedPublicKey: String,  userPrivateKey: ByteArray, database: LokiAPIDatabaseProtocol) {
       if (::shared.isInitialized) { return }
       val server = if (isDebugMode) "https://file-dev.lokinet.org" else "https://file.getsession.org"
-      shared = LokiStorageAPI(server, userHexEncodedPublicKey, userPrivateKey, database)
+      shared = LokiFileServerAPI(server, userHexEncodedPublicKey, userPrivateKey, database)
     }
     // endregion
   }
