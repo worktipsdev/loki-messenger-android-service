@@ -5,7 +5,7 @@ import nl.komponents.kovenant.functional.map
 import okhttp3.Request
 import org.whispersystems.signalservice.internal.util.JsonUtil
 
-object LokiRSSProxy {
+object LokiRSSFeedProxy {
 
     fun fetch(url: String): Promise<String, Exception> {
         var client = LokiHTTPClient(60)
