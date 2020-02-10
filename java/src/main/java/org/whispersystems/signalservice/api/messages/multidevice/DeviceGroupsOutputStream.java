@@ -58,6 +58,7 @@ public class DeviceGroupsOutputStream extends ChunkedOutputStream {
     }
 
     groupDetails.addAllMembers(group.getMembers());
+    groupDetails.addAllAdmins(group.getAdmins());
     groupDetails.setActive(group.isActive());
     groupDetails.setBlocked(group.isBlocked());
 

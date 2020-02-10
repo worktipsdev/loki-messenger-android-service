@@ -35,6 +35,7 @@ public class DeviceGroupsInputStream extends ChunkedInputStream{
     byte[]                                  id              = details.getId().toByteArray();
     Optional<String>                        name            = Optional.fromNullable(details.getName());
     List<String>                            members         = details.getMembersList();
+    List<String>                            admins         = details.getAdminsList();
     Optional<SignalServiceAttachmentStream> avatar          = Optional.absent();
     boolean                                 active          = details.getActive();
     Optional<Integer>                       expirationTimer = Optional.absent();
@@ -53,7 +54,7 @@ public class DeviceGroupsInputStream extends ChunkedInputStream{
       expirationTimer = Optional.of(details.getExpireTimer());
     }
 
-    return new DeviceGroup(id, name, members, avatar, active, expirationTimer, color, blocked);
+    return new DeviceGroup(id, name, members, admins, avatar, active, expirationTimer, color, blocked);
   }
 
 }

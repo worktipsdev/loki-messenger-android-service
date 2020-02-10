@@ -40396,6 +40396,26 @@ public final class SignalServiceProtos {
      * <code>optional bool blocked = 8;</code>
      */
     boolean getBlocked();
+
+    // repeated string admins = 100;
+    /**
+     * <code>repeated string admins = 100;</code>
+     */
+    java.util.List<java.lang.String>
+    getAdminsList();
+    /**
+     * <code>repeated string admins = 100;</code>
+     */
+    int getAdminsCount();
+    /**
+     * <code>repeated string admins = 100;</code>
+     */
+    java.lang.String getAdmins(int index);
+    /**
+     * <code>repeated string admins = 100;</code>
+     */
+    com.google.protobuf.ByteString
+        getAdminsBytes(int index);
   }
   /**
    * Protobuf type {@code signalservice.GroupDetails}
@@ -40499,6 +40519,14 @@ public final class SignalServiceProtos {
               blocked_ = input.readBool();
               break;
             }
+            case 802: {
+              if (!((mutable_bitField0_ & 0x00000100) == 0x00000100)) {
+                admins_ = new com.google.protobuf.LazyStringArrayList();
+                mutable_bitField0_ |= 0x00000100;
+              }
+              admins_.add(input.readBytes());
+              break;
+            }
           }
         }
       } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -40509,6 +40537,9 @@ public final class SignalServiceProtos {
       } finally {
         if (((mutable_bitField0_ & 0x00000004) == 0x00000004)) {
           members_ = new com.google.protobuf.UnmodifiableLazyStringList(members_);
+        }
+        if (((mutable_bitField0_ & 0x00000100) == 0x00000100)) {
+          admins_ = new com.google.protobuf.UnmodifiableLazyStringList(admins_);
         }
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
@@ -41296,6 +41327,36 @@ public final class SignalServiceProtos {
       return blocked_;
     }
 
+    // repeated string admins = 100;
+    public static final int ADMINS_FIELD_NUMBER = 100;
+    private com.google.protobuf.LazyStringList admins_;
+    /**
+     * <code>repeated string admins = 100;</code>
+     */
+    public java.util.List<java.lang.String>
+        getAdminsList() {
+      return admins_;
+    }
+    /**
+     * <code>repeated string admins = 100;</code>
+     */
+    public int getAdminsCount() {
+      return admins_.size();
+    }
+    /**
+     * <code>repeated string admins = 100;</code>
+     */
+    public java.lang.String getAdmins(int index) {
+      return admins_.get(index);
+    }
+    /**
+     * <code>repeated string admins = 100;</code>
+     */
+    public com.google.protobuf.ByteString
+        getAdminsBytes(int index) {
+      return admins_.getByteString(index);
+    }
+
     private void initFields() {
       id_ = com.google.protobuf.ByteString.EMPTY;
       name_ = "";
@@ -41305,6 +41366,7 @@ public final class SignalServiceProtos {
       expireTimer_ = 0;
       color_ = "";
       blocked_ = false;
+      admins_ = com.google.protobuf.LazyStringArrayList.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -41341,6 +41403,9 @@ public final class SignalServiceProtos {
       }
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
         output.writeBool(8, blocked_);
+      }
+      for (int i = 0; i < admins_.size(); i++) {
+        output.writeBytes(100, admins_.getByteString(i));
       }
       getUnknownFields().writeTo(output);
     }
@@ -41387,6 +41452,15 @@ public final class SignalServiceProtos {
       if (((bitField0_ & 0x00000040) == 0x00000040)) {
         size += com.google.protobuf.CodedOutputStream
           .computeBoolSize(8, blocked_);
+      }
+      {
+        int dataSize = 0;
+        for (int i = 0; i < admins_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeBytesSizeNoTag(admins_.getByteString(i));
+        }
+        size += dataSize;
+        size += 2 * getAdminsList().size();
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -41525,6 +41599,8 @@ public final class SignalServiceProtos {
         bitField0_ = (bitField0_ & ~0x00000040);
         blocked_ = false;
         bitField0_ = (bitField0_ & ~0x00000080);
+        admins_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000100);
         return this;
       }
 
@@ -41591,6 +41667,12 @@ public final class SignalServiceProtos {
           to_bitField0_ |= 0x00000040;
         }
         result.blocked_ = blocked_;
+        if (((bitField0_ & 0x00000100) == 0x00000100)) {
+          admins_ = new com.google.protobuf.UnmodifiableLazyStringList(
+              admins_);
+          bitField0_ = (bitField0_ & ~0x00000100);
+        }
+        result.admins_ = admins_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -41641,6 +41723,16 @@ public final class SignalServiceProtos {
         }
         if (other.hasBlocked()) {
           setBlocked(other.getBlocked());
+        }
+        if (!other.admins_.isEmpty()) {
+          if (admins_.isEmpty()) {
+            admins_ = other.admins_;
+            bitField0_ = (bitField0_ & ~0x00000100);
+          } else {
+            ensureAdminsIsMutable();
+            admins_.addAll(other.admins_);
+          }
+          onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -42162,6 +42254,99 @@ public final class SignalServiceProtos {
         return this;
       }
 
+      // repeated string admins = 100;
+      private com.google.protobuf.LazyStringList admins_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+      private void ensureAdminsIsMutable() {
+        if (!((bitField0_ & 0x00000100) == 0x00000100)) {
+          admins_ = new com.google.protobuf.LazyStringArrayList(admins_);
+          bitField0_ |= 0x00000100;
+         }
+      }
+      /**
+       * <code>repeated string admins = 100;</code>
+       */
+      public java.util.List<java.lang.String>
+          getAdminsList() {
+        return java.util.Collections.unmodifiableList(admins_);
+      }
+      /**
+       * <code>repeated string admins = 100;</code>
+       */
+      public int getAdminsCount() {
+        return admins_.size();
+      }
+      /**
+       * <code>repeated string admins = 100;</code>
+       */
+      public java.lang.String getAdmins(int index) {
+        return admins_.get(index);
+      }
+      /**
+       * <code>repeated string admins = 100;</code>
+       */
+      public com.google.protobuf.ByteString
+          getAdminsBytes(int index) {
+        return admins_.getByteString(index);
+      }
+      /**
+       * <code>repeated string admins = 100;</code>
+       */
+      public Builder setAdmins(
+          int index, java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureAdminsIsMutable();
+        admins_.set(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string admins = 100;</code>
+       */
+      public Builder addAdmins(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureAdminsIsMutable();
+        admins_.add(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string admins = 100;</code>
+       */
+      public Builder addAllAdmins(
+          java.lang.Iterable<java.lang.String> values) {
+        ensureAdminsIsMutable();
+        super.addAll(values, admins_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string admins = 100;</code>
+       */
+      public Builder clearAdmins() {
+        admins_ = com.google.protobuf.LazyStringArrayList.EMPTY;
+        bitField0_ = (bitField0_ & ~0x00000100);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated string admins = 100;</code>
+       */
+      public Builder addAdminsBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  ensureAdminsIsMutable();
+        admins_.add(value);
+        onChanged();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:signalservice.GroupDetails)
     }
 
@@ -42566,15 +42751,15 @@ public final class SignalServiceProtos {
       "signalservice.Verified\022\022\n\nprofileKey\030\006 \001" +
       "(\014\022\017\n\007blocked\030\007 \001(\010\022\023\n\013expireTimer\030\010 \001(\r" +
       "\022\020\n\010nickname\030e \001(\t\032-\n\006Avatar\022\023\n\013contentT" +
-      "ype\030\001 \001(\t\022\016\n\006length\030\002 \001(\r\"\347\001\n\014GroupDetai",
+      "ype\030\001 \001(\t\022\016\n\006length\030\002 \001(\r\"\367\001\n\014GroupDetai",
       "ls\022\n\n\002id\030\001 \001(\014\022\014\n\004name\030\002 \001(\t\022\017\n\007members\030" +
       "\003 \003(\t\0222\n\006avatar\030\004 \001(\0132\".signalservice.Gr" +
       "oupDetails.Avatar\022\024\n\006active\030\005 \001(\010:\004true\022" +
       "\023\n\013expireTimer\030\006 \001(\r\022\r\n\005color\030\007 \001(\t\022\017\n\007b" +
-      "locked\030\010 \001(\010\032-\n\006Avatar\022\023\n\013contentType\030\001 " +
-      "\001(\t\022\016\n\006length\030\002 \001(\rBE\n.org.whispersystem" +
-      "s.signalservice.internal.pushB\023SignalSer" +
-      "viceProtos"
+      "locked\030\010 \001(\010\022\016\n\006admins\030d \003(\t\032-\n\006Avatar\022\023" +
+      "\n\013contentType\030\001 \001(\t\022\016\n\006length\030\002 \001(\rBE\n.o" +
+      "rg.whispersystems.signalservice.internal" +
+      ".pushB\023SignalServiceProtos"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -42832,7 +43017,7 @@ public final class SignalServiceProtos {
           internal_static_signalservice_GroupDetails_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_GroupDetails_descriptor,
-              new java.lang.String[] { "Id", "Name", "Members", "Avatar", "Active", "ExpireTimer", "Color", "Blocked", });
+              new java.lang.String[] { "Id", "Name", "Members", "Avatar", "Active", "ExpireTimer", "Color", "Blocked", "Admins", });
           internal_static_signalservice_GroupDetails_Avatar_descriptor =
             internal_static_signalservice_GroupDetails_descriptor.getNestedTypes().get(0);
           internal_static_signalservice_GroupDetails_Avatar_fieldAccessorTable = new

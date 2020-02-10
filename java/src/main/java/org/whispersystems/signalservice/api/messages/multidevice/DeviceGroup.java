@@ -16,6 +16,7 @@ public class DeviceGroup {
   private final byte[]                                  id;
   private final Optional<String>                        name;
   private final List<String>                            members;
+  private final List<String>                            admins;
   private final Optional<SignalServiceAttachmentStream> avatar;
   private final boolean                                 active;
   private final Optional<Integer>                       expirationTimer;
@@ -23,6 +24,7 @@ public class DeviceGroup {
   private final boolean                                 blocked;
 
   public DeviceGroup(byte[] id, Optional<String> name, List<String> members,
+                     List<String> admins,
                      Optional<SignalServiceAttachmentStream> avatar,
                      boolean active, Optional<Integer> expirationTimer,
                      Optional<String> color, boolean blocked)
@@ -30,6 +32,7 @@ public class DeviceGroup {
     this.id              = id;
     this.name            = name;
     this.members         = members;
+    this.admins          = admins;
     this.avatar          = avatar;
     this.active          = active;
     this.expirationTimer = expirationTimer;
@@ -52,6 +55,8 @@ public class DeviceGroup {
   public List<String> getMembers() {
     return members;
   }
+
+  public List<String> getAdmins() { return admins; }
 
   public boolean isActive() {
     return active;
