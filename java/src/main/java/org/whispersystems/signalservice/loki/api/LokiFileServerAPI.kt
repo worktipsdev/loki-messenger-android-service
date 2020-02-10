@@ -29,6 +29,7 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
     private val deviceMappingRequestCache = ConcurrentHashMap<String, Promise<List<PairingAuthorisation>, Exception>>()
     private val deviceMappingUpdateInterval = 60 * 1000
     private val deviceMappingType = "network.loki.messenger.devicemapping"
+    public val maxFileSize = 10_000_000
     // endregion
 
     // region Initialization
