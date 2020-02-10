@@ -726,7 +726,7 @@ public class SignalServiceMessageSender {
     Content.Builder     container = Content.newBuilder();
     SyncMessage.Builder builder   = createSyncMessageBuilder();
     builder.setGroups(SyncMessage.Groups.newBuilder()
-                                        .setBlob(createAttachmentPointer(groups)));
+                                        .setData(ByteString.readFrom(groups.getInputStream())));
 
     return container.setSyncMessage(builder).build().toByteArray();
   }

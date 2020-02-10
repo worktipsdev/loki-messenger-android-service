@@ -13,6 +13,7 @@ import org.whispersystems.signalservice.internal.util.Util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DeviceGroupsInputStream extends ChunkedInputStream{
@@ -57,4 +58,23 @@ public class DeviceGroupsInputStream extends ChunkedInputStream{
     return new DeviceGroup(id, name, members, admins, avatar, active, expirationTimer, color, blocked);
   }
 
+    /**
+     * Read all device contacts.
+     *
+     * This will also close the input stream upon reading.
+     */
+    public List<DeviceGroup> readAll() throws Exception {
+        ArrayList<DeviceGroup> devices = new ArrayList<>();
+        try {
+            DeviceGroup deviceGroup = read();
+            while (deviceGroup != null) {
+                devices.add(deviceGroup);
+                // Read the next contact
+                deviceGroup = read();
+            }
+            return devices;
+        } finally {
+            in.close();
+        }
+    }
 }

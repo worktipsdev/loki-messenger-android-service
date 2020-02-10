@@ -29588,6 +29588,16 @@ public final class SignalServiceProtos {
        * <code>optional .signalservice.AttachmentPointer blob = 1;</code>
        */
       org.whispersystems.signalservice.internal.push.SignalServiceProtos.AttachmentPointerOrBuilder getBlobOrBuilder();
+
+      // optional bytes data = 101;
+      /**
+       * <code>optional bytes data = 101;</code>
+       */
+      boolean hasData();
+      /**
+       * <code>optional bytes data = 101;</code>
+       */
+      com.google.protobuf.ByteString getData();
     }
     /**
      * Protobuf type {@code signalservice.SyncMessage.Groups}
@@ -29653,6 +29663,11 @@ public final class SignalServiceProtos {
                 bitField0_ |= 0x00000001;
                 break;
               }
+              case 810: {
+                bitField0_ |= 0x00000002;
+                data_ = input.readBytes();
+                break;
+              }
             }
           }
         } catch (com.google.protobuf.InvalidProtocolBufferException e) {
@@ -29715,8 +29730,25 @@ public final class SignalServiceProtos {
         return blob_;
       }
 
+      // optional bytes data = 101;
+      public static final int DATA_FIELD_NUMBER = 101;
+      private com.google.protobuf.ByteString data_;
+      /**
+       * <code>optional bytes data = 101;</code>
+       */
+      public boolean hasData() {
+        return ((bitField0_ & 0x00000002) == 0x00000002);
+      }
+      /**
+       * <code>optional bytes data = 101;</code>
+       */
+      public com.google.protobuf.ByteString getData() {
+        return data_;
+      }
+
       private void initFields() {
         blob_ = org.whispersystems.signalservice.internal.push.SignalServiceProtos.AttachmentPointer.getDefaultInstance();
+        data_ = com.google.protobuf.ByteString.EMPTY;
       }
       private byte memoizedIsInitialized = -1;
       public final boolean isInitialized() {
@@ -29733,6 +29765,9 @@ public final class SignalServiceProtos {
         if (((bitField0_ & 0x00000001) == 0x00000001)) {
           output.writeMessage(1, blob_);
         }
+        if (((bitField0_ & 0x00000002) == 0x00000002)) {
+          output.writeBytes(101, data_);
+        }
         getUnknownFields().writeTo(output);
       }
 
@@ -29745,6 +29780,10 @@ public final class SignalServiceProtos {
         if (((bitField0_ & 0x00000001) == 0x00000001)) {
           size += com.google.protobuf.CodedOutputStream
             .computeMessageSize(1, blob_);
+        }
+        if (((bitField0_ & 0x00000002) == 0x00000002)) {
+          size += com.google.protobuf.CodedOutputStream
+            .computeBytesSize(101, data_);
         }
         size += getUnknownFields().getSerializedSize();
         memoizedSerializedSize = size;
@@ -29869,6 +29908,8 @@ public final class SignalServiceProtos {
             blobBuilder_.clear();
           }
           bitField0_ = (bitField0_ & ~0x00000001);
+          data_ = com.google.protobuf.ByteString.EMPTY;
+          bitField0_ = (bitField0_ & ~0x00000002);
           return this;
         }
 
@@ -29905,6 +29946,10 @@ public final class SignalServiceProtos {
           } else {
             result.blob_ = blobBuilder_.build();
           }
+          if (((from_bitField0_ & 0x00000002) == 0x00000002)) {
+            to_bitField0_ |= 0x00000002;
+          }
+          result.data_ = data_;
           result.bitField0_ = to_bitField0_;
           onBuilt();
           return result;
@@ -29923,6 +29968,9 @@ public final class SignalServiceProtos {
           if (other == org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMessage.Groups.getDefaultInstance()) return this;
           if (other.hasBlob()) {
             mergeBlob(other.getBlob());
+          }
+          if (other.hasData()) {
+            setData(other.getData());
           }
           this.mergeUnknownFields(other.getUnknownFields());
           return this;
@@ -30066,6 +30114,42 @@ public final class SignalServiceProtos {
             blob_ = null;
           }
           return blobBuilder_;
+        }
+
+        // optional bytes data = 101;
+        private com.google.protobuf.ByteString data_ = com.google.protobuf.ByteString.EMPTY;
+        /**
+         * <code>optional bytes data = 101;</code>
+         */
+        public boolean hasData() {
+          return ((bitField0_ & 0x00000002) == 0x00000002);
+        }
+        /**
+         * <code>optional bytes data = 101;</code>
+         */
+        public com.google.protobuf.ByteString getData() {
+          return data_;
+        }
+        /**
+         * <code>optional bytes data = 101;</code>
+         */
+        public Builder setData(com.google.protobuf.ByteString value) {
+          if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000002;
+          data_ = value;
+          onChanged();
+          return this;
+        }
+        /**
+         * <code>optional bytes data = 101;</code>
+         */
+        public Builder clearData() {
+          bitField0_ = (bitField0_ & ~0x00000002);
+          data_ = getDefaultInstance().getData();
+          onChanged();
+          return this;
         }
 
         // @@protoc_insertion_point(builder_scope:signalservice.SyncMessage.Groups)
@@ -42695,7 +42779,7 @@ public final class SignalServiceProtos {
       "(\014\022,\n\005state\030\003 \001(\0162\035.signalservice.Verifi" +
       "ed.State\022\023\n\013nullMessage\030\004 \001(\014\"2\n\005State\022\013" +
       "\n\007DEFAULT\020\000\022\014\n\010VERIFIED\020\001\022\016\n\nUNVERIFIED\020" +
-      "\002\"\322\013\n\013SyncMessage\022-\n\004sent\030\001 \001(\0132\037.signal" +
+      "\002\"\340\013\n\013SyncMessage\022-\n\004sent\030\001 \001(\0132\037.signal" +
       "service.SyncMessage.Sent\0225\n\010contacts\030\002 \001" +
       "(\0132#.signalservice.SyncMessage.Contacts\022" +
       "1\n\006groups\030\003 \001(\0132!.signalservice.SyncMess" +
@@ -42717,49 +42801,49 @@ public final class SignalServiceProtos {
       "eliveryStatus\022\023\n\013destination\030\001 \001(\t\022\024\n\014un" +
       "identified\030\002 \001(\010\032a\n\010Contacts\022.\n\004blob\030\001 \001" +
       "(\0132 .signalservice.AttachmentPointer\022\027\n\010" +
-      "complete\030\002 \001(\010:\005false\022\014\n\004data\030e \001(\014\0328\n\006G" +
+      "complete\030\002 \001(\010:\005false\022\014\n\004data\030e \001(\014\032F\n\006G" +
       "roups\022.\n\004blob\030\001 \001(\0132 .signalservice.Atta" +
-      "chmentPointer\032,\n\007Blocked\022\017\n\007numbers\030\001 \003(" +
-      "\t\022\020\n\010groupIds\030\002 \003(\014\032\217\001\n\007Request\0225\n\004type\030" +
-      "\001 \001(\0162\'.signalservice.SyncMessage.Reques",
-      "t.Type\"M\n\004Type\022\013\n\007UNKNOWN\020\000\022\014\n\010CONTACTS\020" +
-      "\001\022\n\n\006GROUPS\020\002\022\013\n\007BLOCKED\020\003\022\021\n\rCONFIGURAT" +
-      "ION\020\004\032)\n\004Read\022\016\n\006sender\030\001 \001(\t\022\021\n\ttimesta" +
-      "mp\030\002 \001(\004\032}\n\rConfiguration\022\024\n\014readReceipt" +
-      "s\030\001 \001(\010\022&\n\036unidentifiedDeliveryIndicator" +
-      "s\030\002 \001(\010\022\030\n\020typingIndicators\030\003 \001(\010\022\024\n\014lin" +
-      "kPreviews\030\004 \001(\010\032\234\001\n\024StickerPackOperation" +
-      "\022\016\n\006packId\030\001 \001(\014\022\017\n\007packKey\030\002 \001(\014\022B\n\004typ" +
-      "e\030\003 \001(\01624.signalservice.SyncMessage.Stic" +
-      "kerPackOperation.Type\"\037\n\004Type\022\013\n\007INSTALL",
-      "\020\000\022\n\n\006REMOVE\020\001\"\354\001\n\021AttachmentPointer\022\n\n\002" +
-      "id\030\001 \001(\006\022\023\n\013contentType\030\002 \001(\t\022\013\n\003key\030\003 \001" +
-      "(\014\022\014\n\004size\030\004 \001(\r\022\021\n\tthumbnail\030\005 \001(\014\022\016\n\006d" +
-      "igest\030\006 \001(\014\022\020\n\010fileName\030\007 \001(\t\022\r\n\005flags\030\010" +
-      " \001(\r\022\r\n\005width\030\t \001(\r\022\016\n\006height\030\n \001(\r\022\017\n\007c" +
-      "aption\030\013 \001(\t\022\013\n\003url\030e \001(\t\"\032\n\005Flags\022\021\n\rVO" +
-      "ICE_MESSAGE\020\001\"\365\001\n\014GroupContext\022\n\n\002id\030\001 \001" +
-      "(\014\022.\n\004type\030\002 \001(\0162 .signalservice.GroupCo" +
-      "ntext.Type\022\014\n\004name\030\003 \001(\t\022\017\n\007members\030\004 \003(" +
-      "\t\0220\n\006avatar\030\005 \001(\0132 .signalservice.Attach",
-      "mentPointer\022\016\n\006admins\030\006 \003(\t\"H\n\004Type\022\013\n\007U" +
-      "NKNOWN\020\000\022\n\n\006UPDATE\020\001\022\013\n\007DELIVER\020\002\022\010\n\004QUI" +
-      "T\020\003\022\020\n\014REQUEST_INFO\020\004\"\231\002\n\016ContactDetails" +
-      "\022\016\n\006number\030\001 \001(\t\022\014\n\004name\030\002 \001(\t\0224\n\006avatar" +
-      "\030\003 \001(\0132$.signalservice.ContactDetails.Av" +
-      "atar\022\r\n\005color\030\004 \001(\t\022)\n\010verified\030\005 \001(\0132\027." +
-      "signalservice.Verified\022\022\n\nprofileKey\030\006 \001" +
-      "(\014\022\017\n\007blocked\030\007 \001(\010\022\023\n\013expireTimer\030\010 \001(\r" +
-      "\022\020\n\010nickname\030e \001(\t\032-\n\006Avatar\022\023\n\013contentT" +
-      "ype\030\001 \001(\t\022\016\n\006length\030\002 \001(\r\"\367\001\n\014GroupDetai",
-      "ls\022\n\n\002id\030\001 \001(\014\022\014\n\004name\030\002 \001(\t\022\017\n\007members\030" +
-      "\003 \003(\t\0222\n\006avatar\030\004 \001(\0132\".signalservice.Gr" +
-      "oupDetails.Avatar\022\024\n\006active\030\005 \001(\010:\004true\022" +
-      "\023\n\013expireTimer\030\006 \001(\r\022\r\n\005color\030\007 \001(\t\022\017\n\007b" +
-      "locked\030\010 \001(\010\022\016\n\006admins\030d \003(\t\032-\n\006Avatar\022\023" +
-      "\n\013contentType\030\001 \001(\t\022\016\n\006length\030\002 \001(\rBE\n.o" +
-      "rg.whispersystems.signalservice.internal" +
-      ".pushB\023SignalServiceProtos"
+      "chmentPointer\022\014\n\004data\030e \001(\014\032,\n\007Blocked\022\017" +
+      "\n\007numbers\030\001 \003(\t\022\020\n\010groupIds\030\002 \003(\014\032\217\001\n\007Re" +
+      "quest\0225\n\004type\030\001 \001(\0162\'.signalservice.Sync",
+      "Message.Request.Type\"M\n\004Type\022\013\n\007UNKNOWN\020" +
+      "\000\022\014\n\010CONTACTS\020\001\022\n\n\006GROUPS\020\002\022\013\n\007BLOCKED\020\003" +
+      "\022\021\n\rCONFIGURATION\020\004\032)\n\004Read\022\016\n\006sender\030\001 " +
+      "\001(\t\022\021\n\ttimestamp\030\002 \001(\004\032}\n\rConfiguration\022" +
+      "\024\n\014readReceipts\030\001 \001(\010\022&\n\036unidentifiedDel" +
+      "iveryIndicators\030\002 \001(\010\022\030\n\020typingIndicator" +
+      "s\030\003 \001(\010\022\024\n\014linkPreviews\030\004 \001(\010\032\234\001\n\024Sticke" +
+      "rPackOperation\022\016\n\006packId\030\001 \001(\014\022\017\n\007packKe" +
+      "y\030\002 \001(\014\022B\n\004type\030\003 \001(\01624.signalservice.Sy" +
+      "ncMessage.StickerPackOperation.Type\"\037\n\004T",
+      "ype\022\013\n\007INSTALL\020\000\022\n\n\006REMOVE\020\001\"\354\001\n\021Attachm" +
+      "entPointer\022\n\n\002id\030\001 \001(\006\022\023\n\013contentType\030\002 " +
+      "\001(\t\022\013\n\003key\030\003 \001(\014\022\014\n\004size\030\004 \001(\r\022\021\n\tthumbn" +
+      "ail\030\005 \001(\014\022\016\n\006digest\030\006 \001(\014\022\020\n\010fileName\030\007 " +
+      "\001(\t\022\r\n\005flags\030\010 \001(\r\022\r\n\005width\030\t \001(\r\022\016\n\006hei" +
+      "ght\030\n \001(\r\022\017\n\007caption\030\013 \001(\t\022\013\n\003url\030e \001(\t\"" +
+      "\032\n\005Flags\022\021\n\rVOICE_MESSAGE\020\001\"\365\001\n\014GroupCon" +
+      "text\022\n\n\002id\030\001 \001(\014\022.\n\004type\030\002 \001(\0162 .signals" +
+      "ervice.GroupContext.Type\022\014\n\004name\030\003 \001(\t\022\017" +
+      "\n\007members\030\004 \003(\t\0220\n\006avatar\030\005 \001(\0132 .signal",
+      "service.AttachmentPointer\022\016\n\006admins\030\006 \003(" +
+      "\t\"H\n\004Type\022\013\n\007UNKNOWN\020\000\022\n\n\006UPDATE\020\001\022\013\n\007DE" +
+      "LIVER\020\002\022\010\n\004QUIT\020\003\022\020\n\014REQUEST_INFO\020\004\"\231\002\n\016" +
+      "ContactDetails\022\016\n\006number\030\001 \001(\t\022\014\n\004name\030\002" +
+      " \001(\t\0224\n\006avatar\030\003 \001(\0132$.signalservice.Con" +
+      "tactDetails.Avatar\022\r\n\005color\030\004 \001(\t\022)\n\010ver" +
+      "ified\030\005 \001(\0132\027.signalservice.Verified\022\022\n\n" +
+      "profileKey\030\006 \001(\014\022\017\n\007blocked\030\007 \001(\010\022\023\n\013exp" +
+      "ireTimer\030\010 \001(\r\022\020\n\010nickname\030e \001(\t\032-\n\006Avat" +
+      "ar\022\023\n\013contentType\030\001 \001(\t\022\016\n\006length\030\002 \001(\r\"",
+      "\367\001\n\014GroupDetails\022\n\n\002id\030\001 \001(\014\022\014\n\004name\030\002 \001" +
+      "(\t\022\017\n\007members\030\003 \003(\t\0222\n\006avatar\030\004 \001(\0132\".si" +
+      "gnalservice.GroupDetails.Avatar\022\024\n\006activ" +
+      "e\030\005 \001(\010:\004true\022\023\n\013expireTimer\030\006 \001(\r\022\r\n\005co" +
+      "lor\030\007 \001(\t\022\017\n\007blocked\030\010 \001(\010\022\016\n\006admins\030d \003" +
+      "(\t\032-\n\006Avatar\022\023\n\013contentType\030\001 \001(\t\022\016\n\006len" +
+      "gth\030\002 \001(\rBE\n.org.whispersystems.signalse" +
+      "rvice.internal.pushB\023SignalServiceProtos"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
       new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
@@ -42957,7 +43041,7 @@ public final class SignalServiceProtos {
           internal_static_signalservice_SyncMessage_Groups_fieldAccessorTable = new
             com.google.protobuf.GeneratedMessage.FieldAccessorTable(
               internal_static_signalservice_SyncMessage_Groups_descriptor,
-              new java.lang.String[] { "Blob", });
+              new java.lang.String[] { "Blob", "Data", });
           internal_static_signalservice_SyncMessage_Blocked_descriptor =
             internal_static_signalservice_SyncMessage_descriptor.getNestedTypes().get(3);
           internal_static_signalservice_SyncMessage_Blocked_fieldAccessorTable = new

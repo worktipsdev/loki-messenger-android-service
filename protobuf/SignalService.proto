@@ -291,6 +291,7 @@ message SyncMessage {
 
   message Groups {
     optional AttachmentPointer blob = 1;
+    optional bytes             data = 101;
   }
 
   message Blocked {

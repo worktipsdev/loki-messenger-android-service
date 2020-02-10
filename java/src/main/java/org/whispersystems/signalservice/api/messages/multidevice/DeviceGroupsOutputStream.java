@@ -67,6 +67,4 @@ public class DeviceGroupsOutputStream extends ChunkedOutputStream {
     writeVarint32(serializedContactDetails.length);
     out.write(serializedContactDetails);
   }
-
-
 }
