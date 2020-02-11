@@ -9,7 +9,7 @@ package org.whispersystems.signalservice.api.messages;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.messages.calls.SignalServiceCallMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.SignalServiceSyncMessage;
-import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
+import org.whispersystems.signalservice.loki.api.DeviceLink;
 import org.whispersystems.signalservice.loki.messaging.LokiServiceMessage;
 
 public class SignalServiceContent {
@@ -27,7 +27,7 @@ public class SignalServiceContent {
   private final Optional<SignalServiceTypingMessage>  typingMessage;
 
   // Loki
-  private final Optional<PairingAuthorisation> pairingAuthorisation;
+  private final Optional<DeviceLink> pairingAuthorisation;
   public Optional<LokiServiceMessage> lokiServiceMessage = Optional.absent();
   public Optional<String> senderDisplayName = Optional.absent();
   public Optional<String> senderProfileAvatarUrl = Optional.absent();
@@ -123,7 +123,7 @@ public class SignalServiceContent {
     this.pairingAuthorisation = Optional.absent();
   }
 
-  public SignalServiceContent(PairingAuthorisation authorisation, String sender, int senderDevice, long timestamp, boolean needsReceipt, boolean isFriendRequest) {
+  public SignalServiceContent(DeviceLink authorisation, String sender, int senderDevice, long timestamp, boolean needsReceipt, boolean isFriendRequest) {
     this.sender       = sender;
     this.senderDevice = senderDevice;
     this.timestamp    = timestamp;
@@ -158,7 +158,7 @@ public class SignalServiceContent {
     return typingMessage;
   }
 
-  public Optional<PairingAuthorisation> getPairingAuthorisation() { return pairingAuthorisation; }
+  public Optional<DeviceLink> getPairingAuthorisation() { return pairingAuthorisation; }
 
   public String getSender() {
     return sender;

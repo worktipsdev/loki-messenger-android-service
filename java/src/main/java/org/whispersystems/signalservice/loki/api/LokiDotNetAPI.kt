@@ -6,7 +6,10 @@ import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.then
-import okhttp3.*
+import okhttp3.MediaType
+import okhttp3.MultipartBody
+import okhttp3.Request
+import okhttp3.RequestBody
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.libsignal.loki.DiffieHellman
 import org.whispersystems.signalservice.api.crypto.ProfileCipherOutputStream
@@ -36,20 +39,14 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     companion object {
         private val authRequestCache = hashMapOf<String, Promise<String, Exception>>()
-        private var connection = OkHttpClient()
-
-        @JvmStatic
-        public fun setCache(cache: Cache) {
-            connection = OkHttpClient.Builder().cache(cache).build()
-        }
     }
 
-    val networkContext = Kovenant.createContext("network")
-    val workContext = Kovenant.createContext("work")
+    val networkContext = Kovenant.createContext("LokiDotNetAPINetworkContext")
+    val workContext = Kovenant.createContext("LokiDotNetAPIWorkContext")
 
     public sealed class Error(val description: String) : Exception() {
         object Generic : Error("An error occurred.")
-        object ParsingFailed : Error("Failed to parse object from JSON.")
+        object ParsingFailed : Error("Failed to parse JSON.")
     }
 
     public data class UploadResult(val id: Long, val url: String, val digest: ByteArray?)
@@ -200,20 +197,21 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    fun uploadProfilePicture(server: String, key: ByteArray, avatar: StreamDetails): UploadResult {
-        val avatarData = ProfileAvatarData(avatar.stream, ProfileCipherOutputStream.getCiphertextLength(avatar.length), avatar.contentType, ProfileCipherOutputStreamFactory(key))
-        return uploadProfilePicture(server, avatarData)
+    fun uploadProfilePicture(server: String, key: ByteArray, profilePicture: StreamDetails): UploadResult {
+        val profilePictureUploadData = ProfileAvatarData(profilePicture.stream, ProfileCipherOutputStream.getCiphertextLength(profilePicture.length), profilePicture.contentType, ProfileCipherOutputStreamFactory(key))
+        return uploadProfilePicture(server, profilePictureUploadData)
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
     fun uploadPublicProfilePicture(server: String, data: ByteArray): UploadResult {
-        val avatarData = ProfileAvatarData(ByteArrayInputStream(data), data.size.toLong(), "image/jpg", BasicOutputStreamFactory())
-        return uploadProfilePicture(server, avatarData)
+        val profilePictureUploadData = ProfileAvatarData(ByteArrayInputStream(data), data.size.toLong(), "image/jpg", BasicOutputStreamFactory())
+        return uploadProfilePicture(server, profilePictureUploadData)
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    private fun uploadProfilePicture(server: String, avatar: ProfileAvatarData): UploadResult {
-        val file = DigestingRequestBody(avatar.data, avatar.outputStreamFactory, avatar.contentType, avatar.dataLength, null)
+    private fun uploadProfilePicture(server: String, profilePictureUploadData: ProfileAvatarData): UploadResult {
+        val file = DigestingRequestBody(profilePictureUploadData.data, profilePictureUploadData.outputStreamFactory,
+            profilePictureUploadData.contentType, profilePictureUploadData.dataLength, null)
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("type", "network.loki")
@@ -221,7 +219,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
             .addFormDataPart("avatar", UUID.randomUUID().toString(), file)
             .build()
         val request = Request.Builder().url("$server/users/me/avatar").post(body)
-        return upload(server, request) { jsonAsString ->
+        return upload(server, request, true) { jsonAsString ->
             val json = JsonUtil.fromJson(jsonAsString)
             val data = json.get("data")
             if (data == null || !data.hasNonNull("avatar_image")) {
@@ -239,11 +237,12 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    private fun upload(server: String, request: Request.Builder, parse: (String) -> UploadResult): UploadResult {
+    private fun upload(server: String, request: Request.Builder, isProfilePictureUpload: Boolean = false, parse: (String) -> UploadResult): UploadResult {
         val promise: Promise<LokiHTTPClient.Response, Exception>
-        if (server == LokiFileServerAPI.shared.server) {
+        if (server == LokiFileServerAPI.shared.server && !isProfilePictureUpload) {
             request.addHeader("Authorization", "Bearer loki")
-            promise = LokiFileServerProxy(server).execute(request.build()) // Uploads to the Loki File Server shouldn't include any personally identifiable information so use a dummy auth token
+            // Uploads to the Loki File Server (with the exception of profile pictures) shouldn't include any personally identifiable information, so use a dummy auth token
+            promise = LokiFileServerProxy(server).execute(request.build())
         } else {
             promise = getAuthToken(server).bind(networkContext) { token ->
                 request.addHeader("Authorization", "Bearer $token")
@@ -263,7 +262,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         }.recover { exception ->
             val nestedException = exception.cause ?: exception
             if (nestedException is LokiAPI.Error.HTTPRequestFailed) {
-                throw NonSuccessfulResponseCodeException("Request returned with ${nestedException.code}.")
+                throw NonSuccessfulResponseCodeException("Request returned with status code ${nestedException.code}.")
             }
             throw PushNetworkException(exception)
         }.get()

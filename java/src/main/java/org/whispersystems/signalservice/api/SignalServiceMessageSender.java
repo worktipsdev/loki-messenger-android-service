@@ -80,7 +80,7 @@ import org.whispersystems.signalservice.loki.api.LokiPublicChat;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatMessage;
 import org.whispersystems.signalservice.loki.api.LokiFileServerAPI;
-import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
+import org.whispersystems.signalservice.loki.api.DeviceLink;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleDatabaseProtocol;
@@ -537,12 +537,12 @@ public class SignalServiceMessageSender {
 
     // Loki - Set the pairing authorisation if needed
     if (message.getPairingAuthorisation().isPresent()) {
-      PairingAuthorisation authorisation = message.getPairingAuthorisation().get();
+      DeviceLink authorisation = message.getPairingAuthorisation().get();
       SignalServiceProtos.PairingAuthorisationMessage.Builder builder = SignalServiceProtos.PairingAuthorisationMessage.newBuilder()
-              .setPrimaryDevicePublicKey(authorisation.getPrimaryDevicePublicKey())
-              .setSecondaryDevicePublicKey(authorisation.getSecondaryDevicePublicKey());
+              .setPrimaryDevicePublicKey(authorisation.getMasterHexEncodedPublicKey())
+              .setSecondaryDevicePublicKey(authorisation.getSlaveHexEncodedPublicKey());
       if (authorisation.getRequestSignature() != null) { builder.setRequestSignature(ByteString.copyFrom(authorisation.getRequestSignature())); }
-      if (authorisation.getGrantSignature() != null) { builder.setGrantSignature(ByteString.copyFrom(authorisation.getGrantSignature())); }
+      if (authorisation.getAuthorizationSignature() != null) { builder.setGrantSignature(ByteString.copyFrom(authorisation.getAuthorizationSignature())); }
       container.setPairingAuthorisation(builder);
     }
 

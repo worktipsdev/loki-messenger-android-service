@@ -10,7 +10,7 @@ import org.whispersystems.libsignal.state.PreKeyBundle;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.messages.shared.SharedContact;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
-import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
+import org.whispersystems.signalservice.loki.api.DeviceLink;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -36,7 +36,7 @@ public class SignalServiceDataMessage {
   // Loki
   private final boolean                                 isFriendRequest;
   private final Optional<PreKeyBundle>                  preKeyBundle;
-  private final Optional<PairingAuthorisation>          pairingAuthorisation;
+  private final Optional<DeviceLink>                    pairingAuthorisation;
   private final boolean                                 unpairingRequest;
   private final boolean                                 sessionRestore;
   private final boolean                                 sessionRequest;
@@ -153,7 +153,7 @@ public class SignalServiceDataMessage {
                                   String body, boolean endSession, int expiresInSeconds,
                                   boolean expirationUpdate, byte[] profileKey, boolean profileKeyUpdate,
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
-                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle, PairingAuthorisation pairingAuthorisation,
+                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle, DeviceLink pairingAuthorisation,
                                   boolean unpairingRequest, boolean sessionRestore, boolean sessionRequest)
   {
     this.timestamp             = timestamp;
@@ -276,7 +276,7 @@ public class SignalServiceDataMessage {
   public boolean isSessionRestore() { return  sessionRestore; }
   public boolean isSessionRequest() { return sessionRequest; }
   public Optional<PreKeyBundle> getPreKeyBundle() { return preKeyBundle; }
-  public Optional<PairingAuthorisation> getPairingAuthorisation() { return pairingAuthorisation; }
+  public Optional<DeviceLink> getPairingAuthorisation() { return pairingAuthorisation; }
   public boolean canSyncMessage() {
     // If any of the Loki fields are present then don't sync the message
     if (isFriendRequest || preKeyBundle.isPresent() || pairingAuthorisation.isPresent()) return false;
@@ -332,7 +332,7 @@ public class SignalServiceDataMessage {
     private Sticker              sticker;
     private boolean              isFriendRequest;
     private PreKeyBundle         preKeyBundle;
-    private PairingAuthorisation pairingAuthorisation;
+    private DeviceLink           pairingAuthorisation;
     private boolean              unpairingRequest;
     private boolean              sessionRestore;
     private boolean              sessionRequest;
@@ -432,7 +432,7 @@ public class SignalServiceDataMessage {
       return this;
     }
 
-    public Builder withPairingAuthorisation(PairingAuthorisation pairingAuthorisation) {
+    public Builder withPairingAuthorisation(DeviceLink pairingAuthorisation) {
       this.pairingAuthorisation = pairingAuthorisation;
       return this;
     }

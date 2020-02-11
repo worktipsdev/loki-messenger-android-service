@@ -6,11 +6,11 @@ import nl.komponents.kovenant.buildDispatcher
 import org.whispersystems.libsignal.logging.Log
 import kotlin.math.max
 
-// We should try use all the available processors and leave 1 thread for the callback
-private val threadAdvice: Int
+// Try to use all available threads minus one for the callback
+private val recommendedThreadCount: Int
     get() = Runtime.getRuntime().availableProcessors() - 1
 
-fun Kovenant.createContext(contextName: String, threads: Int = max(threadAdvice, 1)): Context {
+fun Kovenant.createContext(contextName: String, threadCount: Int = max(recommendedThreadCount, 1)): Context {
   return createContext {
     callbackContext.dispatcher = buildDispatcher {
       name = "${contextName}_callback_dispatcher"
@@ -20,7 +20,7 @@ fun Kovenant.createContext(contextName: String, threads: Int = max(threadAdvice,
     }
     workerContext.dispatcher = buildDispatcher {
       name = "${contextName}_worker_dispatcher"
-      concurrentTasks = threads
+      concurrentTasks = threadCount
     }
     multipleCompletion = { lhs, rhs ->
       Log.d("Loki", "Promise resolved more than once (first with $lhs, then with $rhs); ignoring $rhs.")

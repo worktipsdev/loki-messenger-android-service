@@ -5,10 +5,10 @@ import org.whispersystems.signalservice.internal.push.http.OutputStreamFactory
 import java.io.OutputStream
 
 /**
- * A DigestingOutputStream Factory which copies the input directly to the output without modification.
+ * An `OutputStreamFactory` that copies the input directly to the output without modification.
  *
  * For encrypted attachments, see `AttachmentCipherOutputStreamFactory`.
- * For encrypted profile, see `ProfileCipherOutputStreamFactory`.
+ * For encrypted profiles, see `ProfileCipherOutputStreamFactory`.
  */
 class BasicOutputStreamFactory : OutputStreamFactory {
 

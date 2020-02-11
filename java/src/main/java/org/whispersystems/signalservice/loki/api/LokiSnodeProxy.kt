@@ -22,7 +22,7 @@ internal class LokiSnodeProxy(private val target: LokiAPITarget, timeout: Long) 
     // region Settings
     companion object {
         private val curve = Curve25519.getInstance(Curve25519.BEST)
-        internal var snodeNetworkContext = Kovenant.createContext("LokiSnodeProxyNetwork")
+        internal var snodeNetworkContext = Kovenant.createContext("LokiSnodeProxy")
     }
     // endregion
 
