@@ -88,6 +88,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
          */
         object ProofOfWorkCalculationFailed : Error("Failed to calculate proof of work.")
         object MessageConversionFailed : Error("Failed to convert Signal message to Loki message.")
+        object ClockOutOfSync : Error("The user's clock is out of sync with the service node network.")
         object SnodeMigrated : Error("The snode previously associated with the given public key has migrated to a different swarm.")
         object InsufficientProofOfWork : Error("The proof of work is insufficient.")
         object TokenExpired : Error("The auth token being used has expired.")
@@ -134,6 +135,11 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
                     400, 500, 503 -> { // A 400 or 500 usually indicates that the snode isn't up to date
                         dropSnodeIfNeeded()
                         throw Error.HTTPRequestFailed(response.statusCode)
+                    }
+                    406 -> {
+                        Log.d("Loki", "The user's clock is out of sync with the service node network.")
+                        broadcaster.broadcast("clockOutOfSync")
+                        throw Error.ClockOutOfSync
                     }
                     421 -> {
                         // The snode isn't associated with the given public key anymore
