@@ -22,20 +22,18 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         private val maxRetryCount = 8
         // endregion
 
-        // region Public Chat
+        // region Convenience
         private val channelInfoType = "net.patter-app.settings"
         private val attachmentType = "net.app.core.oembed"
         @JvmStatic
         public val publicChatMessageType = "network.loki.messenger.publicChat"
         @JvmStatic
-        public val avatarAnnotationType = "network.loki.messenger.avatar"
+        public val profilePictureType = "network.loki.messenger.avatar"
 
         fun getDefaultChats(isDebug: Boolean = false): List<LokiPublicChat> {
-            return listOf()
+            return listOf() // Don't auto-join any open groups right now
         }
-        // endregion
 
-        // region Convenience
         public fun isUserModerator(hexEncodedPublicKey: String, channel: Long, server: String): Boolean {
             if (moderators[server] != null && moderators[server]!![channel] != null) {
                 return moderators[server]!![channel]!!.contains(hexEncodedPublicKey)
@@ -48,7 +46,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     // region Public API
     public fun getMessages(channel: Long, server: String): Promise<List<LokiPublicChatMessage>, Exception> {
         Log.d("Loki", "Getting messages for public chat channel with ID: $channel on server: $server.")
-        val parameters = mutableMapOf<String, Any>("include_annotations" to 1)
+        val parameters = mutableMapOf<String, Any>( "include_annotations" to 1 )
         val lastMessageServerID = apiDatabase.getLastMessageServerID(channel, server)
         if (lastMessageServerID != null) {
             parameters["since_id"] = lastMessageServerID
@@ -74,17 +72,17 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                         val user = message.get("user")
                         val hexEncodedPublicKey = user.get("username").asText()
                         val displayName = if (user.hasNonNull("name")) user.get("name").asText() else "Anonymous"
-                        var avatar: LokiPublicChatMessage.Avatar? = null
+                        var profilePicture: LokiPublicChatMessage.ProfilePicture? = null
                         if (user.hasNonNull("annotations")) {
                             val avatarAnnotation = user.get("annotations").find {
-                                (it.get("type").asText("") == avatarAnnotationType) && it.hasNonNull("value")
+                                (it.get("type").asText("") == profilePictureType) && it.hasNonNull("value")
                             }
                             val avatarAnnotationValue = avatarAnnotation?.get("value")
                             if (avatarAnnotationValue != null && avatarAnnotationValue.hasNonNull("profileKey") && avatarAnnotationValue.hasNonNull("url")) {
                                 try {
                                     val profileKey = Base64.decode(avatarAnnotationValue.get("profileKey").asText())
                                     val url = avatarAnnotationValue.get("url").asText()
-                                    avatar = LokiPublicChatMessage.Avatar(profileKey, url)
+                                    profilePicture = LokiPublicChatMessage.ProfilePicture(profileKey, url)
                                 } catch (e: Exception) {}
                             }
                         }
@@ -131,7 +129,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                         val signatureVersion = value.get("sigver").asLong()
                         val signature = LokiPublicChatMessage.Signature(Hex.fromStringCondensed(hexEncodedSignature), signatureVersion)
                         // Verify the message
-                        val groupMessage = LokiPublicChatMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, attachments, avatar, signature)
+                        val groupMessage = LokiPublicChatMessage(serverID, hexEncodedPublicKey, displayName, body, timestamp, publicChatMessageType, quote, attachments, profilePicture, signature)
                         if (groupMessage.hasValidSignature()) groupMessage else null
                     } catch (exception: Exception) {
                         Log.d("Loki", "Couldn't parse message for public chat channel with ID: $channel on server: $server from: ${JsonUtil.toJson(message)}. Exception: ${exception.message}")
@@ -327,7 +325,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
             else -> mapOf( "profileKey" to profileKey, "url" to url )
         }
         // TODO: This may actually completely replace the annotations, have to double check it
-        return setSelfAnnotation(server, avatarAnnotationType, value).map { Unit }.fail {
+        return setSelfAnnotation(server, profilePictureType, value).map { Unit }.fail {
             Log.d("Loki", "Failed to update profile picture due to error: $it.")
         }
     }

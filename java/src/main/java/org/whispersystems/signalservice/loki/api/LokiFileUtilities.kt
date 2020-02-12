@@ -12,17 +12,16 @@ import java.io.IOException
 import java.io.OutputStream
 import java.util.concurrent.TimeUnit
 
-object LokiAttachmentAPI {
+object LokiFileUtilities {
 
-  fun getAttachment(destination: File, url: String, maxByteCount: Int, listener: SignalServiceAttachment.ProgressListener?) {
-    // Throws IOExceptions
-    val outputStream = FileOutputStream(destination)
-    getAttachment(outputStream, url, maxByteCount, listener)
+  fun downloadFile(destination: File, url: String, maxSize: Int, listener: SignalServiceAttachment.ProgressListener?) {
+    val outputStream = FileOutputStream(destination) // Throws
+    downloadFile(outputStream, url, maxSize, listener)
   }
 
-  fun getAttachment(outputStream: OutputStream, url: String, maxByteCount: Int, listener: SignalServiceAttachment.ProgressListener?) {
+  fun downloadFile(outputStream: OutputStream, url: String, maxSize: Int, listener: SignalServiceAttachment.ProgressListener?) {
     // We need to throw a PushNetworkException or NonSuccessfulResponseCodeException
-    // as the underlying Signal logic requires these to work correctly
+    // because the underlying Signal logic requires these to work correctly
     val connection = OkHttpClient()
         .newBuilder()
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -37,22 +36,22 @@ object LokiAttachmentAPI {
           Log.d("Loki", "Couldn't parse attachment.")
           throw PushNetworkException("Missing response body.")
         }
-        if (body.contentLength() > maxByteCount) {
+        if (body.contentLength() > maxSize) {
           Log.d("Loki", "Attachment size limit exceeded.")
           throw PushNetworkException("Max response size exceeded.")
         }
         val input = body.byteStream()
         val buffer = ByteArray(32768)
-        var bytesCopied = 0
+        var count = 0
         var bytes = input.read(buffer)
         while (bytes >= 0) {
           outputStream.write(buffer, 0, bytes)
-          bytesCopied += bytes
-          if (bytesCopied > maxByteCount) {
+          count += bytes
+          if (count > maxSize) {
             Log.d("Loki", "Attachment size limit exceeded.")
             throw PushNetworkException("Max response size exceeded.")
           }
-          listener?.onAttachmentProgress(body.contentLength(), bytesCopied.toLong())
+          listener?.onAttachmentProgress(body.contentLength(), count.toLong())
           bytes = input.read(buffer)
         }
       } else {

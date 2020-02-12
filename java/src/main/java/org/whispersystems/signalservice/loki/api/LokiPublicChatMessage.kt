@@ -14,7 +14,7 @@ public data class LokiPublicChatMessage(
     public val type: String,
     public val quote: Quote?,
     public val attachments: List<Attachment>,
-    public val avatar: Avatar?,
+    public val profilePicture: ProfilePicture?,
     public val signature: Signature?
 ) {
 
@@ -27,7 +27,7 @@ public data class LokiPublicChatMessage(
     // endregion
 
     // region Types
-    public data class Avatar(
+    public data class ProfilePicture(
         public val profileKey: ByteArray,
         public val url: String
     )

@@ -14,8 +14,8 @@ interface LokiAPIDatabaseProtocol {
     fun setLastMessageServerID(group: Long, server: String, newValue: Long)
     fun getLastDeletionServerID(group: Long, server: String): Long?
     fun setLastDeletionServerID(group: Long, server: String, newValue: Long)
-    fun getPairingAuthorisations(hexEncodedPublicKey: String): List<PairingAuthorisation>
-    fun insertOrUpdatePairingAuthorisation(authorisation: PairingAuthorisation)
-    fun removePairingAuthorisations(hexEncodedPublicKey: String)
+    fun getDeviceLinks(hexEncodedPublicKey: String): Set<DeviceLink>
+    fun addDeviceLink(deviceLink: DeviceLink)
+    fun clearDeviceLinks(hexEncodedPublicKey: String)
     fun setUserCount(userCount: Int, group: Long, server: String)
 }

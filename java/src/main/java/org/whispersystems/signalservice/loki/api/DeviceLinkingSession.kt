@@ -25,13 +25,13 @@ class DeviceLinkingSession {
         isListeningForLinkingRequests = false
     }
 
-    fun processLinkingRequest(authorisation: PairingAuthorisation) {
-        if (!isListeningForLinkingRequests || !authorisation.verify()) { return }
-        listeners.forEach { it.requestUserAuthorization(authorisation) }
+    fun processLinkingRequest(deviceLink: DeviceLink) {
+        if (!isListeningForLinkingRequests || !deviceLink.verify()) { return }
+        listeners.forEach { it.requestUserAuthorization(deviceLink) }
     }
 
-    fun processLinkingAuthorization(authorisation: PairingAuthorisation) {
-        if (!isListeningForLinkingRequests || !authorisation.verify()) { return }
-        listeners.forEach { it.onDeviceLinkRequestAuthorized(authorisation) }
+    fun processLinkingAuthorization(deviceLink: DeviceLink) {
+        if (!isListeningForLinkingRequests || !deviceLink.verify()) { return }
+        listeners.forEach { it.onDeviceLinkRequestAuthorized(deviceLink) }
     }
 }

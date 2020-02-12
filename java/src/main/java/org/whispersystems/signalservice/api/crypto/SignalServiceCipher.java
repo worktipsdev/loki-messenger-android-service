@@ -78,7 +78,7 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.SyncMe
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.TypingMessage;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Verified;
 import org.whispersystems.signalservice.internal.util.Base64;
-import org.whispersystems.signalservice.loki.api.PairingAuthorisation;
+import org.whispersystems.signalservice.loki.api.DeviceLink;
 import org.whispersystems.signalservice.loki.messaging.LokiServiceAddressMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiServiceMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiServicePreKeyBundleMessage;
@@ -195,7 +195,7 @@ public class SignalServiceCipher {
           String secondaryDevicePublicKey = pairingAuthorisationMessage.getSecondaryDevicePublicKey();
           byte[] requestSignature = pairingAuthorisationMessage.hasRequestSignature() ? pairingAuthorisationMessage.getRequestSignature().toByteArray() : null;
           byte[] grantSignature = pairingAuthorisationMessage.hasGrantSignature() ? pairingAuthorisationMessage.getGrantSignature().toByteArray() : null;
-          PairingAuthorisation authorisation = new PairingAuthorisation(primaryDevicePublicKey, secondaryDevicePublicKey, requestSignature, grantSignature);
+          DeviceLink authorisation = new DeviceLink(primaryDevicePublicKey, secondaryDevicePublicKey, requestSignature, grantSignature);
           SignalServiceCipher.Metadata metadata = plaintext.getMetadata();
           SignalServiceContent content = new SignalServiceContent(authorisation, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false, metadata.isFriendRequest());
           content.setLokiServiceMessage(lokiServiceMessage);

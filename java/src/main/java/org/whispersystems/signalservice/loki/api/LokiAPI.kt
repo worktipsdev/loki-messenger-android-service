@@ -5,7 +5,10 @@ import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.task
-import okhttp3.*
+import okhttp3.Headers
+import okhttp3.MediaType
+import okhttp3.Request
+import okhttp3.RequestBody
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Envelope
 import org.whispersystems.signalservice.internal.util.Base64
@@ -31,7 +34,6 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         private val longPollingTimeout: Long = 40
         internal val defaultMessageTTL = 24 * 60 * 60 * 1000
         internal var powDifficulty = 40
-        internal val okHTTPCache = hashMapOf<Long, OkHttpClient>()
         // endregion
 
         // region User ID Caching
@@ -75,7 +77,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         // endregion
     }
 
-    // region Types
+    // region Error
     sealed class Error(val description: String) : Exception() {
         class HTTPRequestFailed(val code: Int) : Error("HTTP request failed with error code: $code.")
         object Generic : Error("An error occurred.")
@@ -90,7 +92,6 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         object InsufficientProofOfWork : Error("The proof of work is insufficient.")
         object TokenExpired : Error("The auth token being used has expired.")
         object ParsingFailed : Error("Couldn't parse JSON.")
-        object MaxSizeExceeded : Error("Max file size exceeded.")
     }
     // endregion
 
@@ -126,11 +127,11 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
             }
         }.map { response ->
             if (response.isSuccess) {
-                @Suppress("NAME_SHADOWING") val body = response.body ?: throw Error.ParsingFailed
+                @Suppress("NAME_SHADOWING") val body = response.body ?: throw Error.ResponseBodyMissing
                 return@map JsonUtil.fromJson(body, Map::class.java)
             } else {
                 when (response.statusCode) {
-                    400, 500, 503 -> {
+                    400, 500, 503 -> { // A 400 or 500 usually indicates that the snode isn't up to date
                         dropSnodeIfNeeded()
                         throw Error.HTTPRequestFailed(response.statusCode)
                     }

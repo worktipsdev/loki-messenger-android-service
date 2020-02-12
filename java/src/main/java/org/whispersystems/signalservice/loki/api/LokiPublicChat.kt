@@ -12,8 +12,8 @@ public data class LokiPublicChat(
     public val id get() = "$server.$channel"
 
     companion object {
-        @JvmStatic
-        fun fromJSON(jsonAsString: String): LokiPublicChat? {
+
+        @JvmStatic fun fromJSON(jsonAsString: String): LokiPublicChat? {
             try {
                 val json = JsonUtil.fromJson(jsonAsString)
                 val channel = json.get("channel").asLong()

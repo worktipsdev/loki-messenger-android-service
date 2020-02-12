@@ -23,11 +23,11 @@ internal open class LokiHTTPClient(private val timeout: Long) {
 
     companion object {
         internal val okHTTPCache = hashMapOf<Long, OkHttpClient>()
-        internal var networkContext = Kovenant.createContext("LokiHttpClientNetwork")
-        internal var workContext = Kovenant.createContext("LokiHttpClientWork")
+        internal var networkContext = Kovenant.createContext("LokiHTTPClientNetworkContext")
+        internal var workContext = Kovenant.createContext("LokiHTTPClientWorkContext")
     }
 
-    fun getClearnetConnection(): OkHttpClient {
+    internal fun getClearnetConnection(): OkHttpClient {
         var connection = okHTTPCache[timeout]
         if (connection == null) {
             val trustManager = object : X509TrustManager {
@@ -84,7 +84,7 @@ internal open class LokiHTTPClient(private val timeout: Long) {
     }
 
     internal open fun getBodyAsString(request: Request): String? {
-        val body = this.getBody(request)
+        val body = getBody(request)
         val charset = request.body()?.contentType()?.charset() ?: Charsets.UTF_8
         return body?.toString(charset)
     }
