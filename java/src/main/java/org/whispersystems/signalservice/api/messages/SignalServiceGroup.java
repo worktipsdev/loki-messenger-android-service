@@ -39,13 +39,13 @@ public class SignalServiceGroup {
     REQUEST_INFO
   }
 
-  private final byte[]                         groupId;
-  private final GroupType                      groupType;
-  private final Type                           type;
-  private final Optional<String>               name;
-  private final Optional<List<String>>         members;
+  private final byte[]                            groupId;
+  private final GroupType                         groupType;
+  private final Type                              type;
+  private final Optional<String>                  name;
+  private final Optional<List<String>>            members;
   private final Optional<SignalServiceAttachment> avatar;
-  private final Optional<List<String>>         admins;
+  private final Optional<List<String>>            admins;
 
 
   /**
@@ -53,7 +53,7 @@ public class SignalServiceGroup {
    * @param groupId
    */
   public SignalServiceGroup(byte[] groupId, GroupType groupType) {
-    this(Type.DELIVER, groupId, groupType,null, null, null, null);
+    this(Type.DELIVER, groupId, groupType, null, null, null, null);
   }
 
   /**

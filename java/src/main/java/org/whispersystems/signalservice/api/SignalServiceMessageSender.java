@@ -186,21 +186,21 @@ public class SignalServiceMessageSender {
                                     LokiUserDatabaseProtocol userDatabase,
                                     Broadcaster broadcaster)
   {
-    this.socket               = new PushServiceSocket(urls, credentialsProvider, userAgent);
-    this.store                = store;
-    this.localAddress         = new SignalServiceAddress(credentialsProvider.getUser());
-    this.pipe                 = new AtomicReference<Optional<SignalServiceMessagePipe>>(pipe);
-    this.unidentifiedPipe     = new AtomicReference<Optional<SignalServiceMessagePipe>>(unidentifiedPipe);
-    this.isMultiDevice        = new AtomicBoolean(isMultiDevice);
-    this.eventListener        = eventListener;
+    this.socket                  = new PushServiceSocket(urls, credentialsProvider, userAgent);
+    this.store                   = store;
+    this.localAddress            = new SignalServiceAddress(credentialsProvider.getUser());
+    this.pipe                    = new AtomicReference<Optional<SignalServiceMessagePipe>>(pipe);
+    this.unidentifiedPipe        = new AtomicReference<Optional<SignalServiceMessagePipe>>(unidentifiedPipe);
+    this.isMultiDevice           = new AtomicBoolean(isMultiDevice);
+    this.eventListener           = eventListener;
     this.userHexEncodedPublicKey = userHexEncodedPublicKey;
-    this.apiDatabase          = apiDatabase;
-    this.threadDatabase       = threadDatabase;
-    this.messageDatabase      = messageDatabase;
-    this.preKeyBundleDatabase = preKeyBundleDatabase;
-    this.sessionDatabase      = sessionDatabase;
-    this.userDatabase         = userDatabase;
-    this.broadcaster          = broadcaster;
+    this.apiDatabase             = apiDatabase;
+    this.threadDatabase          = threadDatabase;
+    this.messageDatabase         = messageDatabase;
+    this.preKeyBundleDatabase    = preKeyBundleDatabase;
+    this.sessionDatabase         = sessionDatabase;
+    this.userDatabase            = userDatabase;
+    this.broadcaster             = broadcaster;
   }
 
   /**
@@ -293,10 +293,10 @@ public class SignalServiceMessageSender {
                                        Optional<LokiSyncMessage>        lokiSyncMessage)
       throws UntrustedIdentityException, IOException
   {
-    byte[]            content   = createMessageContent(message, recipient);
-    long              timestamp = message.getTimestamp();
-    boolean updateFriendRequest = !message.isSessionRequest() && !message.isGroupMessage();
-    SendMessageResult result    = sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL(), message.isFriendRequest(), updateFriendRequest);
+    byte[]            content                   = createMessageContent(message, recipient);
+    long              timestamp                 = message.getTimestamp();
+    boolean           updateFriendRequestStatus = !message.isSessionRequest() && !message.isGroupMessage();
+    SendMessageResult result                    = sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL(), message.isFriendRequest(), updateFriendRequestStatus);
 
     if (lokiSyncMessage.isPresent() && (result.getSuccess() != null && message.canSyncMessage() || (unidentifiedAccess.isPresent() && isMultiDevice.get()))) {
       byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.of(lokiSyncMessage.get().getRecipient()), timestamp, Collections.singletonList(result));
@@ -535,18 +535,18 @@ public class SignalServiceMessageSender {
       container.setPreKeyBundleMessage(preKeyBuilder);
     }
 
-    // Loki - Set the pairing authorisation if needed
-    if (message.getPairingAuthorisation().isPresent()) {
-      DeviceLink authorisation = message.getPairingAuthorisation().get();
+    // Loki - Set the device link if needed
+    if (message.getDeviceLink().isPresent()) {
+      DeviceLink deviceLink = message.getDeviceLink().get();
       SignalServiceProtos.PairingAuthorisationMessage.Builder builder = SignalServiceProtos.PairingAuthorisationMessage.newBuilder()
-              .setPrimaryDevicePublicKey(authorisation.getMasterHexEncodedPublicKey())
-              .setSecondaryDevicePublicKey(authorisation.getSlaveHexEncodedPublicKey());
-      if (authorisation.getRequestSignature() != null) { builder.setRequestSignature(ByteString.copyFrom(authorisation.getRequestSignature())); }
-      if (authorisation.getAuthorizationSignature() != null) { builder.setGrantSignature(ByteString.copyFrom(authorisation.getAuthorizationSignature())); }
+              .setPrimaryDevicePublicKey(deviceLink.getMasterHexEncodedPublicKey())
+              .setSecondaryDevicePublicKey(deviceLink.getSlaveHexEncodedPublicKey());
+      if (deviceLink.getRequestSignature() != null) { builder.setRequestSignature(ByteString.copyFrom(deviceLink.getRequestSignature())); }
+      if (deviceLink.getAuthorizationSignature() != null) { builder.setGrantSignature(ByteString.copyFrom(deviceLink.getAuthorizationSignature())); }
       container.setPairingAuthorisation(builder);
     }
 
-    if (message.hasData() || message.getPairingAuthorisation().isPresent()) {
+    if (message.hasData() || message.getDeviceLink().isPresent()) {
 
       DataMessage.Builder builder = DataMessage.newBuilder();
       List<AttachmentPointer> pointers = createAttachmentPointers(message.getAttachments(), recipient);
@@ -571,15 +571,15 @@ public class SignalServiceMessageSender {
         builder.setFlags(DataMessage.Flags.EXPIRATION_TIMER_UPDATE_VALUE);
       }
 
-    if (message.isUnpairingRequest()) {
-      builder.setFlags(DataMessage.Flags.UNPAIRING_REQUEST_VALUE);
-    }
+      if (message.isUnlinkingRequest()) {
+        builder.setFlags(DataMessage.Flags.UNPAIRING_REQUEST_VALUE);
+      }
 
       if (message.isProfileKeyUpdate()) {
         builder.setFlags(DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE);
       }
 
-      if (message.isSessionRestore()) {
+      if (message.isSessionRestoration()) {
           builder.setFlags(DataMessage.Flags.SESSION_RESTORE_VALUE);
       }
 
@@ -658,7 +658,7 @@ public class SignalServiceMessageSender {
         builder.setSticker(stickerBuilder.build());
       }
 
-      // Loki - Profile
+      // Loki - Attach profile
       LokiProfile.Builder profile = LokiProfile.newBuilder();
       String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
       String url = userDatabase.getProfilePictureURL(userHexEncodedPublicKey);
@@ -1083,7 +1083,7 @@ public class SignalServiceMessageSender {
                                                     long                         timestamp,
                                                     byte[]                       content,
                                                     LokiPublicChat               publicChat) {
-    final SettableFuture<?>[] future = {new SettableFuture<Unit>()};
+    final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
     try {
       SignalServiceProtos.DataMessage data = SignalServiceProtos.Content.parseFrom(content).getDataMessage();
       String body = (data.getBody() != null && data.getBody().length() > 0) ? data.getBody() : Long.toString(data.getTimestamp());
@@ -1157,7 +1157,6 @@ public class SignalServiceMessageSender {
       @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
       f.setException(exception);
     }
-
     @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
     try {
       f.get(1, TimeUnit.MINUTES);
@@ -1177,7 +1176,7 @@ public class SignalServiceMessageSender {
                                                      boolean                      isFriendRequest,
                                                      final boolean                updateFriendRequestStatus)
   {
-    final SettableFuture<?>[] future = {new SettableFuture<Unit>()};
+    final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
     final long threadID = threadDatabase.getThreadID(recipient.getNumber());
     try {
       OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
@@ -1232,7 +1231,7 @@ public class SignalServiceMessageSender {
                 broadcaster.broadcast("messageFailed", timestamp);
                 // Update the message and thread if needed
                 if (isFriendRequestMessage && updateFriendRequestStatus && eventListener.isPresent()) {
-                    eventListener.get().onFriendRequestSendingFail(messageID, threadID);
+                    eventListener.get().onFriendRequestSendingFailed(messageID, threadID);
                 }
                 @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
                 f.setException(exception);
@@ -1248,7 +1247,7 @@ public class SignalServiceMessageSender {
         public Unit invoke(Exception exception) { // The snode is unreachable
           // Update the message and thread if needed
           if (isFriendRequestMessage && eventListener.isPresent()) {
-              eventListener.get().onFriendRequestSendingFail(messageID, threadID);
+              eventListener.get().onFriendRequestSendingFailed(messageID, threadID);
           }
           @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
           f.setException(exception);
@@ -1402,7 +1401,7 @@ public class SignalServiceMessageSender {
       }
     }
 
-    // Ensure all session building processing has been done
+    // Ensure all session building processing has finished
     synchronized (SessionCipher.SESSION_LOCK) {
       try {
         return cipher.encrypt(signalProtocolAddress, unidentifiedAccess, plaintext);
@@ -1472,7 +1471,7 @@ public class SignalServiceMessageSender {
     public void onSyncEvent(long messageID, long timestamp, byte[] message, int ttl);
     public void onFriendRequestSending(long messageID, long threadID);
     public void onFriendRequestSent(long messageID, long threadID);
-    public void onFriendRequestSendingFail(long messageID, long threadID);
+    public void onFriendRequestSendingFailed(long messageID, long threadID);
   }
 
 }

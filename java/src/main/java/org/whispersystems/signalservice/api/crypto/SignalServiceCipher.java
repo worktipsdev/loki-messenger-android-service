@@ -138,8 +138,8 @@ public class SignalServiceCipher {
       int type;
 
       switch (message.getType()) {
-        case CiphertextMessage.PREKEY_TYPE:  type = Type.PREKEY_BUNDLE_VALUE; break;
-        case CiphertextMessage.WHISPER_TYPE: type = Type.CIPHERTEXT_VALUE;    break;
+        case CiphertextMessage.PREKEY_TYPE:              type = Type.PREKEY_BUNDLE_VALUE; break;
+        case CiphertextMessage.WHISPER_TYPE:             type = Type.CIPHERTEXT_VALUE;    break;
         case CiphertextMessage.LOKI_FRIEND_REQUEST_TYPE: type = Type.FRIEND_REQUEST_VALUE; break;
         default: throw new AssertionError("Bad type: " + message.getType());
       }
@@ -191,13 +191,13 @@ public class SignalServiceCipher {
         LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiAddressMessage);
         if (message.hasPairingAuthorisation()) {
           SignalServiceProtos.PairingAuthorisationMessage pairingAuthorisationMessage = message.getPairingAuthorisation();
-          String primaryDevicePublicKey = pairingAuthorisationMessage.getPrimaryDevicePublicKey();
-          String secondaryDevicePublicKey = pairingAuthorisationMessage.getSecondaryDevicePublicKey();
+          String masterHexEncodedPublicKey = pairingAuthorisationMessage.getPrimaryDevicePublicKey();
+          String slaveHexEncodedPublicKey = pairingAuthorisationMessage.getSecondaryDevicePublicKey();
           byte[] requestSignature = pairingAuthorisationMessage.hasRequestSignature() ? pairingAuthorisationMessage.getRequestSignature().toByteArray() : null;
-          byte[] grantSignature = pairingAuthorisationMessage.hasGrantSignature() ? pairingAuthorisationMessage.getGrantSignature().toByteArray() : null;
-          DeviceLink authorisation = new DeviceLink(primaryDevicePublicKey, secondaryDevicePublicKey, requestSignature, grantSignature);
+          byte[] authorizationSignature = pairingAuthorisationMessage.hasGrantSignature() ? pairingAuthorisationMessage.getGrantSignature().toByteArray() : null;
+          DeviceLink deviceLink = new DeviceLink(masterHexEncodedPublicKey, slaveHexEncodedPublicKey, requestSignature, authorizationSignature);
           SignalServiceCipher.Metadata metadata = plaintext.getMetadata();
-          SignalServiceContent content = new SignalServiceContent(authorisation, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false, metadata.isFriendRequest());
+          SignalServiceContent content = new SignalServiceContent(deviceLink, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false, metadata.isFriendRequest());
           content.setLokiServiceMessage(lokiServiceMessage);
           if (message.hasSyncMessage() && message.getSyncMessage().hasContacts()) {
             SignalServiceSyncMessage syncMessage = createSynchronizeMessage(metadata, message.getSyncMessage());
@@ -268,7 +268,7 @@ public class SignalServiceCipher {
         return new SignalServiceContent(lokiServiceMessage, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false, metadata.isFriendRequest());
       }
 
-      // No content is set at all; return null
+      // Loki - No content is set at all; return null
       return null;
     } catch (InvalidProtocolBufferException e) {
       throw new InvalidMetadataMessageException(e);
@@ -279,7 +279,7 @@ public class SignalServiceCipher {
     if (message.hasProfile()) {
       SignalServiceProtos.LokiProfile profile = message.getProfile();
       if (profile.hasDisplayName()) { content.setSenderDisplayName(profile.getDisplayName()); }
-      if (profile.hasAvatar()) { content.setSenderProfileAvatarUrl(profile.getAvatar()); }
+      if (profile.hasAvatar()) { content.setSenderProfilePictureURL(profile.getAvatar()); }
     }
   }
 
@@ -342,18 +342,18 @@ public class SignalServiceCipher {
   }
 
   private SignalServiceDataMessage createSignalServiceMessage(Metadata metadata, DataMessage content, boolean isFriendRequest) throws ProtocolInvalidMessageException {
-    SignalServiceGroup             groupInfo        = createGroupInfo(content);
-    List<SignalServiceAttachment>  attachments      = new LinkedList<SignalServiceAttachment>();
-    boolean                        endSession       = ((content.getFlags() & DataMessage.Flags.END_SESSION_VALUE            ) != 0);
-    boolean                        expirationUpdate = ((content.getFlags() & DataMessage.Flags.EXPIRATION_TIMER_UPDATE_VALUE) != 0);
-    boolean                        profileKeyUpdate = ((content.getFlags() & DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE     ) != 0);
-    SignalServiceDataMessage.Quote quote            = createQuote(content);
-    List<SharedContact>            sharedContacts   = createSharedContacts(content);
-    List<Preview>                  previews         = createPreviews(content);
-    Sticker                        sticker          = createSticker(content);
-    boolean                        unpairingRequest = ((content.getFlags() & DataMessage.Flags.UNPAIRING_REQUEST_VALUE     ) != 0);
-    boolean                        sessionRestore   = ((content.getFlags() & DataMessage.Flags.SESSION_RESTORE_VALUE       ) != 0);
-    boolean                        sessionRequest   = ((content.getFlags() & DataMessage.Flags.SESSION_REQUEST_VALUE       ) != 0);
+    SignalServiceGroup             groupInfo                   = createGroupInfo(content);
+    List<SignalServiceAttachment>  attachments                 = new LinkedList<SignalServiceAttachment>();
+    boolean                        endSession                  = ((content.getFlags() & DataMessage.Flags.END_SESSION_VALUE            ) != 0);
+    boolean                        expirationUpdate            = ((content.getFlags() & DataMessage.Flags.EXPIRATION_TIMER_UPDATE_VALUE) != 0);
+    boolean                        profileKeyUpdate            = ((content.getFlags() & DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE     ) != 0);
+    SignalServiceDataMessage.Quote quote                       = createQuote(content);
+    List<SharedContact>            sharedContacts              = createSharedContacts(content);
+    List<Preview>                  previews                    = createPreviews(content);
+    Sticker                        sticker                     = createSticker(content);
+    boolean                        isUnlinkingRequest          = ((content.getFlags() & DataMessage.Flags.UNPAIRING_REQUEST_VALUE     ) != 0);
+    boolean                        isSessionRestorationRequest = ((content.getFlags() & DataMessage.Flags.SESSION_RESTORE_VALUE       ) != 0);
+    boolean                        isSessionRequest            = ((content.getFlags() & DataMessage.Flags.SESSION_REQUEST_VALUE       ) != 0);
 
     for (AttachmentPointer pointer : content.getAttachmentsList()) {
       attachments.add(createAttachmentPointer(pointer));
@@ -378,7 +378,7 @@ public class SignalServiceCipher {
                                         sharedContacts,
                                         previews,
                                         sticker,
-                                        isFriendRequest, null, null, unpairingRequest, sessionRestore, sessionRequest);
+                                        isFriendRequest, null, null, isUnlinkingRequest, isSessionRestorationRequest, isSessionRequest);
   }
 
   private SignalServiceSyncMessage createSynchronizeMessage(Metadata metadata, SyncMessage content)
@@ -418,7 +418,7 @@ public class SignalServiceCipher {
       ByteString data = contacts.getData();
       if (data != null && !data.isEmpty()) {
         byte[] bytes = data.toByteArray();
-        SignalServiceAttachmentStream attachmentStream   = SignalServiceAttachment.newStreamBuilder()
+        SignalServiceAttachmentStream attachmentStream = SignalServiceAttachment.newStreamBuilder()
                 .withStream(new ByteArrayInputStream(data.toByteArray()))
                 .withContentType("application/octet-stream")
                 .withLength(bytes.length)

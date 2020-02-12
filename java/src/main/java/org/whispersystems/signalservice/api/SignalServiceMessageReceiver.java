@@ -121,7 +121,7 @@ public class SignalServiceMessageReceiver {
     return new ProfileCipherInputStream(new FileInputStream(destination), profileKey);
   }
 
-  public InputStream retrievePublicProfileAvatar(String path, File destination, int maxSizeBytes)
+  public InputStream retrievePublicProfilePicture(String path, File destination, int maxSizeBytes)
     throws IOException
   {
     LokiFileUtilities.INSTANCE.downloadFile(destination, path, maxSizeBytes, null);
@@ -144,13 +144,11 @@ public class SignalServiceMessageReceiver {
       throws IOException, InvalidMessageException
   {
     // Loki - Fetch attachment
-    if (pointer.getUrl().isEmpty()) throw new InvalidMessageException("Missing attachment URL");
+    if (pointer.getUrl().isEmpty()) throw new InvalidMessageException("Missing attachment URL.");
     LokiFileUtilities.INSTANCE.downloadFile(destination, pointer.getUrl(), maxSizeBytes, listener);
 
     // Loki - Assume we're retrieving an attachment for a public chat server if the digest is not set
-    if (!pointer.getDigest().isPresent()) {
-      return new FileInputStream(destination);
-    }
+    if (!pointer.getDigest().isPresent()) { return new FileInputStream(destination); }
 
     return AttachmentCipherInputStream.createForAttachment(destination, pointer.getSize().or(0), pointer.getKey(), pointer.getDigest().get());
   }

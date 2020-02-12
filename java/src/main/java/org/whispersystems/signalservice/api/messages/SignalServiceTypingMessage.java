@@ -39,5 +39,5 @@ public class SignalServiceTypingMessage {
   }
 
   // 1 minute
-  public int getTTL() { return 60 * 1000; }
+  public int getTTL() { return 2 * 60 * 1000; }
 }
