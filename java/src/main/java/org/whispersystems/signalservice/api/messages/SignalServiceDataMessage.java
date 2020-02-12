@@ -38,7 +38,7 @@ public class SignalServiceDataMessage {
   private final Optional<PreKeyBundle>                  preKeyBundle;
   private final Optional<DeviceLink>                    deviceLink;
   private final boolean                                 isUnlinkingRequest;
-  private final boolean                                 isSessionRestoration;
+  private final boolean                                 isSessionRestorationRequest;
   private final boolean                                 isSessionRequest;
 
   /**
@@ -154,7 +154,7 @@ public class SignalServiceDataMessage {
                                   boolean expirationUpdate, byte[] profileKey, boolean profileKeyUpdate,
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
                                   Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle, DeviceLink deviceLink,
-                                  boolean isUnlinkingRequest, boolean isSessionRestoration, boolean isSessionRequest)
+                                  boolean isUnlinkingRequest, boolean isSessionRestorationRequest, boolean isSessionRequest)
   {
     this.timestamp             = timestamp;
     this.body                  = Optional.fromNullable(body);
@@ -170,7 +170,7 @@ public class SignalServiceDataMessage {
     this.preKeyBundle          = Optional.fromNullable(preKeyBundle);
     this.deviceLink            = Optional.fromNullable(deviceLink);
     this.isUnlinkingRequest    = isUnlinkingRequest;
-    this.isSessionRestoration  = isSessionRestoration;
+    this.isSessionRestorationRequest  = isSessionRestorationRequest;
     this.isSessionRequest      = isSessionRequest;
 
     if (attachments != null && !attachments.isEmpty()) {
@@ -273,7 +273,7 @@ public class SignalServiceDataMessage {
   public boolean isUnlinkingRequest() {
     return isUnlinkingRequest;
   }
-  public boolean isSessionRestoration() { return isSessionRestoration; }
+  public boolean isSessionRestorationRequest() { return isSessionRestorationRequest; }
   public boolean isSessionRequest() { return isSessionRequest; }
   public Optional<PreKeyBundle> getPreKeyBundle() { return preKeyBundle; }
   public Optional<DeviceLink> getDeviceLink() { return deviceLink; }
@@ -310,7 +310,7 @@ public class SignalServiceDataMessage {
             getPreviews().isPresent() ||
             getSticker().isPresent() ||
             isUnlinkingRequest() ||
-            isSessionRestoration() ||
+            isSessionRestorationRequest() ||
             isSessionRequest();
   }
 
@@ -334,7 +334,7 @@ public class SignalServiceDataMessage {
     private PreKeyBundle         preKeyBundle;
     private DeviceLink           deviceLink;
     private boolean              isUnlinkingRequest;
-    private boolean              isSessionRestorationRequest;
+    private boolean              isSessionRestorationRequestRequest;
     private boolean              isSessionRequest;
 
     private Builder() {}
@@ -442,8 +442,8 @@ public class SignalServiceDataMessage {
       return this;
     }
 
-    public Builder asSessionRestorationRequest(boolean isSessionRestoration) {
-      this.isSessionRestorationRequest = isSessionRestoration;
+    public Builder asSessionRestorationRequest(boolean isSessionRestorationRequest) {
+      this.isSessionRestorationRequestRequest = isSessionRestorationRequest;
       return this;
     }
 
@@ -458,7 +458,7 @@ public class SignalServiceDataMessage {
                                           expiresInSeconds, expirationUpdate, profileKey,
                                           profileKeyUpdate, quote, sharedContacts, previews,
                                           sticker, isFriendRequest, preKeyBundle, deviceLink,
-                                          isUnlinkingRequest, isSessionRestorationRequest, isSessionRequest);
+                                          isUnlinkingRequest, isSessionRestorationRequestRequest, isSessionRequest);
     }
   }
 

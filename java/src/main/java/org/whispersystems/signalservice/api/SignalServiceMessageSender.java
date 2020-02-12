@@ -579,7 +579,7 @@ public class SignalServiceMessageSender {
         builder.setFlags(DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE);
       }
 
-      if (message.isSessionRestoration()) {
+      if (message.isSessionRestorationRequest()) {
           builder.setFlags(DataMessage.Flags.SESSION_RESTORE_VALUE);
       }
 
