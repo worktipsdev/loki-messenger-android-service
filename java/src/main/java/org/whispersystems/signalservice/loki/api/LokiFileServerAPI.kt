@@ -18,10 +18,10 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
         // region Settings
         private val lastDeviceLinkUpdate = ConcurrentHashMap<String, Long>()
         private val deviceLinkRequestCache = ConcurrentHashMap<String, Promise<Set<DeviceLink>, Exception>>()
-        private val deviceLinkUpdateInterval = 8 * 1000
+        private val deviceLinkUpdateInterval = 20 * 1000
         private val deviceLinkType = "network.loki.messenger.devicemapping"
         internal val maxRetryCount = 8
-        public val maxFileSize = 10_000_000
+        public val maxFileSize = 10_000_000 // 10 MB
         // endregion
 
         // region Initialization
@@ -145,7 +145,6 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
                 excludedUpdatees.forEach {
                     lastDeviceLinkUpdate[it] = now
                 }
-
                 deviceLinks.union(cachedDeviceLinks)
             }.recover {
                 hexEncodedPublicKeys.flatMap { database.getDeviceLinks(it) }.toSet()
@@ -153,14 +152,36 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
         }
     }
 
-    fun updateUserDeviceLinks(): Promise<Unit, Exception> {
-        return getDeviceLinks(userHexEncodedPublicKey).bind(workContext) { deviceLinks ->
-            val isMaster = deviceLinks.find { it.masterHexEncodedPublicKey == userHexEncodedPublicKey } != null
-            retryIfNeeded(maxRetryCount) {
-                val deviceLinksAsJSON = deviceLinks.map { it.toJSON() }
-                val value = if (deviceLinks.count() > 0) mapOf( "isPrimary" to isMaster, "authorisations" to deviceLinksAsJSON ) else null
-                setSelfAnnotation(server, deviceLinkType, value)
-            }
+    fun setDeviceLinks(deviceLinks: Set<DeviceLink>): Promise<Unit, Exception> {
+        val isMaster = deviceLinks.find { it.masterHexEncodedPublicKey == userHexEncodedPublicKey } != null
+        val deviceLinksAsJSON = deviceLinks.map { it.toJSON() }
+        val value = mapOf( "isPrimary" to isMaster, "authorisations" to deviceLinksAsJSON )
+        val annotation = mapOf( "type" to deviceLinkType, "value" to value )
+        val parameters = mapOf( "annotations" to listOf( annotation ) )
+        return retryIfNeeded(maxRetryCount) {
+            execute(HTTPVerb.PATCH, server, "/users/me", parameters = parameters)
+        }.map { Unit }
+    }
+
+    fun addDeviceLink(deviceLink: DeviceLink): Promise<Unit, Exception> {
+        Log.d("Loki", "Updating device links.")
+        return getDeviceLinks(userHexEncodedPublicKey, true).bind(workContext) { deviceLinks ->
+            val mutableDeviceLinks = deviceLinks.toMutableSet()
+            mutableDeviceLinks.add(deviceLink)
+            setDeviceLinks(mutableDeviceLinks)
+        }.success {
+            database.addDeviceLink(deviceLink)
+        }.map { Unit }
+    }
+
+    fun removeDeviceLink(deviceLink: DeviceLink): Promise<Unit, Exception> {
+        Log.d("Loki", "Updating device links.")
+        return getDeviceLinks(userHexEncodedPublicKey, true).bind(workContext) { deviceLinks ->
+            val mutableDeviceLinks = deviceLinks.toMutableSet()
+            mutableDeviceLinks.remove(deviceLink)
+            setDeviceLinks(mutableDeviceLinks)
+        }.success {
+            database.removeDeviceLink(deviceLink)
         }.map { Unit }
     }
     // endregion
