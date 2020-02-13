@@ -79,7 +79,7 @@ internal open class LokiHTTPClient(private val timeout: Long) {
             body.writeTo(buffer)
             return buffer.readByteArray()
         } catch (e: IOException) {
-            throw Error("Failed to build request body")
+            return null
         }
     }
 
