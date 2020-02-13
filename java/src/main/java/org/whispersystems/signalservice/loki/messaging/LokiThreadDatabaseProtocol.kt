@@ -1,9 +1,8 @@
 package org.whispersystems.signalservice.loki.messaging
 
-import org.whispersystems.libsignal.loki.LokiSessionResetProtocol
 import org.whispersystems.signalservice.loki.api.LokiPublicChat
 
-interface LokiThreadDatabaseProtocol: LokiSessionResetProtocol {
+interface LokiThreadDatabaseProtocol {
 
     fun getThreadID(hexEncodedPublicKey: String): Long
     fun setFriendRequestStatus(threadID: Long, friendRequestStatus: LokiThreadFriendRequestStatus)

@@ -8,14 +8,18 @@ import org.whispersystems.libsignal.protocol.SignalMessage
 import org.whispersystems.libsignal.state.SessionState
 import org.whispersystems.libsignal.state.SignalProtocolStore
 
+/**
+ * A wrapper class for `SessionCipher`.
+ * This applies session reset logic on decryption.
+ */
 class LokiSessionCipher(private val protocolStore: SignalProtocolStore, private var sessionResetProtocol: LokiSessionResetProtocol, val address: SignalProtocolAddress): SessionCipher(protocolStore, address) {
 
     override fun decrypt(ciphertext: PreKeySignalMessage?, callback: DecryptionCallback?): ByteArray {
         // Record the current session state as it may change during decryption
         val activeSession = getCurrentSessionState()
         val plainText = super.decrypt(ciphertext, callback)
-        if (activeSession == null) {
-            // TODO: Validate message
+        if (activeSession == null && ciphertext != null) {
+            sessionResetProtocol.validatePreKeySignalMessage(address.name, ciphertext)
         }
         handleSessionResetRequestIfNeeded(activeSession)
         return plainText
@@ -31,8 +35,7 @@ class LokiSessionCipher(private val protocolStore: SignalProtocolStore, private 
 
     private fun getCurrentSessionState(): SessionState? {
         val sessionRecord = protocolStore.loadSession(address)
-        val session = sessionRecord.sessionState
-        return if (session.hasSenderChain()) session else null
+        return sessionRecord.sessionState
     }
 
     private fun handleSessionResetRequestIfNeeded(oldSession: SessionState?) {
@@ -51,11 +54,13 @@ class LokiSessionCipher(private val protocolStore: SignalProtocolStore, private 
                 // Our session reset was successful; we initiated one and got a new session back from the other user.
                 deleteAllSessionsExcept(currentSession)
                 sessionResetProtocol.setSessionResetStatus(hexEncodedPublicKey, LokiSessionResetStatus.NONE)
+                sessionResetProtocol.onNewSessionAdopted(hexEncodedPublicKey, currentSessionResetStatus)
             }
         } else if (currentSessionResetStatus == LokiSessionResetStatus.REQUEST_RECEIVED) {
             // Our session reset was successful; we received a message with the same session from the other user.
             deleteAllSessionsExcept(oldSession)
             sessionResetProtocol.setSessionResetStatus(hexEncodedPublicKey, LokiSessionResetStatus.NONE)
+            sessionResetProtocol.onNewSessionAdopted(hexEncodedPublicKey, currentSessionResetStatus)
         }
     }
 

@@ -9,11 +9,15 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.jetbrains.annotations.Nullable;
+import org.signal.libsignal.metadata.SealedSessionCipher;
 import org.whispersystems.libsignal.InvalidKeyException;
 import org.whispersystems.libsignal.SessionBuilder;
 import org.whispersystems.libsignal.SessionCipher;
 import org.whispersystems.libsignal.SignalProtocolAddress;
 import org.whispersystems.libsignal.logging.Log;
+import org.whispersystems.libsignal.loki.FallbackSessionCipher;
+import org.whispersystems.libsignal.loki.LokiFriendRequestMessage;
+import org.whispersystems.libsignal.loki.LokiSessionResetProtocol;
 import org.whispersystems.libsignal.loki.LokiSessionResetStatus;
 import org.whispersystems.libsignal.state.PreKeyBundle;
 import org.whispersystems.libsignal.state.SignalProtocolStore;
@@ -54,6 +58,7 @@ import org.whispersystems.signalservice.internal.push.OutgoingPushMessage;
 import org.whispersystems.signalservice.internal.push.OutgoingPushMessageList;
 import org.whispersystems.signalservice.internal.push.PushAttachmentData;
 import org.whispersystems.signalservice.internal.push.PushServiceSocket;
+import org.whispersystems.signalservice.internal.push.PushTransportDetails;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.AttachmentPointer;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.CallMessage;
@@ -82,10 +87,8 @@ import org.whispersystems.signalservice.loki.api.LokiFileServerAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChat;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatMessage;
-import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleDatabaseProtocol;
-import org.whispersystems.signalservice.loki.messaging.LokiSessionDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiSyncMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol;
@@ -135,7 +138,7 @@ public class SignalServiceMessageSender {
   private final LokiThreadDatabaseProtocol                          threadDatabase;
   private final LokiMessageDatabaseProtocol                         messageDatabase;
   private final LokiPreKeyBundleDatabaseProtocol                    preKeyBundleDatabase;
-  private final LokiSessionDatabaseProtocol                         sessionDatabase;
+  private final LokiSessionResetProtocol                            sessionResetProtocol;
   private final LokiUserDatabaseProtocol                            userDatabase;
   private final Broadcaster                                         broadcaster;
 
@@ -162,11 +165,11 @@ public class SignalServiceMessageSender {
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
-                                    LokiSessionDatabaseProtocol sessionDatabase,
+                                    LokiSessionResetProtocol sessionResetProtocol,
                                     LokiUserDatabaseProtocol userDatabase,
                                     Broadcaster broadcaster)
   {
-    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userHexEncodedPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase, sessionDatabase, userDatabase, broadcaster);
+    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userHexEncodedPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase, sessionResetProtocol, userDatabase, broadcaster);
   }
 
   public SignalServiceMessageSender(SignalServiceConfiguration urls,
@@ -182,7 +185,7 @@ public class SignalServiceMessageSender {
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
-                                    LokiSessionDatabaseProtocol sessionDatabase,
+                                    LokiSessionResetProtocol sessionResetProtocol,
                                     LokiUserDatabaseProtocol userDatabase,
                                     Broadcaster broadcaster)
   {
@@ -198,7 +201,7 @@ public class SignalServiceMessageSender {
     this.threadDatabase          = threadDatabase;
     this.messageDatabase         = messageDatabase;
     this.preKeyBundleDatabase    = preKeyBundleDatabase;
-    this.sessionDatabase         = sessionDatabase;
+    this.sessionResetProtocol    = sessionResetProtocol;
     this.userDatabase            = userDatabase;
     this.broadcaster             = broadcaster;
   }
@@ -309,12 +312,11 @@ public class SignalServiceMessageSender {
     // Loki - Start session reset if needed
     if (message.isEndSession()) {
       String number = recipient.getNumber();
-      sessionDatabase.archiveAllSessions(number);
 
-      LokiSessionResetStatus sessionResetStatus = threadDatabase.getSessionResetStatus(number);
+      LokiSessionResetStatus sessionResetStatus = sessionResetProtocol.getSessionResetStatus(number);
       if (sessionResetStatus != LokiSessionResetStatus.REQUEST_RECEIVED) {
         Log.d("Loki", "Starting session reset...");
-        threadDatabase.setSessionResetStatus(number, LokiSessionResetStatus.IN_PROGRESS);
+          sessionResetProtocol.setSessionResetStatus(number, LokiSessionResetStatus.IN_PROGRESS);
       }
       
       if (eventListener.isPresent()) {
@@ -1373,7 +1375,7 @@ public class SignalServiceMessageSender {
       throws IOException, InvalidKeyException, UntrustedIdentityException
   {
     SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceId);
-    SignalServiceCipher cipher = new SignalServiceCipher(localAddress, store, null);
+    SignalServiceCipher cipher = new SignalServiceCipher(localAddress, store, sessionResetProtocol,null);
 
     // Loki - Use custom pre key bundle handling
     if (!store.containsSession(signalProtocolAddress)) {
@@ -1410,10 +1412,23 @@ public class SignalServiceMessageSender {
     }
   }
 
-  private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceID, byte[] plaintext, Optional<UnidentifiedAccess> unidentifiedAccess) {
-        SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceID);
-      LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store, null, null, null);
-      return cipher.encryptFriendRequest(signalProtocolAddress, unidentifiedAccess, plaintext);
+  private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceID, byte[] plaintext, Optional<UnidentifiedAccess> unidentifiedAccess)
+    throws InvalidKeyException
+  {
+      SignalProtocolAddress destination = new SignalProtocolAddress(recipient.getNumber(), deviceID);
+      byte[] userPrivateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
+      FallbackSessionCipher cipher = new FallbackSessionCipher(userPrivateKey, recipient.getNumber());
+      PushTransportDetails transportDetails = new PushTransportDetails(FallbackSessionCipher.getSessionVersion());
+      byte[] bytes = cipher.encrypt(transportDetails.getPaddedMessageBody(plaintext));
+      if (bytes == null) { bytes = new byte[0]; }
+      if (unidentifiedAccess.isPresent()) {
+          SealedSessionCipher sealedSessionCipher = new SealedSessionCipher(store, null, destination);
+          LokiFriendRequestMessage message = new LokiFriendRequestMessage(bytes);
+          byte[] ciphertext = sealedSessionCipher.encrypt(destination, unidentifiedAccess.get().getUnidentifiedCertificate(), message);
+          return new OutgoingPushMessage(SignalServiceProtos.Envelope.Type.UNIDENTIFIED_SENDER_VALUE, deviceID, 0, Base64.encodeBytes(ciphertext));
+      }
+
+      return new OutgoingPushMessage(SignalServiceProtos.Envelope.Type.FRIEND_REQUEST_VALUE, deviceID, 0, Base64.encodeBytes(bytes));
   }
 
   private void handleMismatchedDevices(PushServiceSocket socket, SignalServiceAddress recipient,
