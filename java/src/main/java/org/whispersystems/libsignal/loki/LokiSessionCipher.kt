@@ -1,0 +1,75 @@
+package org.whispersystems.libsignal.loki
+
+import org.whispersystems.libsignal.DecryptionCallback
+import org.whispersystems.libsignal.SessionCipher
+import org.whispersystems.libsignal.SignalProtocolAddress
+import org.whispersystems.libsignal.protocol.PreKeySignalMessage
+import org.whispersystems.libsignal.protocol.SignalMessage
+import org.whispersystems.libsignal.state.SessionState
+import org.whispersystems.libsignal.state.SignalProtocolStore
+
+class LokiSessionCipher(private val protocolStore: SignalProtocolStore, private var sessionResetProtocol: LokiSessionResetProtocol, val address: SignalProtocolAddress): SessionCipher(protocolStore, address) {
+
+    override fun decrypt(ciphertext: PreKeySignalMessage?, callback: DecryptionCallback?): ByteArray {
+        // Record the current session state as it may change during decryption
+        val activeSession = getCurrentSessionState()
+        val plainText = super.decrypt(ciphertext, callback)
+        if (activeSession == null) {
+            // TODO: Validate message
+        }
+        handleSessionResetRequestIfNeeded(activeSession)
+        return plainText
+    }
+
+    override fun decrypt(ciphertext: SignalMessage?, callback: DecryptionCallback?): ByteArray {
+        // Record the current session state as it may change during decryption
+        val activeSession = getCurrentSessionState()
+        val plainText = super.decrypt(ciphertext, callback)
+        handleSessionResetRequestIfNeeded(activeSession)
+        return plainText
+    }
+
+    private fun getCurrentSessionState(): SessionState? {
+        val sessionRecord = protocolStore.loadSession(address)
+        val session = sessionRecord.sessionState
+        return if (session.hasSenderChain()) session else null
+    }
+
+    private fun handleSessionResetRequestIfNeeded(oldSession: SessionState?) {
+        if (oldSession == null) { return }
+
+        val hexEncodedPublicKey = address.name
+        val currentSessionResetStatus = sessionResetProtocol.getSessionResetStatus(hexEncodedPublicKey)
+        if (currentSessionResetStatus == LokiSessionResetStatus.NONE) return
+
+        val currentSession = getCurrentSessionState()
+        if (currentSession == null || currentSession.aliceBaseKey?.contentEquals(oldSession.aliceBaseKey) != true) {
+            if (currentSessionResetStatus == LokiSessionResetStatus.REQUEST_RECEIVED) {
+                // The other user used an old session to contact us; wait for them to switch to a new one.
+                restoreSession(oldSession)
+            } else {
+                // Our session reset was successful; we initiated one and got a new session back from the other user.
+                deleteAllSessionsExcept(currentSession)
+                sessionResetProtocol.setSessionResetStatus(hexEncodedPublicKey, LokiSessionResetStatus.NONE)
+            }
+        } else if (currentSessionResetStatus == LokiSessionResetStatus.REQUEST_RECEIVED) {
+            // Our session reset was successful; we received a message with the same session from the other user.
+            deleteAllSessionsExcept(oldSession)
+            sessionResetProtocol.setSessionResetStatus(hexEncodedPublicKey, LokiSessionResetStatus.NONE)
+        }
+    }
+
+    private fun restoreSession(state: SessionState) {
+        val session = protocolStore.loadSession(address)
+        session.previousSessionStates.removeAll { it.aliceBaseKey?.contentEquals(state.aliceBaseKey) ?: false }
+        session.promoteState(state)
+        protocolStore.storeSession(address, session)
+    }
+
+    private fun deleteAllSessionsExcept(state: SessionState?) {
+        val sessionRecord = protocolStore.loadSession(address)
+        sessionRecord.removePreviousSessionStates()
+        sessionRecord.setState(state ?: SessionState())
+        protocolStore.storeSession(address, sessionRecord)
+    }
+}

@@ -14,6 +14,7 @@ import org.whispersystems.libsignal.SessionBuilder;
 import org.whispersystems.libsignal.SessionCipher;
 import org.whispersystems.libsignal.SignalProtocolAddress;
 import org.whispersystems.libsignal.logging.Log;
+import org.whispersystems.libsignal.loki.LokiSessionResetStatus;
 import org.whispersystems.libsignal.state.PreKeyBundle;
 import org.whispersystems.libsignal.state.SignalProtocolStore;
 import org.whispersystems.libsignal.util.guava.Optional;
@@ -73,21 +74,20 @@ import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture;
+import org.whispersystems.signalservice.loki.api.DeviceLink;
 import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
 import org.whispersystems.signalservice.loki.api.LokiDotNetAPI;
+import org.whispersystems.signalservice.loki.api.LokiFileServerAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChat;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatAPI;
 import org.whispersystems.signalservice.loki.api.LokiPublicChatMessage;
-import org.whispersystems.signalservice.loki.api.LokiFileServerAPI;
-import org.whispersystems.signalservice.loki.api.DeviceLink;
 import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiSessionDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.LokiSyncMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtocol;
-import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
 import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory;
@@ -308,14 +308,13 @@ public class SignalServiceMessageSender {
 
     // Loki - Start session reset if needed
     if (message.isEndSession()) {
-      sessionDatabase.archiveAllSessions(recipient.getNumber());
+      String number = recipient.getNumber();
+      sessionDatabase.archiveAllSessions(number);
 
-      long threadID = threadDatabase.getThreadID(recipient.getNumber());
-      LokiThreadSessionResetStatus sessionResetStatus = threadDatabase.getSessionResetStatus(threadID);
-
-      if (sessionResetStatus != LokiThreadSessionResetStatus.REQUEST_RECEIVED) {
+      LokiSessionResetStatus sessionResetStatus = threadDatabase.getSessionResetStatus(number);
+      if (sessionResetStatus != LokiSessionResetStatus.REQUEST_RECEIVED) {
         Log.d("Loki", "Starting session reset...");
-        threadDatabase.setSessionResetStatus(threadID, LokiThreadSessionResetStatus.IN_PROGRESS);
+        threadDatabase.setSessionResetStatus(number, LokiSessionResetStatus.IN_PROGRESS);
       }
       
       if (eventListener.isPresent()) {
