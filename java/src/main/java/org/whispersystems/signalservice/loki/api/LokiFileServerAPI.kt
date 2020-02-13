@@ -155,7 +155,7 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
     fun setDeviceLinks(deviceLinks: Set<DeviceLink>): Promise<Unit, Exception> {
         val isMaster = deviceLinks.find { it.masterHexEncodedPublicKey == userHexEncodedPublicKey } != null
         val deviceLinksAsJSON = deviceLinks.map { it.toJSON() }
-        val value = mapOf( "isPrimary" to isMaster, "authorisations" to deviceLinksAsJSON )
+        val value = if (deviceLinks.isNotEmpty()) mapOf( "isPrimary" to isMaster, "authorisations" to deviceLinksAsJSON ) else null
         val annotation = mapOf( "type" to deviceLinkType, "value" to value )
         val parameters = mapOf( "annotations" to listOf( annotation ) )
         return retryIfNeeded(maxRetryCount) {
