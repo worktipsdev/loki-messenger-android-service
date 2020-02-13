@@ -18,7 +18,7 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
         // region Settings
         private val lastDeviceLinkUpdate = ConcurrentHashMap<String, Long>()
         private val deviceLinkRequestCache = ConcurrentHashMap<String, Promise<Set<DeviceLink>, Exception>>()
-        private val deviceLinkUpdateInterval = 60 * 1000
+        private val deviceLinkUpdateInterval = 8 * 1000
         private val deviceLinkType = "network.loki.messenger.devicemapping"
         internal val maxRetryCount = 8
         public val maxFileSize = 10_000_000
