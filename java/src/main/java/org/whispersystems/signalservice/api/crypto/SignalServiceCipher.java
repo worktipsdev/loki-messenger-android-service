@@ -33,6 +33,8 @@ import org.whispersystems.libsignal.NoSessionException;
 import org.whispersystems.libsignal.SessionCipher;
 import org.whispersystems.libsignal.SignalProtocolAddress;
 import org.whispersystems.libsignal.UntrustedIdentityException;
+import org.whispersystems.libsignal.loki.LokiSessionCipher;
+import org.whispersystems.libsignal.loki.LokiSessionResetProtocol;
 import org.whispersystems.libsignal.protocol.CiphertextMessage;
 import org.whispersystems.libsignal.protocol.PreKeySignalMessage;
 import org.whispersystems.libsignal.protocol.SignalMessage;
@@ -103,14 +105,17 @@ public class SignalServiceCipher {
   private static final String TAG = SignalServiceCipher.class.getSimpleName();
 
   private final SignalProtocolStore  signalProtocolStore;
+  private final LokiSessionResetProtocol lokiSessionResetProtocol;
   private final SignalServiceAddress localAddress;
   private final CertificateValidator certificateValidator;
 
   public SignalServiceCipher(SignalServiceAddress localAddress,
                              SignalProtocolStore signalProtocolStore,
+                             LokiSessionResetProtocol lokiSessionResetProtocol,
                              CertificateValidator certificateValidator)
   {
     this.signalProtocolStore  = signalProtocolStore;
+    this.lokiSessionResetProtocol = lokiSessionResetProtocol;
     this.localAddress         = localAddress;
     this.certificateValidator = certificateValidator;
   }
@@ -121,7 +126,7 @@ public class SignalServiceCipher {
       throws UntrustedIdentityException, InvalidKeyException
   {
     if (unidentifiedAccess.isPresent()) {
-      SealedSessionCipher  sessionCipher        = new SealedSessionCipher(signalProtocolStore, new SignalProtocolAddress(localAddress.getNumber(), 1));
+      SealedSessionCipher  sessionCipher        = new SealedSessionCipher(signalProtocolStore, lokiSessionResetProtocol, new SignalProtocolAddress(localAddress.getNumber(), 1));
       PushTransportDetails transportDetails     = new PushTransportDetails(sessionCipher.getSessionVersion(destination));
       byte[]               ciphertext           = sessionCipher.encrypt(destination, unidentifiedAccess.get().getUnidentifiedCertificate(), transportDetails.getPaddedMessageBody(unpaddedMessage));
       String               body                 = Base64.encodeBytes(ciphertext);
@@ -293,8 +298,8 @@ public class SignalServiceCipher {
   {
     try {
       SignalProtocolAddress sourceAddress       = new SignalProtocolAddress(envelope.getSource(), envelope.getSourceDevice());
-      SessionCipher         sessionCipher       = new SessionCipher(signalProtocolStore, sourceAddress);
-      SealedSessionCipher   sealedSessionCipher = new SealedSessionCipher(signalProtocolStore, new SignalProtocolAddress(localAddress.getNumber(), 1));
+      SessionCipher         sessionCipher       = new LokiSessionCipher(signalProtocolStore, lokiSessionResetProtocol, sourceAddress);
+      SealedSessionCipher   sealedSessionCipher = new SealedSessionCipher(signalProtocolStore, lokiSessionResetProtocol, new SignalProtocolAddress(localAddress.getNumber(), 1));
 
       byte[] paddedMessage;
       Metadata metadata;
