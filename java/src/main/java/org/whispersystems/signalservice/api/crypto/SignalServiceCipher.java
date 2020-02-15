@@ -195,11 +195,11 @@ public class SignalServiceCipher {
 
         LokiServiceMessage lokiServiceMessage = new LokiServiceMessage(lokiPreKeyBundleMessage, lokiAddressMessage);
         if (message.hasPairingAuthorisation()) {
-          SignalServiceProtos.PairingAuthorisationMessage pairingAuthorisationMessage = message.getPairingAuthorisation();
-          String masterHexEncodedPublicKey = pairingAuthorisationMessage.getPrimaryDevicePublicKey();
-          String slaveHexEncodedPublicKey = pairingAuthorisationMessage.getSecondaryDevicePublicKey();
-          byte[] requestSignature = pairingAuthorisationMessage.hasRequestSignature() ? pairingAuthorisationMessage.getRequestSignature().toByteArray() : null;
-          byte[] authorizationSignature = pairingAuthorisationMessage.hasGrantSignature() ? pairingAuthorisationMessage.getGrantSignature().toByteArray() : null;
+          SignalServiceProtos.PairingAuthorisationMessage deviceLinkMessage = message.getPairingAuthorisation();
+          String masterHexEncodedPublicKey = deviceLinkMessage.getPrimaryDevicePublicKey();
+          String slaveHexEncodedPublicKey = deviceLinkMessage.getSecondaryDevicePublicKey();
+          byte[] requestSignature = deviceLinkMessage.hasRequestSignature() ? deviceLinkMessage.getRequestSignature().toByteArray() : null;
+          byte[] authorizationSignature = deviceLinkMessage.hasGrantSignature() ? deviceLinkMessage.getGrantSignature().toByteArray() : null;
           DeviceLink deviceLink = new DeviceLink(masterHexEncodedPublicKey, slaveHexEncodedPublicKey, requestSignature, authorizationSignature);
           SignalServiceCipher.Metadata metadata = plaintext.getMetadata();
           SignalServiceContent content = new SignalServiceContent(deviceLink, metadata.getSender(), metadata.getSenderDevice(), metadata.getTimestamp(), false, metadata.isFriendRequest());
@@ -236,7 +236,7 @@ public class SignalServiceCipher {
                   plaintext.getMetadata().isNeedsReceipt(),
                   plaintext.getMetadata().isFriendRequest());
 
-          // Loki - Profile
+          // Loki - Update profile if needed
           if (message.getSyncMessage().hasSent() && message.getSyncMessage().getSent().hasMessage()) {
             DataMessage dataMessage = message.getSyncMessage().getSent().getMessage();
             setProfile(dataMessage, content);
