@@ -17,10 +17,10 @@ class LokiSessionCipher(private val protocolStore: SignalProtocolStore, private 
     override fun decrypt(ciphertext: PreKeySignalMessage?, callback: DecryptionCallback?): ByteArray {
         // Record the current session state as it may change during decryption
         val activeSession = getCurrentSessionState()
-        val plainText = super.decrypt(ciphertext, callback)
         if (activeSession == null && ciphertext != null) {
             sessionResetProtocol.validatePreKeySignalMessage(address.name, ciphertext)
         }
+        val plainText = super.decrypt(ciphertext, callback)
         handleSessionResetRequestIfNeeded(activeSession)
         return plainText
     }
