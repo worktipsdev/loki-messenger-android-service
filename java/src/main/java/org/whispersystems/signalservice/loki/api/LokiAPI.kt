@@ -28,12 +28,12 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
         var userHexEncodedPublicKeyCache = mutableMapOf<Long, Set<String>>() // Thread ID to set of user hex encoded public keys
 
         // region Settings
-        private val version = "v1"
+        private val apiVersion = "v1"
         private val maxRetryCount = 8
         private val defaultTimeout: Long = 20
         private val longPollingTimeout: Long = 40
         internal val defaultMessageTTL = 24 * 60 * 60 * 1000
-        internal var powDifficulty = 40
+        internal var powDifficulty = 4
         // endregion
 
         // region User ID Caching
@@ -102,7 +102,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
      */
     internal fun invoke(method: LokiAPITarget.Method, target: LokiAPITarget, hexEncodedPublicKey: String,
         parameters: Map<String, String>, headers: Headers? = null, timeout: Long? = null): RawResponsePromise {
-        val url = "${target.address}:${target.port}/storage_rpc/$version"
+        val url = "${target.address}:${target.port}/storage_rpc/$apiVersion"
         val body = RequestBody.create(MediaType.get("application/json"), "{ \"method\" : \"${method.rawValue}\", \"params\" : ${JsonUtil.toJson(parameters)} }")
         val request = Request.Builder().url(url).post(body)
         if (headers != null) { request.headers(headers) }
