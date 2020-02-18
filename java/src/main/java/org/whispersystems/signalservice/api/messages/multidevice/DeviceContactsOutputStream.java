@@ -84,9 +84,4 @@ public class DeviceContactsOutputStream extends ChunkedOutputStream {
     out.write(toByteArray(serializedContactDetails.length));
     out.write(serializedContactDetails);
   }
-
-  private byte[] toByteArray(int value) {
-    return new byte[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value };
-  }
-
 }
