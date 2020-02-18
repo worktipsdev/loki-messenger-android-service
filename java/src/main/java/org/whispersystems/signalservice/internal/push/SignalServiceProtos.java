@@ -40481,22 +40481,22 @@ public final class SignalServiceProtos {
      */
     boolean getBlocked();
 
-    // repeated string admins = 100;
+    // repeated string admins = 9;
     /**
-     * <code>repeated string admins = 100;</code>
+     * <code>repeated string admins = 9;</code>
      */
     java.util.List<java.lang.String>
     getAdminsList();
     /**
-     * <code>repeated string admins = 100;</code>
+     * <code>repeated string admins = 9;</code>
      */
     int getAdminsCount();
     /**
-     * <code>repeated string admins = 100;</code>
+     * <code>repeated string admins = 9;</code>
      */
     java.lang.String getAdmins(int index);
     /**
-     * <code>repeated string admins = 100;</code>
+     * <code>repeated string admins = 9;</code>
      */
     com.google.protobuf.ByteString
         getAdminsBytes(int index);
@@ -40603,7 +40603,7 @@ public final class SignalServiceProtos {
               blocked_ = input.readBool();
               break;
             }
-            case 802: {
+            case 74: {
               if (!((mutable_bitField0_ & 0x00000100) == 0x00000100)) {
                 admins_ = new com.google.protobuf.LazyStringArrayList();
                 mutable_bitField0_ |= 0x00000100;
@@ -41411,30 +41411,30 @@ public final class SignalServiceProtos {
       return blocked_;
     }
 
-    // repeated string admins = 100;
-    public static final int ADMINS_FIELD_NUMBER = 100;
+    // repeated string admins = 9;
+    public static final int ADMINS_FIELD_NUMBER = 9;
     private com.google.protobuf.LazyStringList admins_;
     /**
-     * <code>repeated string admins = 100;</code>
+     * <code>repeated string admins = 9;</code>
      */
     public java.util.List<java.lang.String>
         getAdminsList() {
       return admins_;
     }
     /**
-     * <code>repeated string admins = 100;</code>
+     * <code>repeated string admins = 9;</code>
      */
     public int getAdminsCount() {
       return admins_.size();
     }
     /**
-     * <code>repeated string admins = 100;</code>
+     * <code>repeated string admins = 9;</code>
      */
     public java.lang.String getAdmins(int index) {
       return admins_.get(index);
     }
     /**
-     * <code>repeated string admins = 100;</code>
+     * <code>repeated string admins = 9;</code>
      */
     public com.google.protobuf.ByteString
         getAdminsBytes(int index) {
@@ -41489,7 +41489,7 @@ public final class SignalServiceProtos {
         output.writeBool(8, blocked_);
       }
       for (int i = 0; i < admins_.size(); i++) {
-        output.writeBytes(100, admins_.getByteString(i));
+        output.writeBytes(9, admins_.getByteString(i));
       }
       getUnknownFields().writeTo(output);
     }
@@ -41544,7 +41544,7 @@ public final class SignalServiceProtos {
             .computeBytesSizeNoTag(admins_.getByteString(i));
         }
         size += dataSize;
-        size += 2 * getAdminsList().size();
+        size += 1 * getAdminsList().size();
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -42338,7 +42338,7 @@ public final class SignalServiceProtos {
         return this;
       }
 
-      // repeated string admins = 100;
+      // repeated string admins = 9;
       private com.google.protobuf.LazyStringList admins_ = com.google.protobuf.LazyStringArrayList.EMPTY;
       private void ensureAdminsIsMutable() {
         if (!((bitField0_ & 0x00000100) == 0x00000100)) {
@@ -42347,33 +42347,33 @@ public final class SignalServiceProtos {
          }
       }
       /**
-       * <code>repeated string admins = 100;</code>
+       * <code>repeated string admins = 9;</code>
        */
       public java.util.List<java.lang.String>
           getAdminsList() {
         return java.util.Collections.unmodifiableList(admins_);
       }
       /**
-       * <code>repeated string admins = 100;</code>
+       * <code>repeated string admins = 9;</code>
        */
       public int getAdminsCount() {
         return admins_.size();
       }
       /**
-       * <code>repeated string admins = 100;</code>
+       * <code>repeated string admins = 9;</code>
        */
       public java.lang.String getAdmins(int index) {
         return admins_.get(index);
       }
       /**
-       * <code>repeated string admins = 100;</code>
+       * <code>repeated string admins = 9;</code>
        */
       public com.google.protobuf.ByteString
           getAdminsBytes(int index) {
         return admins_.getByteString(index);
       }
       /**
-       * <code>repeated string admins = 100;</code>
+       * <code>repeated string admins = 9;</code>
        */
       public Builder setAdmins(
           int index, java.lang.String value) {
@@ -42386,7 +42386,7 @@ public final class SignalServiceProtos {
         return this;
       }
       /**
-       * <code>repeated string admins = 100;</code>
+       * <code>repeated string admins = 9;</code>
        */
       public Builder addAdmins(
           java.lang.String value) {
@@ -42399,7 +42399,7 @@ public final class SignalServiceProtos {
         return this;
       }
       /**
-       * <code>repeated string admins = 100;</code>
+       * <code>repeated string admins = 9;</code>
        */
       public Builder addAllAdmins(
           java.lang.Iterable<java.lang.String> values) {
@@ -42409,7 +42409,7 @@ public final class SignalServiceProtos {
         return this;
       }
       /**
-       * <code>repeated string admins = 100;</code>
+       * <code>repeated string admins = 9;</code>
        */
       public Builder clearAdmins() {
         admins_ = com.google.protobuf.LazyStringArrayList.EMPTY;
@@ -42418,7 +42418,7 @@ public final class SignalServiceProtos {
         return this;
       }
       /**
-       * <code>repeated string admins = 100;</code>
+       * <code>repeated string admins = 9;</code>
        */
       public Builder addAdminsBytes(
           com.google.protobuf.ByteString value) {
@@ -42840,7 +42840,7 @@ public final class SignalServiceProtos {
       "(\t\022\017\n\007members\030\003 \003(\t\0222\n\006avatar\030\004 \001(\0132\".si" +
       "gnalservice.GroupDetails.Avatar\022\024\n\006activ" +
       "e\030\005 \001(\010:\004true\022\023\n\013expireTimer\030\006 \001(\r\022\r\n\005co" +
-      "lor\030\007 \001(\t\022\017\n\007blocked\030\010 \001(\010\022\016\n\006admins\030d \003" +
+      "lor\030\007 \001(\t\022\017\n\007blocked\030\010 \001(\010\022\016\n\006admins\030\t \003" +
       "(\t\032-\n\006Avatar\022\023\n\013contentType\030\001 \001(\t\022\016\n\006len" +
       "gth\030\002 \001(\rBE\n.org.whispersystems.signalse" +
       "rvice.internal.pushB\023SignalServiceProtos"
