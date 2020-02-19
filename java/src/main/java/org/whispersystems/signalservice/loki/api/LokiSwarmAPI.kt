@@ -159,10 +159,10 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
                 val address = rawSnodeAsJSON?.get("ip") as? String
                 val portAsString = rawSnodeAsJSON?.get("port") as? String
                 val port = portAsString?.toInt()
-                val identificationKey = rawSnodeAsJSON?.get("pubkey_ed25519") as? String
+                val idKey = rawSnodeAsJSON?.get("pubkey_ed25519") as? String
                 val encryptionKey = rawSnodeAsJSON?.get("pubkey_x25519") as? String
-                if (address != null && port != null && identificationKey != null && encryptionKey != null && address != "0.0.0.0") {
-                    LokiAPITarget("https://$address", port, LokiAPITarget.KeySet(identificationKey, encryptionKey))
+                if (address != null && port != null && idKey != null && encryptionKey != null && address != "0.0.0.0") {
+                    LokiAPITarget("https://$address", port, LokiAPITarget.KeySet(idKey, encryptionKey))
                 } else {
                     Log.d("Loki", "Failed to parse target from: ${rawSnode?.prettifiedDescription()}.")
                     null

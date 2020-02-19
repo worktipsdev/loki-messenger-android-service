@@ -1,14 +1,11 @@
 package org.whispersystems.signalservice.loki.api
 
-import nl.komponents.kovenant.Context
-import nl.komponents.kovenant.Kovenant
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.map
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.Buffer
-import org.whispersystems.signalservice.loki.utilities.createContext
 import java.io.IOException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
@@ -23,8 +20,6 @@ internal open class LokiHTTPClient(private val timeout: Long) {
 
     companion object {
         internal val okHTTPCache = hashMapOf<Long, OkHttpClient>()
-        internal var networkContext = Kovenant.createContext("LokiHTTPClientNetworkContext")
-        internal var workContext = Kovenant.createContext("LokiHTTPClientWorkContext")
     }
 
     internal fun getClearnetConnection(): OkHttpClient {
@@ -51,8 +46,8 @@ internal open class LokiHTTPClient(private val timeout: Long) {
         return connection!!
     }
 
-    internal fun execute(request: Request, client: OkHttpClient, context: Context = networkContext): Promise<okhttp3.Response, Exception> {
-        val deferred = deferred<okhttp3.Response, Exception>(context)
+    internal fun execute(request: Request, client: OkHttpClient): Promise<okhttp3.Response, Exception> {
+        val deferred = deferred<okhttp3.Response, Exception>()
         Thread {
             try {
                 val response = client.newCall(request).execute()
@@ -66,7 +61,7 @@ internal open class LokiHTTPClient(private val timeout: Long) {
 
     internal open fun execute(request: Request): Promise<Response, Exception> {
         val connection = getClearnetConnection()
-        return execute(request, connection).map(workContext) {
+        return execute(request, connection).map {
             Response(it.isSuccessful, it.code(), it.body()?.string())
         }
     }

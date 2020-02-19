@@ -1,5 +1,6 @@
 package org.whispersystems.signalservice.loki.api
 
+import nl.komponents.kovenant.Kovenant
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
@@ -15,6 +16,7 @@ import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.JsonUtil
 import org.whispersystems.signalservice.loki.messaging.*
 import org.whispersystems.signalservice.loki.utilities.Broadcaster
+import org.whispersystems.signalservice.loki.utilities.createContext
 import org.whispersystems.signalservice.loki.utilities.prettifiedDescription
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
 import java.net.ConnectException
@@ -25,6 +27,10 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
     private val swarmAPI by lazy { LokiSwarmAPI(database, broadcaster) }
 
     companion object {
+        /**
+         * All performance intensive operations (e.g. encryption and decryption) must be executed on this context.
+         */
+        val sharedWorkContext = Kovenant.createContext("LokiAPISharedWorkContext")
         var userHexEncodedPublicKeyCache = mutableMapOf<Long, Set<String>>() // Thread ID to set of user hex encoded public keys
 
         // region Settings
@@ -182,7 +188,7 @@ class LokiAPI(private val userHexEncodedPublicKey: String, private val database:
     fun getMessages(): MessageListPromise {
         return retryIfNeeded(maxRetryCount) {
             swarmAPI.getSingleTargetSnode(userHexEncodedPublicKey).bind { targetSnode ->
-                getRawMessages(targetSnode, false).map { parseRawMessagesResponse(it, targetSnode) }
+                getRawMessages(targetSnode, false).map(sharedWorkContext) { parseRawMessagesResponse(it, targetSnode) }
             }
         }
     }
