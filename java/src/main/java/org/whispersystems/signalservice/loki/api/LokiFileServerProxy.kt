@@ -1,6 +1,7 @@
 package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
+import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
 import okhttp3.MediaType
@@ -13,7 +14,6 @@ import org.whispersystems.libsignal.loki.DiffieHellman
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
-import org.whispersystems.signalservice.loki.utilities.recover
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
 
 internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
@@ -27,55 +27,62 @@ internal class LokiFileServerProxy(val server: String) : LokiHTTPClient(60) {
 
     override fun execute(request: Request): Promise<Response, Exception> {
         if (server != LokiFileServerAPI.shared.server) { return super.execute(request) }
-        val symmetricKey = curve.calculateAgreement(lokiServerPublicKey, keyPair.privateKey)
+        val keyPair = this.keyPair
         val body = getRequestBody(request)
         val canonicalHeaders = getCanonicalHeaders(request)
-        return LokiSwarmAPI.getRandomSnode().bind(workContext) { proxy ->
-            val url =  "${proxy.address}:${proxy.port}/file_proxy"
-            Log.d("Loki", "Proxying file server request through $proxy.")
-            val endpoint = request.url().toString().removePrefix(server).removePrefix("/")
-            val unencryptedProxyRequestBody = mapOf( "body" to body, "endpoint" to endpoint, "method" to request.method(), "headers" to canonicalHeaders )
-            val ivAndCipherText = DiffieHellman.encrypt(JsonUtil.toJson(unencryptedProxyRequestBody).toByteArray(Charsets.UTF_8), symmetricKey)
-            val proxyRequestBody = mapOf( "cipherText64" to Base64.encodeBytes(ivAndCipherText) )
-            val headers = mapOf( "X-Loki-File-Server-Ephemeral-Key" to getBase64EncodedPublicKey(keyPair.publicKey))
-            val proxyRequest = Request.Builder()
-                .url(url)
-                .post(RequestBody.create(MediaType.get("application/json"), JsonUtil.toJson(proxyRequestBody)))
-                .header("X-Loki-File-Server-Target", "/loki/v1/secure_rpc")
-                .header("X-Loki-File-Server-Verb", "POST")
-                .header("X-Loki-File-Server-Headers", JsonUtil.toJson(headers))
-                .header("Connection", "close")
-                .build()
-            execute(proxyRequest, getClearnetConnection())
-        }.map(workContext) { response ->
-            var statusCode = response.code()
-            var body: String? = response.body()?.string()
-            if (response.isSuccessful && body != null) {
-                try {
-                    val info = unwrap(body)
-                    statusCode = info.first
-                    if (statusCode.isSuccessfulHTTPStatusCode()) {
-                        val base64Data = info.second!!
-                        val ivAndCipherText = Base64.decode(base64Data)
-                        val decryptedBody = DiffieHellman.decrypt(ivAndCipherText, symmetricKey)
-                        body = decryptedBody.toString(Charsets.UTF_8)
-                        // The decrypted request should have an inner status code
-                        try {
-                            val innerInfo = unwrap(body)
-                            statusCode = innerInfo.first
-                        } catch (e: Exception) {
-                            // Do nothing
+        val deferred = deferred<Response, Exception>()
+        Thread {
+            val symmetricKey = curve.calculateAgreement(lokiServerPublicKey, keyPair.privateKey)
+            LokiSwarmAPI.getRandomSnode().bind(LokiAPI.sharedWorkContext) { proxy ->
+                val url = "${proxy.address}:${proxy.port}/file_proxy"
+                Log.d("Loki", "Proxying file server request through $proxy.")
+                val endpoint = request.url().toString().removePrefix(server).removePrefix("/")
+                val unencryptedProxyRequestBody = mapOf("body" to body, "endpoint" to endpoint, "method" to request.method(), "headers" to canonicalHeaders)
+                val ivAndCipherText = DiffieHellman.encrypt(JsonUtil.toJson(unencryptedProxyRequestBody).toByteArray(Charsets.UTF_8), symmetricKey)
+                val proxyRequestBody = mapOf("cipherText64" to Base64.encodeBytes(ivAndCipherText))
+                val headers = mapOf("X-Loki-File-Server-Ephemeral-Key" to getBase64EncodedPublicKey(keyPair.publicKey))
+                val proxyRequest = Request.Builder()
+                    .url(url)
+                    .post(RequestBody.create(MediaType.get("application/json"), JsonUtil.toJson(proxyRequestBody)))
+                    .header("X-Loki-File-Server-Target", "/loki/v1/secure_rpc")
+                    .header("X-Loki-File-Server-Verb", "POST")
+                    .header("X-Loki-File-Server-Headers", JsonUtil.toJson(headers))
+                    .header("Connection", "close")
+                    .build()
+                execute(proxyRequest, getClearnetConnection())
+            }.map(LokiAPI.sharedWorkContext) { response ->
+                var statusCode = response.code()
+                var body: String? = response.body()?.string()
+                if (response.isSuccessful && body != null) {
+                    try {
+                        val info = unwrap(body)
+                        statusCode = info.first
+                        if (statusCode.isSuccessfulHTTPStatusCode()) {
+                            val base64Data = info.second!!
+                            val ivAndCipherText = Base64.decode(base64Data)
+                            val decryptedBody = DiffieHellman.decrypt(ivAndCipherText, symmetricKey)
+                            body = decryptedBody.toString(Charsets.UTF_8)
+                            // The decrypted request should have an inner status code
+                            try {
+                                val innerInfo = unwrap(body)
+                                statusCode = innerInfo.first
+                            } catch (e: Exception) {
+                                // Do nothing
+                            }
                         }
+                    } catch (e: Error) {
+                        statusCode = -1
+                        body = "Failed to parse JSON"
                     }
-                } catch (e: Error) {
-                    statusCode = -1
-                    body = "Failed to parse JSON"
                 }
+                return@map Response(statusCode.isSuccessfulHTTPStatusCode(), statusCode, body)
+            }.success {
+                deferred.resolve(it)
+            }.fail {
+                deferred.reject(it)
             }
-            return@map Response(statusCode.isSuccessfulHTTPStatusCode(), statusCode, body)
-        }.recover { exception ->
-            throw exception
-        }
+        }.start()
+        return deferred.promise
     }
 
     private fun unwrap(body: String): Pair<Int, String?> {

@@ -94,7 +94,7 @@ public data class LokiPublicChatMessage(
             val signatureData = curve.calculateSignature(privateKey, data)
             val signature = Signature(signatureData, signatureVersion)
             return copy(signature = signature)
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             Log.d("Loki", "Failed to sign public chat message due to error: ${e.message}.")
             return null
         }
@@ -106,7 +106,7 @@ public data class LokiPublicChatMessage(
         val publicKey = Hex.fromStringCondensed(hexEncodedPublicKey.removing05PrefixIfNeeded())
         try {
             return curve.verifySignature(publicKey, data, signature.data)
-        } catch(e: Exception) {
+        } catch (e: Exception) {
             Log.d("Loki", "Failed to verify public chat message due to error: ${e.message}.")
             return false
         }
