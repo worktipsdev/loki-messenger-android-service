@@ -131,7 +131,7 @@ class MnemonicCodec(private val languageFileDirectory: File) {
     }
 
     private fun determineChecksumIndex(x: List<String>, prefixLength: Int): Int {
-        val bytes = x.joinToString { it.substring(0 until prefixLength) }.toByteArray()
+        val bytes = x.joinToString("") { it.substring(0 until prefixLength) }.toByteArray()
         val crc32 = CRC32()
         crc32.update(bytes)
         val checksum = crc32.value
