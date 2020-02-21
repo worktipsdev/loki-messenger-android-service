@@ -29,12 +29,12 @@ public class DeviceGroupsOutputStream extends ChunkedOutputStream {
   }
 
   private void writeAvatarImage(DeviceGroup contact) throws IOException {
-     // Loki - Temporarily disable this
-      /*
+    // Loki - Temporarily disable this
+    /*
     if (contact.getAvatar().isPresent()) {
       writeStream(contact.getAvatar().get().getInputStream());
     }
-       */
+     */
   }
 
   private void writeGroupDetails(DeviceGroup group) throws IOException {
