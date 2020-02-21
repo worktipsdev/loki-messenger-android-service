@@ -29,9 +29,12 @@ public class DeviceGroupsOutputStream extends ChunkedOutputStream {
   }
 
   private void writeAvatarImage(DeviceGroup contact) throws IOException {
+    // Loki - Temporarily disable this
+    /*
     if (contact.getAvatar().isPresent()) {
       writeStream(contact.getAvatar().get().getInputStream());
     }
+     */
   }
 
   private void writeGroupDetails(DeviceGroup group) throws IOException {
@@ -58,14 +61,14 @@ public class DeviceGroupsOutputStream extends ChunkedOutputStream {
     }
 
     groupDetails.addAllMembers(group.getMembers());
+    groupDetails.addAllAdmins(group.getAdmins());
     groupDetails.setActive(group.isActive());
     groupDetails.setBlocked(group.isBlocked());
 
     byte[] serializedContactDetails = groupDetails.build().toByteArray();
 
-    writeVarint32(serializedContactDetails.length);
+    // Loki - Since iOS has trouble parsing variable length integers, just write a fixed length one
+    out.write(toByteArray(serializedContactDetails.length));
     out.write(serializedContactDetails);
   }
-
-
 }

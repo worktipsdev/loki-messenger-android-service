@@ -65,7 +65,8 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
     fun getDeviceLinks(hexEncodedPublicKeys: Set<String>, isForcedUpdate: Boolean = false): Promise<Set<DeviceLink>, Exception> {
         val validHexEncodedPublicKeys = hexEncodedPublicKeys.filter { PublicKeyValidation.isValid(it) }
         val now = System.currentTimeMillis()
-        val updatees = validHexEncodedPublicKeys.filter { hasDeviceLinkCacheExpired(now, it) || isForcedUpdate }.toSet()
+        // IMPORTANT: Don't fetch device links for the current user (i.e. don't remove the it != userHexEncodedPublicKey) check below
+        val updatees = validHexEncodedPublicKeys.filter { it != userHexEncodedPublicKey && (hasDeviceLinkCacheExpired(now, it) || isForcedUpdate) }.toSet()
         val cachedDeviceLinks = validHexEncodedPublicKeys.minus(updatees).flatMap { database.getDeviceLinks(it) }.toSet()
         if (updatees.isEmpty()) {
             return Promise.of(cachedDeviceLinks)
