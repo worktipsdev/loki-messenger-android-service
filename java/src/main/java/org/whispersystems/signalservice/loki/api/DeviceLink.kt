@@ -49,7 +49,7 @@ data class DeviceLink(val masterHexEncodedPublicKey: String, val slaveHexEncoded
     fun toJSON(): Map<String, Any> {
         val result = mutableMapOf( "primaryDevicePubKey" to masterHexEncodedPublicKey, "secondaryDevicePubKey" to slaveHexEncodedPublicKey )
         if (requestSignature != null) { result["requestSignature"] = Base64.encodeBytes(requestSignature) }
-        if (authorizationSignature != null) { result["authorizationSignature"] = Base64.encodeBytes(authorizationSignature) }
+        if (authorizationSignature != null) { result["grantSignature"] = Base64.encodeBytes(authorizationSignature) }
         return result
     }
 
