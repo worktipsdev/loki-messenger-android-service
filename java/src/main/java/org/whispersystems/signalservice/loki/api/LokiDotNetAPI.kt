@@ -22,10 +22,8 @@ import org.whispersystems.signalservice.internal.push.http.ProfileCipherOutputSt
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
-import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory
 import org.whispersystems.signalservice.loki.utilities.recover
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
-import java.io.ByteArrayInputStream
 import java.util.*
 
 /**
@@ -36,7 +34,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     internal enum class HTTPVerb { GET, PUT, POST, DELETE, PATCH }
 
     companion object {
-        private val authRequestCache = hashMapOf<String, Promise<String, Exception>>()
+        private val authTokenRequestCache = hashMapOf<String, Promise<String, Exception>>()
     }
 
     public sealed class Error(val description: String) : Exception() {
@@ -50,15 +48,15 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         val token = apiDatabase.getAuthToken(server)
         if (token != null) { return Promise.of(token) }
         // Avoid multiple token requests to the server by caching
-        var promise = authRequestCache[server]
+        var promise = authTokenRequestCache[server]
         if (promise == null) {
             promise = requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { newToken ->
                 apiDatabase.setAuthToken(server, newToken)
                 newToken
             }.always {
-                authRequestCache.remove(server)
+                authTokenRequestCache.remove(server)
             }
-            authRequestCache[server] = promise
+            authTokenRequestCache[server] = promise
         }
         return promise
     }
@@ -171,7 +169,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
             .setType(MultipartBody.FORM)
             .addFormDataPart("type", "network.loki")
             .addFormDataPart("Content-Type", contentType)
-            .addFormDataPart("content", UUID.randomUUID().toString(), file) // avatar
+            .addFormDataPart("content", UUID.randomUUID().toString(), file)
             .build()
         val request = Request.Builder().url("$server/files").post(body)
         return upload(server, request) { jsonAsString ->
@@ -192,51 +190,41 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    fun uploadProfilePicture(server: String, key: ByteArray, profilePicture: StreamDetails): UploadResult {
+    fun uploadProfilePicture(server: String, key: ByteArray, profilePicture: StreamDetails, setLastProfilePictureUpload: () -> Unit): UploadResult {
         val profilePictureUploadData = ProfileAvatarData(profilePicture.stream, ProfileCipherOutputStream.getCiphertextLength(profilePicture.length), profilePicture.contentType, ProfileCipherOutputStreamFactory(key))
-        return uploadProfilePicture(server, profilePictureUploadData)
-    }
-
-    @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    fun uploadPublicProfilePicture(server: String, data: ByteArray): UploadResult {
-        val profilePictureUploadData = ProfileAvatarData(ByteArrayInputStream(data), data.size.toLong(), "image/jpg", BasicOutputStreamFactory())
-        return uploadProfilePicture(server, profilePictureUploadData)
-    }
-
-    @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    private fun uploadProfilePicture(server: String, profilePictureUploadData: ProfileAvatarData): UploadResult {
         val file = DigestingRequestBody(profilePictureUploadData.data, profilePictureUploadData.outputStreamFactory,
             profilePictureUploadData.contentType, profilePictureUploadData.dataLength, null)
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("type", "network.loki")
             .addFormDataPart("Content-Type", "application/octet-stream")
-            .addFormDataPart("avatar", UUID.randomUUID().toString(), file)
+            .addFormDataPart("content", UUID.randomUUID().toString(), file)
             .build()
-        val request = Request.Builder().url("$server/users/me/avatar").post(body)
-        return upload(server, request, true) { jsonAsString ->
+        val request = Request.Builder().url("$server/files").post(body)
+        return upload(server, request) { jsonAsString ->
             val json = JsonUtil.fromJson(jsonAsString)
             val data = json.get("data")
-            if (data == null || !data.hasNonNull("avatar_image")) {
+            if (data == null) {
                 Log.d("Loki", "Couldn't parse profile picture from: $jsonAsString.")
                 throw LokiAPI.Error.ParsingFailed
             }
             val id = data.get("id").asLong()
-            val url = data.get("avatar_image").get("url").asText("")
+            val url = data.get("url").asText()
             if (url.isEmpty()) {
                 Log.d("Loki", "Couldn't parse profile picture from: $jsonAsString.")
                 throw LokiAPI.Error.ParsingFailed
             }
+            setLastProfilePictureUpload()
             UploadResult(id, url, file.transmittedDigest)
         }
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    private fun upload(server: String, request: Request.Builder, isProfilePictureUpload: Boolean = false, parse: (String) -> UploadResult): UploadResult {
+    private fun upload(server: String, request: Request.Builder, parse: (String) -> UploadResult): UploadResult {
         val promise: Promise<LokiHTTPClient.Response, Exception>
-        if (server == LokiFileServerAPI.shared.server && !isProfilePictureUpload) {
+        if (server == LokiFileServerAPI.shared.server) {
             request.addHeader("Authorization", "Bearer loki")
-            // Uploads to the Loki File Server (with the exception of profile pictures) shouldn't include any personally identifiable information, so use a dummy auth token
+            // Uploads to the Loki File Server shouldn't include any personally identifiable information, so use a dummy auth token
             promise = LokiFileServerProxy(server).execute(request.build())
         } else {
             promise = getAuthToken(server).bind { token ->
