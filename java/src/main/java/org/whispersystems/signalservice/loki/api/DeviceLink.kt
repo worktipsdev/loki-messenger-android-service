@@ -65,8 +65,8 @@ data class DeviceLink(val masterHexEncodedPublicKey: String, val slaveHexEncoded
 
     override fun hashCode(): Int {
         var hash = masterHexEncodedPublicKey.hashCode() xor slaveHexEncodedPublicKey.hashCode()
-        if (requestSignature != null) { hash = hash xor requestSignature.hashCode() }
-        if (authorizationSignature != null) { hash = hash xor authorizationSignature.hashCode() }
+        if (requestSignature != null) { hash = hash xor Arrays.hashCode(requestSignature) }
+        if (authorizationSignature != null) { hash = hash xor Arrays.hashCode(authorizationSignature) }
         return hash
     }
 }
