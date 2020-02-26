@@ -8,7 +8,6 @@ import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.loki.utilities.PublicKeyValidation
 import org.whispersystems.signalservice.loki.utilities.recover
 import org.whispersystems.signalservice.loki.utilities.retryIfNeeded
-import org.whispersystems.signalservice.loki.utilities.successBackground
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
 
@@ -66,12 +65,13 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
     fun getDeviceLinks(hexEncodedPublicKeys: Set<String>, isForcedUpdate: Boolean = false): Promise<Set<DeviceLink>, Exception> {
         val validHexEncodedPublicKeys = hexEncodedPublicKeys.filter { PublicKeyValidation.isValid(it) }
         val now = System.currentTimeMillis()
-        val updatees = validHexEncodedPublicKeys.filter { hasDeviceLinkCacheExpired(now, it) || isForcedUpdate }.toSet()
+        // IMPORTANT: Don't fetch device links for the current user (i.e. don't remove the it != userHexEncodedPublicKey) check below
+        val updatees = validHexEncodedPublicKeys.filter { it != userHexEncodedPublicKey && (hasDeviceLinkCacheExpired(now, it) || isForcedUpdate) }.toSet()
         val cachedDeviceLinks = validHexEncodedPublicKeys.minus(updatees).flatMap { database.getDeviceLinks(it) }.toSet()
         if (updatees.isEmpty()) {
             return Promise.of(cachedDeviceLinks)
         } else {
-            return getUserProfiles(updatees, server, true).map(workContext) { data ->
+            return getUserProfiles(updatees, server, true).map(LokiAPI.sharedWorkContext) { data ->
                 data.map dataMap@ { node ->
                     val hexEncodedPublicKey = node.get("username").asText()
                     val annotations = node.get("annotations")
@@ -108,7 +108,7 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
                 }
             }.recover { e ->
                 hexEncodedPublicKeys.map { DeviceLinkUpdateResult.Failure(it, e) }
-            }.successBackground { updateResults ->
+            }.success { updateResults ->
                 for (updateResult in updateResults) {
                     if (updateResult is DeviceLinkUpdateResult.Success) {
                         database.clearDeviceLinks(updateResult.hexEncodedPublicKey)
@@ -117,7 +117,7 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
                         // Do nothing
                     }
                 }
-            }.map(workContext) { updateResults ->
+            }.map(LokiAPI.sharedWorkContext) { updateResults ->
                 val deviceLinks = mutableListOf<DeviceLink>()
                 for (updateResult in updateResults) {
                     when (updateResult) {
@@ -165,7 +165,7 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
 
     fun addDeviceLink(deviceLink: DeviceLink): Promise<Unit, Exception> {
         Log.d("Loki", "Updating device links.")
-        return getDeviceLinks(userHexEncodedPublicKey, true).bind(workContext) { deviceLinks ->
+        return getDeviceLinks(userHexEncodedPublicKey, true).bind { deviceLinks ->
             val mutableDeviceLinks = deviceLinks.toMutableSet()
             mutableDeviceLinks.add(deviceLink)
             setDeviceLinks(mutableDeviceLinks)
@@ -176,7 +176,7 @@ class LokiFileServerAPI(public val server: String, private val userHexEncodedPub
 
     fun removeDeviceLink(deviceLink: DeviceLink): Promise<Unit, Exception> {
         Log.d("Loki", "Updating device links.")
-        return getDeviceLinks(userHexEncodedPublicKey, true).bind(workContext) { deviceLinks ->
+        return getDeviceLinks(userHexEncodedPublicKey, true).bind { deviceLinks ->
             val mutableDeviceLinks = deviceLinks.toMutableSet()
             mutableDeviceLinks.remove(deviceLink)
             setDeviceLinks(mutableDeviceLinks)

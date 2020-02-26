@@ -13,13 +13,13 @@ private val recommendedThreadCount: Int
 fun Kovenant.createContext(contextName: String, threadCount: Int = max(recommendedThreadCount, 1)): Context {
   return createContext {
     callbackContext.dispatcher = buildDispatcher {
-      name = "${contextName}_callback_dispatcher"
+      name = "${contextName}CallbackDispatcher"
       // Ref: http://kovenant.komponents.nl/api/core_usage/#execution-order
       // Having 1 concurrent task ensures we have in-order callback handling
       concurrentTasks = 1
     }
     workerContext.dispatcher = buildDispatcher {
-      name = "${contextName}_worker_dispatcher"
+      name = "${contextName}WorkerDispatcher"
       concurrentTasks = threadCount
     }
     multipleCompletion = { lhs, rhs ->

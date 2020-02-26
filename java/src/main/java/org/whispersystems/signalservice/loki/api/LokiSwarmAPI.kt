@@ -22,6 +22,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
         // region Settings
         private val minimumSnodeCount = 2
         private val targetSnodeCount = 3
+        private val maxRandomSnodePoolSize = 1024
         internal val failureThreshold = 2
         // endregion
 
@@ -40,7 +41,7 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
                     "method" to "get_n_service_nodes",
                     "params" to mapOf(
                         "active_only" to true,
-                        "limit" to 24,
+                        "limit" to maxRandomSnodePoolSize,
                         "fields" to mapOf( "public_ip" to true,  "storage_port" to true,  "pubkey_x25519" to true,  "pubkey_ed25519" to true )
                     )
                 )
@@ -72,7 +73,8 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
                                             }
                                         }.toMutableSet()
                                         try {
-                                            deferred.resolve(randomSnodePool.random())
+                                            val index = SecureRandom().nextInt(randomSnodePool.size) // SecureRandom() should be cryptographically secure
+                                            deferred.resolve(randomSnodePool.elementAt(index))
                                         } catch (exception: Exception) {
                                             Log.d("Loki", "Got an empty random snode pool from: $target.")
                                             deferred.reject(LokiAPI.Error.Generic)
@@ -97,7 +99,8 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
                 return deferred.promise
             } else {
                 return task {
-                    randomSnodePool.random()
+                    val index = SecureRandom().nextInt(randomSnodePool.size) // SecureRandom() should be cryptographically secure
+                    randomSnodePool.elementAt(index)
                 }
             }
         }
@@ -156,10 +159,10 @@ internal class LokiSwarmAPI(private val database: LokiAPIDatabaseProtocol, priva
                 val address = rawSnodeAsJSON?.get("ip") as? String
                 val portAsString = rawSnodeAsJSON?.get("port") as? String
                 val port = portAsString?.toInt()
-                val identificationKey = rawSnodeAsJSON?.get("pubkey_ed25519") as? String
+                val idKey = rawSnodeAsJSON?.get("pubkey_ed25519") as? String
                 val encryptionKey = rawSnodeAsJSON?.get("pubkey_x25519") as? String
-                if (address != null && port != null && identificationKey != null && encryptionKey != null && address != "0.0.0.0") {
-                    LokiAPITarget("https://$address", port, LokiAPITarget.KeySet(identificationKey, encryptionKey))
+                if (address != null && port != null && idKey != null && encryptionKey != null && address != "0.0.0.0") {
+                    LokiAPITarget("https://$address", port, LokiAPITarget.KeySet(idKey, encryptionKey))
                 } else {
                     Log.d("Loki", "Failed to parse target from: ${rawSnode?.prettifiedDescription()}.")
                     null

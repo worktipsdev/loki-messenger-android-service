@@ -726,7 +726,7 @@ public class SignalServiceMessageSender {
     Content.Builder     container = Content.newBuilder();
     SyncMessage.Builder builder   = createSyncMessageBuilder();
     builder.setGroups(SyncMessage.Groups.newBuilder()
-                                        .setBlob(createAttachmentPointer(groups)));
+                                        .setData(ByteString.readFrom(groups.getInputStream())));
 
     return container.setSyncMessage(builder).build().toByteArray();
   }
@@ -1043,7 +1043,9 @@ public class SignalServiceMessageSender {
     return results;
   }
 
-  public SendMessageResult lokiSendSyncMessage(long messageID, SignalServiceAddress recipient, Optional<UnidentifiedAccessPair> unidentifiedAccess, long timestamp, byte[] content, int ttl) {
+  public SendMessageResult lokiSendSyncMessage(long messageID, SignalServiceAddress recipient, Optional<UnidentifiedAccessPair> unidentifiedAccess, long timestamp, byte[] content, int ttl)
+    throws IOException
+  {
     return sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, ttl, false, true);
   }
 
@@ -1067,15 +1069,22 @@ public class SignalServiceMessageSender {
                                         int                          ttl,
                                         boolean                      isFriendRequest,
                                         boolean                      updateFriendRequestStatus)
+    throws IOException
   {
     long threadID = threadDatabase.getThreadID(recipient.getNumber());
     LokiPublicChat publicChat = threadDatabase.getPublicChat(threadID);
-    if (recipient.equals(localAddress)) {
-      return SendMessageResult.success(recipient, false, false);
-    } else if (publicChat != null) {
-      return sendMessageToPublicChat(messageID, recipient, timestamp, content, publicChat);
-    } else {
-      return sendMessageToPrivateChat(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, isFriendRequest, updateFriendRequestStatus);
+    try {
+        if (recipient.equals(localAddress)) {
+            return SendMessageResult.success(recipient, false, false);
+        } else if (publicChat != null) {
+            return sendMessageToPublicChat(messageID, recipient, timestamp, content, publicChat);
+        } else {
+            return sendMessageToPrivateChat(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, isFriendRequest, updateFriendRequestStatus);
+        }
+    } catch (PushNetworkException e) {
+        return SendMessageResult.networkFailure(recipient);
+    } catch (UntrustedIdentityException e) {
+        return SendMessageResult.identityFailure(recipient, e.getIdentityKey());
     }
   }
 
@@ -1176,6 +1185,7 @@ public class SignalServiceMessageSender {
                                                      int                          ttl,
                                                      boolean                      isFriendRequest,
                                                      final boolean                updateFriendRequestStatus)
+      throws IOException, UntrustedIdentityException
   {
     final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
     final long threadID = threadDatabase.getThreadID(recipient.getNumber());
@@ -1255,9 +1265,8 @@ public class SignalServiceMessageSender {
           return Unit.INSTANCE;
         }
       });
-    } catch (Exception exception) {
-      @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-      f.setException(exception);
+    } catch (InvalidKeyException e) {
+        throw new IOException(e);
     }
     @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
     try {

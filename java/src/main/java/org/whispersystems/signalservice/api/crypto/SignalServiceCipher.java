@@ -432,6 +432,20 @@ public class SignalServiceCipher {
       }
     }
 
+    if (content.hasGroups()) {
+        SyncMessage.Groups groups = content.getGroups();
+        ByteString data = groups.getData();
+        if (data != null && !data.isEmpty()) {
+            byte[] bytes = data.toByteArray();
+            SignalServiceAttachmentStream attachmentStream   = SignalServiceAttachment.newStreamBuilder()
+                .withStream(new ByteArrayInputStream(data.toByteArray()))
+                .withContentType("application/octet-stream")
+                .withLength(bytes.length)
+                .build();
+            return SignalServiceSyncMessage.forGroups(attachmentStream);
+        }
+    }
+
     if (content.hasVerified()) {
       try {
         Verified    verified    = content.getVerified();

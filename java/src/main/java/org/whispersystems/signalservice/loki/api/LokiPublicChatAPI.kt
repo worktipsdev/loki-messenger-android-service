@@ -1,6 +1,7 @@
 package org.whispersystems.signalservice.loki.api
 
 import nl.komponents.kovenant.Promise
+import nl.komponents.kovenant.deferred
 import nl.komponents.kovenant.functional.map
 import nl.komponents.kovenant.then
 import org.whispersystems.libsignal.logging.Log
@@ -53,7 +54,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         } else {
             parameters["count"] = fallbackBatchCount
         }
-        return execute(HTTPVerb.GET, server, "channels/$channel/messages", false, parameters).then(workContext) { response ->
+        return execute(HTTPVerb.GET, server, "channels/$channel/messages", false, parameters).then(LokiAPI.sharedWorkContext) { response ->
             try {
                 val bodyAsString = response.body!!
                 val body = JsonUtil.fromJson(bodyAsString)
@@ -77,11 +78,11 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
                             val avatarAnnotation = user.get("annotations").find {
                                 (it.get("type").asText("") == profilePictureType) && it.hasNonNull("value")
                             }
-                            val avatarAnnotationValue = avatarAnnotation?.get("value")
-                            if (avatarAnnotationValue != null && avatarAnnotationValue.hasNonNull("profileKey") && avatarAnnotationValue.hasNonNull("url")) {
+                            val profilePictureAnnotationValue = avatarAnnotation?.get("value")
+                            if (profilePictureAnnotationValue != null && profilePictureAnnotationValue.hasNonNull("profileKey") && profilePictureAnnotationValue.hasNonNull("url")) {
                                 try {
-                                    val profileKey = Base64.decode(avatarAnnotationValue.get("profileKey").asText())
-                                    val url = avatarAnnotationValue.get("url").asText()
+                                    val profileKey = Base64.decode(profilePictureAnnotationValue.get("profileKey").asText())
+                                    val url = profilePictureAnnotationValue.get("url").asText()
                                     profilePicture = LokiPublicChatMessage.ProfilePicture(profileKey, url)
                                 } catch (e: Exception) {}
                             }
@@ -153,7 +154,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
         } else {
             parameters["count"] = fallbackBatchCount
         }
-        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/deletes", false, parameters).then(workContext) { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/deletes", false, parameters).then { response ->
             try {
                 val bodyAsString = response.body!!
                 val body = JsonUtil.fromJson(bodyAsString)
@@ -178,29 +179,41 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     }
 
     public fun sendMessage(message: LokiPublicChatMessage, channel: Long, server: String): Promise<LokiPublicChatMessage, Exception> {
-        val signedMessage = message.sign(userPrivateKey) ?: return Promise.ofFail(LokiAPI.Error.MessageSigningFailed)
-        return retryIfNeeded(maxRetryCount) {
-            Log.d("Loki", "Sending message to public chat channel with ID: $channel on server: $server.")
-            val parameters = signedMessage.toJSON()
-            execute(HTTPVerb.POST, server, "channels/$channel/messages", parameters = parameters).then { response ->
-                try {
-                    val bodyAsString = response.body!!
-                    val body = JsonUtil.fromJson(bodyAsString)
-                    val data = body.get("data")
-                    val serverID = data.get("id").asLong()
-                    val displayName = userDatabase.getDisplayName(userHexEncodedPublicKey) ?: "Anonymous"
-                    val text = data.get("text").asText()
-                    val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-                    val dateAsString = data.get("created_at").asText()
-                    val timestamp = format.parse(dateAsString).time
-                    @Suppress("NAME_SHADOWING") val message = LokiPublicChatMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote, message.attachments, null, signedMessage.signature)
-                    message
-                } catch (exception: Exception) {
-                    Log.d("Loki", "Couldn't parse message for public chat channel with ID: $channel on server: $server.")
-                    throw exception
+        val deferred = deferred<LokiPublicChatMessage, Exception>()
+        Thread {
+            val signedMessage = message.sign(userPrivateKey)
+            if (signedMessage == null) {
+                deferred.reject(LokiAPI.Error.MessageSigningFailed)
+            } else {
+                retryIfNeeded(maxRetryCount) {
+                    Log.d("Loki", "Sending message to public chat channel with ID: $channel on server: $server.")
+                    val parameters = signedMessage.toJSON()
+                    execute(HTTPVerb.POST, server, "channels/$channel/messages", parameters = parameters).then { response ->
+                        try {
+                            val bodyAsString = response.body!!
+                            val body = JsonUtil.fromJson(bodyAsString)
+                            val data = body.get("data")
+                            val serverID = data.get("id").asLong()
+                            val displayName = userDatabase.getDisplayName(userHexEncodedPublicKey) ?: "Anonymous"
+                            val text = data.get("text").asText()
+                            val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+                            val dateAsString = data.get("created_at").asText()
+                            val timestamp = format.parse(dateAsString).time
+                            @Suppress("NAME_SHADOWING") val message = LokiPublicChatMessage(serverID, userHexEncodedPublicKey, displayName, text, timestamp, publicChatMessageType, message.quote, message.attachments, null, signedMessage.signature)
+                            message
+                        } catch (exception: Exception) {
+                            Log.d("Loki", "Couldn't parse message for public chat channel with ID: $channel on server: $server.")
+                            throw exception
+                        }
+                    }
+                }.success {
+                    deferred.resolve(it)
+                }.fail {
+                    deferred.reject(it)
                 }
             }
-        }
+        }.start()
+        return deferred.promise
     }
 
     public fun deleteMessage(messageServerID: Long, channel: Long, server: String, isSentByUser: Boolean): Promise<Long, Exception> {
@@ -229,7 +242,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     }
 
     public fun getModerators(channel: Long, server: String): Promise<Set<String>, Exception> {
-        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/get_moderators").then(workContext) { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/channel/$channel/get_moderators").then { response ->
             try {
                 val bodyAsString = response.body!!
                 @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
@@ -250,7 +263,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
 
     public fun getChannelInfo(channel: Long, server: String): Promise<String, Exception> {
         val parameters = mapOf( "include_annotations" to 1 )
-        return execute(HTTPVerb.GET, server, "/channels/$channel", false, parameters).then(workContext) { response ->
+        return execute(HTTPVerb.GET, server, "/channels/$channel", false, parameters).then { response ->
             try {
                 val bodyAsString = response.body!!
                 val body = JsonUtil.fromJson(bodyAsString)
@@ -267,20 +280,20 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     }
 
     public fun join(channel: Long, server: String): Promise<Unit, Exception> {
-        return execute(HTTPVerb.POST, server, "/channels/$channel/subscribe", true).then(workContext) { _ ->
+        return execute(HTTPVerb.POST, server, "/channels/$channel/subscribe", true).then {
             Log.d("Loki", "Joined channel with ID: $channel on server: $server.")
         }
     }
 
     public fun leave(channel: Long, server: String): Promise<Unit, Exception> {
-        return execute(HTTPVerb.DELETE, server, "/channels/$channel/subscribe", true).then(workContext) { _ ->
+        return execute(HTTPVerb.DELETE, server, "/channels/$channel/subscribe", true).then {
             Log.d("Loki", "Left channel with ID: $channel on server: $server.")
         }
     }
 
     public fun getUserCount(channel: Long, server: String): Promise<Int, Exception> {
         val parameters = mapOf( "count" to 200 )
-        return execute(HTTPVerb.GET, server, "/channels/$channel/subscribers", true, parameters).then(workContext) { response ->
+        return execute(HTTPVerb.GET, server, "/channels/$channel/subscribers", true, parameters).then { response ->
             try {
                 val bodyAsString = response.body!!
                 val body = JsonUtil.fromJson(bodyAsString)
@@ -295,7 +308,7 @@ class LokiPublicChatAPI(private val userHexEncodedPublicKey: String, private val
     }
 
     public fun getDisplayNames(hexEncodedPublicKeys: Set<String>, server: String): Promise<Map<String, String>, Exception> {
-        return getUserProfiles(hexEncodedPublicKeys, server, false).map(workContext) { data ->
+        return getUserProfiles(hexEncodedPublicKeys, server, false).map { data ->
             val mapping = mutableMapOf<String, String>()
             for (user in data) {
                 if (user.hasNonNull("username")) {

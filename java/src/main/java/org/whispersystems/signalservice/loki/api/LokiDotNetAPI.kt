@@ -1,7 +1,6 @@
 package org.whispersystems.signalservice.loki.api
 
 import com.fasterxml.jackson.databind.JsonNode
-import nl.komponents.kovenant.Kovenant
 import nl.komponents.kovenant.Promise
 import nl.komponents.kovenant.functional.bind
 import nl.komponents.kovenant.functional.map
@@ -23,11 +22,8 @@ import org.whispersystems.signalservice.internal.push.http.ProfileCipherOutputSt
 import org.whispersystems.signalservice.internal.util.Base64
 import org.whispersystems.signalservice.internal.util.Hex
 import org.whispersystems.signalservice.internal.util.JsonUtil
-import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory
-import org.whispersystems.signalservice.loki.utilities.createContext
 import org.whispersystems.signalservice.loki.utilities.recover
 import org.whispersystems.signalservice.loki.utilities.removing05PrefixIfNeeded
-import java.io.ByteArrayInputStream
 import java.util.*
 
 /**
@@ -38,11 +34,8 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     internal enum class HTTPVerb { GET, PUT, POST, DELETE, PATCH }
 
     companion object {
-        private val authRequestCache = hashMapOf<String, Promise<String, Exception>>()
+        private val authTokenRequestCache = hashMapOf<String, Promise<String, Exception>>()
     }
-
-    val networkContext = Kovenant.createContext("LokiDotNetAPINetworkContext")
-    val workContext = Kovenant.createContext("LokiDotNetAPIWorkContext")
 
     public sealed class Error(val description: String) : Exception() {
         object Generic : Error("An error occurred.")
@@ -55,15 +48,15 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
         val token = apiDatabase.getAuthToken(server)
         if (token != null) { return Promise.of(token) }
         // Avoid multiple token requests to the server by caching
-        var promise = authRequestCache[server]
+        var promise = authTokenRequestCache[server]
         if (promise == null) {
-            promise = requestNewAuthToken(server).bind(workContext) { submitAuthToken(it, server) }.then(workContext) { newToken ->
+            promise = requestNewAuthToken(server).bind { submitAuthToken(it, server) }.then { newToken ->
                 apiDatabase.setAuthToken(server, newToken)
                 newToken
             }.always {
-                authRequestCache.remove(server)
+                authTokenRequestCache.remove(server)
             }
-            authRequestCache[server] = promise
+            authTokenRequestCache[server] = promise
         }
         return promise
     }
@@ -71,7 +64,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     private fun requestNewAuthToken(server: String): Promise<String, Exception> {
         Log.d("Loki", "Requesting auth token for server: $server.")
         val parameters: Map<String, Any> = mapOf( "pubKey" to userHexEncodedPublicKey )
-        return execute(HTTPVerb.GET, server, "loki/v1/get_challenge", false, parameters).map(workContext) { response ->
+        return execute(HTTPVerb.GET, server, "loki/v1/get_challenge", false, parameters).map(LokiAPI.sharedWorkContext) { response ->
             try {
                 val bodyAsString = response.body!!
                 @Suppress("NAME_SHADOWING") val body = JsonUtil.fromJson(bodyAsString, Map::class.java)
@@ -98,7 +91,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     private fun submitAuthToken(token: String, server: String): Promise<String, Exception> {
         Log.d("Loki", "Submitting auth token for server: $server.")
         val parameters = mapOf( "pubKey" to userHexEncodedPublicKey, "token" to token )
-        return execute(HTTPVerb.POST, server, "loki/v1/submit_challenge", false, parameters).map(workContext) { token }
+        return execute(HTTPVerb.POST, server, "loki/v1/submit_challenge", false, parameters).map { token }
     }
 
     internal fun execute(verb: HTTPVerb, server: String, endpoint: String, isAuthRequired: Boolean = true, parameters: Map<String, Any> = mapOf()): Promise<LokiHTTPClient.Response, Exception> {
@@ -148,7 +141,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
 
     internal fun getUserProfiles(hexEncodedPublicKeys: Set<String>, server: String, includeAnnotations: Boolean): Promise<JsonNode, Exception> {
         val parameters = mapOf( "include_user_annotations" to includeAnnotations.toInt(), "ids" to hexEncodedPublicKeys.joinToString { "@$it" } )
-        return execute(HTTPVerb.GET, server, "users", false, parameters).map(workContext) { rawResponse ->
+        return execute(HTTPVerb.GET, server, "users", false, parameters).map { rawResponse ->
             val bodyAsString = rawResponse.body!!
             val body = JsonUtil.fromJson(bodyAsString)
             val data = body.get("data")
@@ -176,7 +169,7 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
             .setType(MultipartBody.FORM)
             .addFormDataPart("type", "network.loki")
             .addFormDataPart("Content-Type", contentType)
-            .addFormDataPart("content", UUID.randomUUID().toString(), file) // avatar
+            .addFormDataPart("content", UUID.randomUUID().toString(), file)
             .build()
         val request = Request.Builder().url("$server/files").post(body)
         return upload(server, request) { jsonAsString ->
@@ -197,54 +190,44 @@ open class LokiDotNetAPI(private val userHexEncodedPublicKey: String, private va
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    fun uploadProfilePicture(server: String, key: ByteArray, profilePicture: StreamDetails): UploadResult {
+    fun uploadProfilePicture(server: String, key: ByteArray, profilePicture: StreamDetails, setLastProfilePictureUpload: () -> Unit): UploadResult {
         val profilePictureUploadData = ProfileAvatarData(profilePicture.stream, ProfileCipherOutputStream.getCiphertextLength(profilePicture.length), profilePicture.contentType, ProfileCipherOutputStreamFactory(key))
-        return uploadProfilePicture(server, profilePictureUploadData)
-    }
-
-    @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    fun uploadPublicProfilePicture(server: String, data: ByteArray): UploadResult {
-        val profilePictureUploadData = ProfileAvatarData(ByteArrayInputStream(data), data.size.toLong(), "image/jpg", BasicOutputStreamFactory())
-        return uploadProfilePicture(server, profilePictureUploadData)
-    }
-
-    @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    private fun uploadProfilePicture(server: String, profilePictureUploadData: ProfileAvatarData): UploadResult {
         val file = DigestingRequestBody(profilePictureUploadData.data, profilePictureUploadData.outputStreamFactory,
             profilePictureUploadData.contentType, profilePictureUploadData.dataLength, null)
         val body = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
             .addFormDataPart("type", "network.loki")
             .addFormDataPart("Content-Type", "application/octet-stream")
-            .addFormDataPart("avatar", UUID.randomUUID().toString(), file)
+            .addFormDataPart("content", UUID.randomUUID().toString(), file)
             .build()
-        val request = Request.Builder().url("$server/users/me/avatar").post(body)
-        return upload(server, request, true) { jsonAsString ->
+        val request = Request.Builder().url("$server/files").post(body)
+        return upload(server, request) { jsonAsString ->
             val json = JsonUtil.fromJson(jsonAsString)
             val data = json.get("data")
-            if (data == null || !data.hasNonNull("avatar_image")) {
+            if (data == null) {
                 Log.d("Loki", "Couldn't parse profile picture from: $jsonAsString.")
                 throw LokiAPI.Error.ParsingFailed
             }
             val id = data.get("id").asLong()
-            val url = data.get("avatar_image").get("url").asText("")
+            val url = data.get("url").asText()
             if (url.isEmpty()) {
                 Log.d("Loki", "Couldn't parse profile picture from: $jsonAsString.")
                 throw LokiAPI.Error.ParsingFailed
             }
+            setLastProfilePictureUpload()
             UploadResult(id, url, file.transmittedDigest)
         }
     }
 
     @Throws(PushNetworkException::class, NonSuccessfulResponseCodeException::class)
-    private fun upload(server: String, request: Request.Builder, isProfilePictureUpload: Boolean = false, parse: (String) -> UploadResult): UploadResult {
+    private fun upload(server: String, request: Request.Builder, parse: (String) -> UploadResult): UploadResult {
         val promise: Promise<LokiHTTPClient.Response, Exception>
-        if (server == LokiFileServerAPI.shared.server && !isProfilePictureUpload) {
+        if (server == LokiFileServerAPI.shared.server) {
             request.addHeader("Authorization", "Bearer loki")
-            // Uploads to the Loki File Server (with the exception of profile pictures) shouldn't include any personally identifiable information, so use a dummy auth token
+            // Uploads to the Loki File Server shouldn't include any personally identifiable information, so use a dummy auth token
             promise = LokiFileServerProxy(server).execute(request.build())
         } else {
-            promise = getAuthToken(server).bind(networkContext) { token ->
+            promise = getAuthToken(server).bind { token ->
                 request.addHeader("Authorization", "Bearer $token")
                 LokiFileServerProxy(server).execute(request.build())
             }
