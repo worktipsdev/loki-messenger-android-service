@@ -4,7 +4,12 @@ import org.whispersystems.libsignal.IdentityKey
 import org.whispersystems.libsignal.ecc.Curve
 import org.whispersystems.libsignal.state.PreKeyBundle
 
-data class LokiServiceMessage(val preKeyBundleMessage: LokiServicePreKeyBundleMessage?, val addressMessage: LokiServiceAddressMessage?)
+data class LokiServiceMessage(val preKeyBundleMessage: LokiServicePreKeyBundleMessage?, val addressMessage: LokiServiceAddressMessage?) {
+
+    fun isValid(): Boolean {
+        return preKeyBundleMessage != null || addressMessage != null
+    }
+}
 
 data class LokiServicePreKeyBundleMessage(
     val identityKey: ByteArray,
@@ -16,7 +21,7 @@ data class LokiServicePreKeyBundleMessage(
     val signature: ByteArray
 ) {
 
-    constructor(preKeyBundle: PreKeyBundle): this(preKeyBundle.identityKey.serialize(), preKeyBundle.deviceId, preKeyBundle.preKeyId,
+    constructor(preKeyBundle: PreKeyBundle) : this(preKeyBundle.identityKey.serialize(), preKeyBundle.deviceId, preKeyBundle.preKeyId,
         preKeyBundle.signedPreKeyId, preKeyBundle.preKey.serialize(), preKeyBundle.signedPreKey.serialize(), preKeyBundle.signedPreKeySignature)
 
     fun getPreKeyBundle(registrationID: Int): PreKeyBundle {
@@ -24,4 +29,6 @@ data class LokiServicePreKeyBundleMessage(
     }
 }
 
-data class LokiServiceAddressMessage(val p2pAddress: String, val p2pPort: Int)
+data class LokiServiceAddressMessage(val p2pAddress: String?, val p2pPort: Int?) {
+    val isReachable get() = p2pAddress != null && p2pPort != null
+}

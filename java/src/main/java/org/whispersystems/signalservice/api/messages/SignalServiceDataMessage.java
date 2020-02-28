@@ -10,6 +10,7 @@ import org.whispersystems.libsignal.state.PreKeyBundle;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.messages.shared.SharedContact;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
+import org.whispersystems.signalservice.loki.api.DeviceLink;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -35,6 +36,10 @@ public class SignalServiceDataMessage {
   // Loki
   private final boolean                                 isFriendRequest;
   private final Optional<PreKeyBundle>                  preKeyBundle;
+  private final Optional<DeviceLink>                    deviceLink;
+  private final boolean                                 isUnlinkingRequest;
+  private final boolean                                 isSessionRestorationRequest;
+  private final boolean                                 isSessionRequest;
 
   /**
    * Construct a SignalServiceDataMessage with a body and no attachments.
@@ -128,7 +133,7 @@ public class SignalServiceDataMessage {
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
                                   Sticker sticker)
   {
-    this(timestamp, group, attachments, body, endSession, expiresInSeconds, expirationUpdate, profileKey, profileKeyUpdate, quote, sharedContacts, previews, sticker, false, null);
+    this(timestamp, group, attachments, body, endSession, expiresInSeconds, expirationUpdate, profileKey, profileKeyUpdate, quote, sharedContacts, previews, sticker, false, null, null, false, false, false);
   }
 
   /**
@@ -148,7 +153,8 @@ public class SignalServiceDataMessage {
                                   String body, boolean endSession, int expiresInSeconds,
                                   boolean expirationUpdate, byte[] profileKey, boolean profileKeyUpdate,
                                   Quote quote, List<SharedContact> sharedContacts, List<Preview> previews,
-                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle)
+                                  Sticker sticker, boolean isFriendRequest, PreKeyBundle preKeyBundle, DeviceLink deviceLink,
+                                  boolean isUnlinkingRequest, boolean isSessionRestorationRequest, boolean isSessionRequest)
   {
     this.timestamp             = timestamp;
     this.body                  = Optional.fromNullable(body);
@@ -162,6 +168,10 @@ public class SignalServiceDataMessage {
     this.sticker               = Optional.fromNullable(sticker);
     this.isFriendRequest       = isFriendRequest;
     this.preKeyBundle          = Optional.fromNullable(preKeyBundle);
+    this.deviceLink            = Optional.fromNullable(deviceLink);
+    this.isUnlinkingRequest    = isUnlinkingRequest;
+    this.isSessionRestorationRequest  = isSessionRestorationRequest;
+    this.isSessionRequest      = isSessionRequest;
 
     if (attachments != null && !attachments.isEmpty()) {
       this.attachments = Optional.of(attachments);
@@ -226,13 +236,15 @@ public class SignalServiceDataMessage {
     return profileKeyUpdate;
   }
 
+  public boolean isGroupMessage() {
+      return group.isPresent();
+  }
+
   public boolean isGroupUpdate() {
     return group.isPresent() && group.get().getType() != SignalServiceGroup.Type.DELIVER;
   }
 
-  public int getExpiresInSeconds() {
-    return expiresInSeconds;
-  }
+  public int getExpiresInSeconds() { return expiresInSeconds; }
 
   public Optional<byte[]> getProfileKey() {
     return profileKey;
@@ -258,7 +270,49 @@ public class SignalServiceDataMessage {
   public boolean isFriendRequest() {
     return isFriendRequest;
   }
+  public boolean isUnlinkingRequest() {
+    return isUnlinkingRequest;
+  }
+  public boolean isSessionRestorationRequest() { return isSessionRestorationRequest; }
+  public boolean isSessionRequest() { return isSessionRequest; }
   public Optional<PreKeyBundle> getPreKeyBundle() { return preKeyBundle; }
+  public Optional<DeviceLink> getDeviceLink() { return deviceLink; }
+  public boolean canSyncMessage() {
+    // If any of the Loki fields are present then don't sync the message
+    if (isFriendRequest || preKeyBundle.isPresent() || deviceLink.isPresent()) return false;
+    // Only sync if the message has valid content
+    return body.isPresent() || attachments.isPresent() || sticker.isPresent() || quote.isPresent() || contacts.isPresent() || previews.isPresent() || canSyncGroupMessage();
+  }
+
+  private boolean canSyncGroupMessage() {
+      return group.isPresent() && group.get().getGroupType() == SignalServiceGroup.GroupType.SIGNAL;
+  }
+
+  public int getTTL() {
+    int minute = 60 * 1000;
+    int day = 24 * 60 * minute;
+    if (deviceLink.isPresent()) { return 2 * minute; }
+    if (isFriendRequest || isUnlinkingRequest) { return 4 * day; }
+    return day;
+  }
+
+  public boolean hasData() {
+    return getAttachments().isPresent() ||
+            getBody().isPresent() ||
+            getGroupInfo().isPresent() ||
+            isEndSession() ||
+            isExpirationUpdate() ||
+            isProfileKeyUpdate() ||
+            getExpiresInSeconds() > 0 ||
+            getProfileKey().isPresent() ||
+            getQuote().isPresent() ||
+            getSharedContacts().isPresent() ||
+            getPreviews().isPresent() ||
+            getSticker().isPresent() ||
+            isUnlinkingRequest() ||
+            isSessionRestorationRequest() ||
+            isSessionRequest();
+  }
 
   public static class Builder {
 
@@ -266,18 +320,22 @@ public class SignalServiceDataMessage {
     private List<SharedContact>           sharedContacts = new LinkedList<SharedContact>();
     private List<Preview>                 previews       = new LinkedList<Preview>();
 
-    private long               timestamp;
-    private SignalServiceGroup group;
-    private String             body;
-    private boolean            endSession;
-    private int                expiresInSeconds;
-    private boolean            expirationUpdate;
-    private byte[]             profileKey;
-    private boolean            profileKeyUpdate;
-    private Quote              quote;
-    private Sticker            sticker;
-    private boolean            isFriendRequest;
-    private PreKeyBundle       preKeyBundle;
+    private long                 timestamp;
+    private SignalServiceGroup   group;
+    private String               body;
+    private boolean              endSession;
+    private int                  expiresInSeconds;
+    private boolean              expirationUpdate;
+    private byte[]               profileKey;
+    private boolean              profileKeyUpdate;
+    private Quote                quote;
+    private Sticker              sticker;
+    private boolean              isFriendRequest;
+    private PreKeyBundle         preKeyBundle;
+    private DeviceLink           deviceLink;
+    private boolean              isUnlinkingRequest;
+    private boolean              isSessionRestorationRequestRequest;
+    private boolean              isSessionRequest;
 
     private Builder() {}
 
@@ -374,12 +432,33 @@ public class SignalServiceDataMessage {
       return this;
     }
 
+    public Builder withDeviceLink(DeviceLink deviceLink) {
+      this.deviceLink = deviceLink;
+      return this;
+    }
+
+    public Builder asUnpairingRequest(boolean isUnlinkingRequest) {
+      this.isUnlinkingRequest = isUnlinkingRequest;
+      return this;
+    }
+
+    public Builder asSessionRestorationRequest(boolean isSessionRestorationRequest) {
+      this.isSessionRestorationRequestRequest = isSessionRestorationRequest;
+      return this;
+    }
+
+    public Builder asSessionRequest(boolean isSessionRequest) {
+      this.isSessionRequest = isSessionRequest;
+      return this;
+    }
+
     public SignalServiceDataMessage build() {
       if (timestamp == 0) timestamp = System.currentTimeMillis();
       return new SignalServiceDataMessage(timestamp, group, attachments, body, endSession,
                                           expiresInSeconds, expirationUpdate, profileKey,
                                           profileKeyUpdate, quote, sharedContacts, previews,
-                                          sticker, isFriendRequest, preKeyBundle);
+                                          sticker, isFriendRequest, preKeyBundle, deviceLink,
+                                          isUnlinkingRequest, isSessionRestorationRequestRequest, isSessionRequest);
     }
   }
 

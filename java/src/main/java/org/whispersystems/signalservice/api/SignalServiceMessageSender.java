@@ -8,14 +8,19 @@ package org.whispersystems.signalservice.api;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import org.jetbrains.annotations.Nullable;
+import org.signal.libsignal.metadata.SealedSessionCipher;
 import org.whispersystems.libsignal.InvalidKeyException;
 import org.whispersystems.libsignal.SessionBuilder;
 import org.whispersystems.libsignal.SessionCipher;
 import org.whispersystems.libsignal.SignalProtocolAddress;
 import org.whispersystems.libsignal.logging.Log;
+import org.whispersystems.libsignal.loki.FallbackSessionCipher;
+import org.whispersystems.libsignal.loki.LokiFriendRequestMessage;
+import org.whispersystems.libsignal.loki.LokiSessionResetProtocol;
+import org.whispersystems.libsignal.loki.LokiSessionResetStatus;
 import org.whispersystems.libsignal.state.PreKeyBundle;
 import org.whispersystems.libsignal.state.SignalProtocolStore;
-import org.whispersystems.libsignal.util.Pair;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.crypto.AttachmentCipherOutputStream;
 import org.whispersystems.signalservice.api.crypto.SignalServiceCipher;
@@ -48,12 +53,12 @@ import org.whispersystems.signalservice.api.push.exceptions.UnregisteredUserExce
 import org.whispersystems.signalservice.api.util.CredentialsProvider;
 import org.whispersystems.signalservice.internal.configuration.SignalServiceConfiguration;
 import org.whispersystems.signalservice.internal.crypto.PaddingInputStream;
-import org.whispersystems.signalservice.internal.push.AttachmentUploadAttributes;
 import org.whispersystems.signalservice.internal.push.MismatchedDevices;
 import org.whispersystems.signalservice.internal.push.OutgoingPushMessage;
 import org.whispersystems.signalservice.internal.push.OutgoingPushMessageList;
 import org.whispersystems.signalservice.internal.push.PushAttachmentData;
 import org.whispersystems.signalservice.internal.push.PushServiceSocket;
+import org.whispersystems.signalservice.internal.push.PushTransportDetails;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.AttachmentPointer;
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.CallMessage;
@@ -69,31 +74,39 @@ import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Typing
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos.Verified;
 import org.whispersystems.signalservice.internal.push.StaleDevices;
 import org.whispersystems.signalservice.internal.push.http.AttachmentCipherOutputStreamFactory;
+import org.whispersystems.signalservice.internal.push.http.OutputStreamFactory;
 import org.whispersystems.signalservice.internal.util.Base64;
 import org.whispersystems.signalservice.internal.util.StaticCredentialsProvider;
 import org.whispersystems.signalservice.internal.util.Util;
 import org.whispersystems.signalservice.internal.util.concurrent.SettableFuture;
+import org.whispersystems.signalservice.loki.api.DeviceLink;
 import org.whispersystems.signalservice.loki.api.LokiAPI;
 import org.whispersystems.signalservice.loki.api.LokiAPIDatabaseProtocol;
-import org.whispersystems.signalservice.loki.crypto.LokiServiceCipher;
+import org.whispersystems.signalservice.loki.api.LokiDotNetAPI;
+import org.whispersystems.signalservice.loki.api.LokiFileServerAPI;
+import org.whispersystems.signalservice.loki.api.LokiPublicChat;
+import org.whispersystems.signalservice.loki.api.LokiPublicChatAPI;
+import org.whispersystems.signalservice.loki.api.LokiPublicChatMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiMessageDatabaseProtocol;
-import org.whispersystems.signalservice.loki.messaging.LokiMessageFriendRequestStatus;
 import org.whispersystems.signalservice.loki.messaging.LokiPreKeyBundleDatabaseProtocol;
-import org.whispersystems.signalservice.loki.messaging.LokiSessionDatabaseProtocol;
+import org.whispersystems.signalservice.loki.messaging.LokiSyncMessage;
 import org.whispersystems.signalservice.loki.messaging.LokiThreadDatabaseProtocol;
-import org.whispersystems.signalservice.loki.messaging.LokiThreadFriendRequestStatus;
-import org.whispersystems.signalservice.loki.messaging.LokiThreadSessionResetStatus;
+import org.whispersystems.signalservice.loki.messaging.LokiUserDatabaseProtocol;
 import org.whispersystems.signalservice.loki.messaging.SignalMessageInfo;
+import org.whispersystems.signalservice.loki.utilities.BasicOutputStreamFactory;
+import org.whispersystems.signalservice.loki.utilities.Broadcaster;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -120,12 +133,14 @@ public class SignalServiceMessageSender {
   private final AtomicReference<Optional<SignalServiceMessagePipe>> unidentifiedPipe;
   private final AtomicBoolean                                       isMultiDevice;
 
-  private final String                                              userPublicKey;
+  private final String                                              userHexEncodedPublicKey;
   private final LokiAPIDatabaseProtocol                             apiDatabase;
   private final LokiThreadDatabaseProtocol                          threadDatabase;
   private final LokiMessageDatabaseProtocol                         messageDatabase;
   private final LokiPreKeyBundleDatabaseProtocol                    preKeyBundleDatabase;
-  private final LokiSessionDatabaseProtocol sessionDatabase;
+  private final LokiSessionResetProtocol                            sessionResetProtocol;
+  private final LokiUserDatabaseProtocol                            userDatabase;
+  private final Broadcaster                                         broadcaster;
 
   /**
    * Construct a SignalServiceMessageSender.
@@ -145,14 +160,16 @@ public class SignalServiceMessageSender {
                                     Optional<SignalServiceMessagePipe> pipe,
                                     Optional<SignalServiceMessagePipe> unidentifiedPipe,
                                     Optional<EventListener> eventListener,
-                                    String userPublicKey,
+                                    String userHexEncodedPublicKey,
                                     LokiAPIDatabaseProtocol apiDatabase,
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
-                                    LokiSessionDatabaseProtocol sessionDatabase)
+                                    LokiSessionResetProtocol sessionResetProtocol,
+                                    LokiUserDatabaseProtocol userDatabase,
+                                    Broadcaster broadcaster)
   {
-    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase, sessionDatabase);
+    this(urls, new StaticCredentialsProvider(user, password, null), store, userAgent, isMultiDevice, pipe, unidentifiedPipe, eventListener, userHexEncodedPublicKey, apiDatabase, threadDatabase, messageDatabase, preKeyBundleDatabase, sessionResetProtocol, userDatabase, broadcaster);
   }
 
   public SignalServiceMessageSender(SignalServiceConfiguration urls,
@@ -163,26 +180,30 @@ public class SignalServiceMessageSender {
                                     Optional<SignalServiceMessagePipe> pipe,
                                     Optional<SignalServiceMessagePipe> unidentifiedPipe,
                                     Optional<EventListener> eventListener,
-                                    String userPublicKey,
+                                    String userHexEncodedPublicKey,
                                     LokiAPIDatabaseProtocol apiDatabase,
                                     LokiThreadDatabaseProtocol threadDatabase,
                                     LokiMessageDatabaseProtocol messageDatabase,
                                     LokiPreKeyBundleDatabaseProtocol preKeyBundleDatabase,
-                                    LokiSessionDatabaseProtocol sessionDatabase)
+                                    LokiSessionResetProtocol sessionResetProtocol,
+                                    LokiUserDatabaseProtocol userDatabase,
+                                    Broadcaster broadcaster)
   {
-    this.socket               = new PushServiceSocket(urls, credentialsProvider, userAgent);
-    this.store                = store;
-    this.localAddress         = new SignalServiceAddress(credentialsProvider.getUser());
-    this.pipe                 = new AtomicReference<Optional<SignalServiceMessagePipe>>(pipe);
-    this.unidentifiedPipe     = new AtomicReference<Optional<SignalServiceMessagePipe>>(unidentifiedPipe);
-    this.isMultiDevice        = new AtomicBoolean(isMultiDevice);
-    this.eventListener        = eventListener;
-    this.userPublicKey        = userPublicKey;
-    this.apiDatabase          = apiDatabase;
-    this.threadDatabase       = threadDatabase;
-    this.messageDatabase      = messageDatabase;
-    this.preKeyBundleDatabase = preKeyBundleDatabase;
-    this.sessionDatabase      = sessionDatabase;
+    this.socket                  = new PushServiceSocket(urls, credentialsProvider, userAgent);
+    this.store                   = store;
+    this.localAddress            = new SignalServiceAddress(credentialsProvider.getUser());
+    this.pipe                    = new AtomicReference<Optional<SignalServiceMessagePipe>>(pipe);
+    this.unidentifiedPipe        = new AtomicReference<Optional<SignalServiceMessagePipe>>(unidentifiedPipe);
+    this.isMultiDevice           = new AtomicBoolean(isMultiDevice);
+    this.eventListener           = eventListener;
+    this.userHexEncodedPublicKey = userHexEncodedPublicKey;
+    this.apiDatabase             = apiDatabase;
+    this.threadDatabase          = threadDatabase;
+    this.messageDatabase         = messageDatabase;
+    this.preKeyBundleDatabase    = preKeyBundleDatabase;
+    this.sessionResetProtocol    = sessionResetProtocol;
+    this.userDatabase            = userDatabase;
+    this.broadcaster             = broadcaster;
   }
 
   /**
@@ -201,7 +222,7 @@ public class SignalServiceMessageSender {
   {
     byte[] content = createReceiptContent(message);
 
-    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getWhen(), content, false);
+    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getWhen(), content, false, message.getTTL());
   }
 
   /**
@@ -220,7 +241,7 @@ public class SignalServiceMessageSender {
   {
     byte[] content = createTypingContent(message);
 
-    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true);
+    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true, message.getTTL());
   }
 
   public void sendTyping(long                                   messageID,
@@ -230,7 +251,7 @@ public class SignalServiceMessageSender {
       throws IOException
   {
     byte[] content = createTypingContent(message);
-    sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true);
+    sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, true, message.getTTL());
   }
 
 
@@ -248,7 +269,16 @@ public class SignalServiceMessageSender {
       throws IOException, UntrustedIdentityException
   {
     byte[] content = createCallContent(message);
-    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), System.currentTimeMillis(), content, false);
+    sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), System.currentTimeMillis(), content, false, message.getTTL());
+  }
+
+  public SendMessageResult sendMessage(long                             messageID,
+                                       SignalServiceAddress             recipient,
+                                       Optional<UnidentifiedAccessPair> unidentifiedAccess,
+                                       SignalServiceDataMessage         message)
+          throws UntrustedIdentityException, IOException
+  {
+    return sendMessage(messageID, recipient, unidentifiedAccess, message, Optional.<LokiSyncMessage>absent());
   }
 
   /**
@@ -262,27 +292,31 @@ public class SignalServiceMessageSender {
   public SendMessageResult sendMessage(long                             messageID,
                                        SignalServiceAddress             recipient,
                                        Optional<UnidentifiedAccessPair> unidentifiedAccess,
-                                       SignalServiceDataMessage         message)
+                                       SignalServiceDataMessage         message,
+                                       Optional<LokiSyncMessage>        lokiSyncMessage)
       throws UntrustedIdentityException, IOException
   {
-    byte[]            content   = createMessageContent(message);
-    long              timestamp = message.getTimestamp();
-    SendMessageResult result    = sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.isFriendRequest());
+    byte[]            content                   = createMessageContent(message, recipient);
+    long              timestamp                 = message.getTimestamp();
+    boolean           updateFriendRequestStatus = !message.isSessionRequest() && !message.isGroupMessage();
+    SendMessageResult result                    = sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL(), message.isFriendRequest(), updateFriendRequestStatus);
 
-    if ((result.getSuccess() != null && result.getSuccess().isNeedsSync()) || (unidentifiedAccess.isPresent() && isMultiDevice.get())) {
-      byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.of(recipient), timestamp, Collections.singletonList(result));
-      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false);
+    if (lokiSyncMessage.isPresent() && (result.getSuccess() != null && message.canSyncMessage() || (unidentifiedAccess.isPresent() && isMultiDevice.get()))) {
+      byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.of(lokiSyncMessage.get().getRecipient()), timestamp, Collections.singletonList(result));
+      // Trigger an event to send a sync message
+      if (eventListener.isPresent()) {
+        eventListener.get().onSyncEvent(lokiSyncMessage.get().getOriginalMessageID(), timestamp, syncMessage, message.getTTL());
+      }
     }
 
+    // Loki - Start session reset if needed
     if (message.isEndSession()) {
-      sessionDatabase.archiveAllSessions(recipient.getNumber());
+      String number = recipient.getNumber();
 
-      long threadID = threadDatabase.getThreadID(messageID);
-      LokiThreadSessionResetStatus sessionResetStatus = threadDatabase.getSessionResetStatus(threadID);
-
-      if (sessionResetStatus != LokiThreadSessionResetStatus.REQUEST_RECEIVED) {
+      LokiSessionResetStatus sessionResetStatus = sessionResetProtocol.getSessionResetStatus(number);
+      if (sessionResetStatus != LokiSessionResetStatus.REQUEST_RECEIVED) {
         Log.d("Loki", "Starting session reset...");
-        threadDatabase.setSessionResetStatus(threadID, LokiThreadSessionResetStatus.IN_PROGRESS);
+          sessionResetProtocol.setSessionResetStatus(number, LokiSessionResetStatus.IN_PROGRESS);
       }
       
       if (eventListener.isPresent()) {
@@ -306,10 +340,10 @@ public class SignalServiceMessageSender {
                                              SignalServiceDataMessage               message)
       throws IOException, UntrustedIdentityException
   {
-    byte[]                  content            = createMessageContent(message);
+    byte[]                  content            = createMessageContent(message, recipients.get(0));
     long                    timestamp          = message.getTimestamp();
-    List<SendMessageResult> results            = sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false);
-    boolean                 needsSyncInResults = false;
+    List<SendMessageResult> results            = sendMessage(messageID, recipients, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, message.getTTL());
+    boolean                 needsSyncInResults = recipients.contains(localAddress) && message.canSyncMessage();
 
     for (SendMessageResult result : results) {
       if (result.getSuccess() != null && result.getSuccess().isNeedsSync()) {
@@ -320,16 +354,29 @@ public class SignalServiceMessageSender {
 
     if (needsSyncInResults || (isMultiDevice.get())) {
       byte[] syncMessage = createMultiDeviceSentTranscriptContent(content, Optional.<SignalServiceAddress>absent(), timestamp, results);
-      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), timestamp, syncMessage, false);
+        // Trigger an event to send a sync message
+        if (eventListener.isPresent()) {
+            eventListener.get().onSyncEvent(messageID, timestamp, syncMessage, message.getTTL());
+        }
     }
 
     return results;
   }
 
+  /**
+   * Send a sync message to all linked devices
+   */
   public void sendMessage(long messageID, SignalServiceSyncMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess)
       throws IOException, UntrustedIdentityException
   {
+    sendMessage(messageID, message, unidentifiedAccess, Optional.<SignalServiceAddress>absent());
+  }
+
+  public void sendMessage(long messageID, SignalServiceSyncMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess, Optional<SignalServiceAddress> recipient)
+          throws IOException, UntrustedIdentityException
+  {
     byte[] content;
+    long timestamp = System.currentTimeMillis();
 
     if (message.getContacts().isPresent()) {
       content = createMultiDeviceContactsContent(message.getContacts().get().getContactsStream().asStream(),
@@ -343,6 +390,7 @@ public class SignalServiceMessageSender {
     } else if (message.getConfiguration().isPresent()) {
       content = createMultiDeviceConfigurationContent(message.getConfiguration().get());
     } else if (message.getSent().isPresent()) {
+      timestamp = message.getSent().get().getTimestamp();
       content = createMultiDeviceSentTranscriptContent(message.getSent().get(), unidentifiedAccess);
     } else if (message.getStickerPackOperations().isPresent()) {
       content = createMultiDeviceStickerPackOperationContent(message.getStickerPackOperations().get());
@@ -353,7 +401,12 @@ public class SignalServiceMessageSender {
       throw new IOException("Unsupported sync message!");
     }
 
-    sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), System.currentTimeMillis(), content, false);
+    // Loki - Trigger an event to send sync message
+    if (recipient.isPresent()) {
+      sendMessage(messageID, recipient.get(), getTargetUnidentifiedAccess(unidentifiedAccess), System.currentTimeMillis(), content, false, message.getTTL());
+    } else if (eventListener.isPresent()) {
+      eventListener.get().onSyncEvent(messageID, timestamp, content, message.getTTL());
+    }
   }
 
   public void setSoTimeoutMillis(long soTimeoutMillis) {
@@ -373,43 +426,41 @@ public class SignalServiceMessageSender {
     this.isMultiDevice.set(isMultiDevice);
   }
 
-  public SignalServiceAttachmentPointer uploadAttachment(SignalServiceAttachmentStream attachment, boolean usePadding) throws IOException {
-    byte[]             attachmentKey    = Util.getSecretBytes(64);
-    long               paddedLength     = usePadding ? PaddingInputStream.getPaddedSize(attachment.getLength())
-                                                     : attachment.getLength();
-    InputStream        dataStream       = usePadding ? new PaddingInputStream(attachment.getInputStream(), attachment.getLength())
-                                                     : attachment.getInputStream();
-    long               ciphertextLength = AttachmentCipherOutputStream.getCiphertextLength(paddedLength);
-    PushAttachmentData attachmentData   = new PushAttachmentData(attachment.getContentType(),
-                                                                 dataStream,
-                                                                 ciphertextLength,
-                                                                 new AttachmentCipherOutputStreamFactory(attachmentKey),
-                                                                 attachment.getListener());
+  public SignalServiceAttachmentPointer uploadAttachment(SignalServiceAttachmentStream attachment, boolean usePadding, @Nullable SignalServiceAddress recipient) throws IOException {
+    boolean shouldUseEncryption = true;
+    String server = LokiFileServerAPI.shared.getServer();
 
-    AttachmentUploadAttributes uploadAttributes;
-
-    if (pipe.get().isPresent()) {
-      Log.d(TAG, "Using pipe to retrieve attachment upload attributes...");
-      uploadAttributes = pipe.get().get().getAttachmentUploadAttributes();
-    } else {
-      Log.d(TAG, "Not using pipe to retrieve attachment upload attributes...");
-      uploadAttributes = socket.getAttachmentUploadAttributes();
+    // Check if we are sending to a public chat
+    if (recipient != null) {
+      long threadID = threadDatabase.getThreadID(recipient.getNumber());
+      LokiPublicChat publicChat = threadDatabase.getPublicChat(threadID);
+      if (publicChat != null) {
+        shouldUseEncryption = false;
+        server = publicChat.getServer();
+      }
     }
 
-    Pair<Long, byte[]> attachmentIdAndDigest = socket.uploadAttachment(attachmentData, uploadAttributes);
+    byte[]             attachmentKey    = Util.getSecretBytes(64);
+    long               paddedLength     = usePadding ? PaddingInputStream.getPaddedSize(attachment.getLength()) : attachment.getLength();
+    InputStream        dataStream       = usePadding ? new PaddingInputStream(attachment.getInputStream(), attachment.getLength()) : attachment.getInputStream();
+    long               ciphertextLength = shouldUseEncryption ? AttachmentCipherOutputStream.getCiphertextLength(paddedLength) : attachment.getLength();
 
-    return new SignalServiceAttachmentPointer(attachmentIdAndDigest.first(),
+    OutputStreamFactory outputStreamFactory = shouldUseEncryption ? new AttachmentCipherOutputStreamFactory(attachmentKey) : new BasicOutputStreamFactory();
+    PushAttachmentData attachmentData   = new PushAttachmentData(attachment.getContentType(), dataStream, ciphertextLength, outputStreamFactory, attachment.getListener());
+
+    // Loki - Upload attachment
+    LokiDotNetAPI.UploadResult result = LokiFileServerAPI.shared.uploadAttachment(server, attachmentData);
+    return new SignalServiceAttachmentPointer(result.getId(),
                                               attachment.getContentType(),
                                               attachmentKey,
                                               Optional.of(Util.toIntExact(attachment.getLength())),
                                               attachment.getPreview(),
                                               attachment.getWidth(), attachment.getHeight(),
-                                              Optional.of(attachmentIdAndDigest.second()),
+                                              Optional.fromNullable(result.getDigest()),
                                               attachment.getFileName(),
                                               attachment.getVoiceNote(),
-                                              attachment.getCaption());
+                                              attachment.getCaption(), result.getUrl());
   }
-
 
   private void sendMessage(long messageID, VerifiedMessage message, Optional<UnidentifiedAccessPair> unidentifiedAccess)
       throws IOException, UntrustedIdentityException
@@ -428,11 +479,11 @@ public class SignalServiceMessageSender {
                                      .build()
                                      .toByteArray();
 
-    SendMessageResult result = sendMessage(messageID, new SignalServiceAddress(message.getDestination()), getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, false);
+    SendMessageResult result = sendMessage(messageID, new SignalServiceAddress(message.getDestination()), getTargetUnidentifiedAccess(unidentifiedAccess), message.getTimestamp(), content, false, message.getTTL());
 
     if (result.getSuccess().isNeedsSync()) {
       byte[] syncMessage = createMultiDeviceVerifiedContent(message, nullMessage.toByteArray());
-      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), message.getTimestamp(), syncMessage, false);
+      sendMessage(messageID, localAddress, Optional.<UnidentifiedAccess>absent(), message.getTimestamp(), syncMessage, false, message.getTTL());
     }
   }
 
@@ -467,7 +518,7 @@ public class SignalServiceMessageSender {
     return container.setReceiptMessage(builder).build().toByteArray();
   }
 
-  private byte[] createMessageContent(SignalServiceDataMessage message) throws IOException {
+  private byte[] createMessageContent(SignalServiceDataMessage message, SignalServiceAddress recipient) throws IOException {
     Content.Builder         container = Content.newBuilder();
 
     // Loki - Set the pre key bundle if needed
@@ -485,113 +536,144 @@ public class SignalServiceMessageSender {
       container.setPreKeyBundleMessage(preKeyBuilder);
     }
 
-    DataMessage.Builder builder = DataMessage.newBuilder();
-    List<AttachmentPointer> pointers = createAttachmentPointers(message.getAttachments());
-
-    if (!pointers.isEmpty()) {
-      builder.addAllAttachments(pointers);
+    // Loki - Set the device link if needed
+    if (message.getDeviceLink().isPresent()) {
+      DeviceLink deviceLink = message.getDeviceLink().get();
+      SignalServiceProtos.PairingAuthorisationMessage.Builder builder = SignalServiceProtos.PairingAuthorisationMessage.newBuilder()
+              .setPrimaryDevicePublicKey(deviceLink.getMasterHexEncodedPublicKey())
+              .setSecondaryDevicePublicKey(deviceLink.getSlaveHexEncodedPublicKey());
+      if (deviceLink.getRequestSignature() != null) { builder.setRequestSignature(ByteString.copyFrom(deviceLink.getRequestSignature())); }
+      if (deviceLink.getAuthorizationSignature() != null) { builder.setGrantSignature(ByteString.copyFrom(deviceLink.getAuthorizationSignature())); }
+      container.setPairingAuthorisation(builder);
     }
 
-    if (message.getBody().isPresent()) {
-      builder.setBody(message.getBody().get());
-    }
+    if (message.hasData() || message.getDeviceLink().isPresent()) {
 
-    if (message.getGroupInfo().isPresent()) {
-      builder.setGroup(createGroupContent(message.getGroupInfo().get()));
-    }
+      DataMessage.Builder builder = DataMessage.newBuilder();
+      List<AttachmentPointer> pointers = createAttachmentPointers(message.getAttachments(), recipient);
 
-    if (message.isEndSession()) {
-      builder.setFlags(DataMessage.Flags.END_SESSION_VALUE);
-    }
-
-    if (message.isExpirationUpdate()) {
-      builder.setFlags(DataMessage.Flags.EXPIRATION_TIMER_UPDATE_VALUE);
-    }
-
-    if (message.isProfileKeyUpdate()) {
-      builder.setFlags(DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE);
-    }
-
-    if (message.getExpiresInSeconds() > 0) {
-      builder.setExpireTimer(message.getExpiresInSeconds());
-    }
-
-    if (message.getProfileKey().isPresent()) {
-      builder.setProfileKey(ByteString.copyFrom(message.getProfileKey().get()));
-    }
-
-    if (message.getQuote().isPresent()) {
-      DataMessage.Quote.Builder quoteBuilder = DataMessage.Quote.newBuilder()
-              .setId(message.getQuote().get().getId())
-              .setAuthor(message.getQuote().get().getAuthor().getNumber())
-              .setText(message.getQuote().get().getText());
-
-      for (SignalServiceDataMessage.Quote.QuotedAttachment attachment : message.getQuote().get().getAttachments()) {
-        DataMessage.Quote.QuotedAttachment.Builder quotedAttachment = DataMessage.Quote.QuotedAttachment.newBuilder();
-
-        quotedAttachment.setContentType(attachment.getContentType());
-
-        if (attachment.getFileName() != null) {
-          quotedAttachment.setFileName(attachment.getFileName());
-        }
-
-        if (attachment.getThumbnail() != null) {
-          quotedAttachment.setThumbnail(createAttachmentPointer(attachment.getThumbnail().asStream()));
-        }
-
-        quoteBuilder.addAttachments(quotedAttachment);
+      if (!pointers.isEmpty()) {
+        builder.addAllAttachments(pointers);
       }
 
-      builder.setQuote(quoteBuilder);
-    }
+      if (message.getBody().isPresent()) {
+        builder.setBody(message.getBody().get());
+      }
 
-    if (message.getSharedContacts().isPresent()) {
-      builder.addAllContact(createSharedContactContent(message.getSharedContacts().get()));
-    }
+      if (message.getGroupInfo().isPresent()) {
+        builder.setGroup(createGroupContent(message.getGroupInfo().get(), recipient));
+      }
 
-    if (message.getPreviews().isPresent()) {
-      for (SignalServiceDataMessage.Preview preview : message.getPreviews().get()) {
-        DataMessage.Preview.Builder previewBuilder = DataMessage.Preview.newBuilder();
-        previewBuilder.setTitle(preview.getTitle());
-        previewBuilder.setUrl(preview.getUrl());
+      if (message.isEndSession()) {
+        builder.setFlags(DataMessage.Flags.END_SESSION_VALUE);
+      }
 
-        if (preview.getImage().isPresent()) {
-          if (preview.getImage().get().isStream()) {
-            previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asStream()));
-          } else {
-            previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asPointer()));
+      if (message.isExpirationUpdate()) {
+        builder.setFlags(DataMessage.Flags.EXPIRATION_TIMER_UPDATE_VALUE);
+      }
+
+      if (message.isUnlinkingRequest()) {
+        builder.setFlags(DataMessage.Flags.UNPAIRING_REQUEST_VALUE);
+      }
+
+      if (message.isProfileKeyUpdate()) {
+        builder.setFlags(DataMessage.Flags.PROFILE_KEY_UPDATE_VALUE);
+      }
+
+      if (message.isSessionRestorationRequest()) {
+          builder.setFlags(DataMessage.Flags.SESSION_RESTORE_VALUE);
+      }
+
+      if (message.isSessionRequest()) {
+          builder.setFlags(DataMessage.Flags.SESSION_REQUEST_VALUE);
+      }
+
+      if (message.getExpiresInSeconds() > 0) {
+        builder.setExpireTimer(message.getExpiresInSeconds());
+      }
+
+      if (message.getProfileKey().isPresent()) {
+        builder.setProfileKey(ByteString.copyFrom(message.getProfileKey().get()));
+      }
+
+      if (message.getQuote().isPresent()) {
+        DataMessage.Quote.Builder quoteBuilder = DataMessage.Quote.newBuilder()
+                .setId(message.getQuote().get().getId())
+                .setAuthor(message.getQuote().get().getAuthor().getNumber())
+                .setText(message.getQuote().get().getText());
+
+        for (SignalServiceDataMessage.Quote.QuotedAttachment attachment : message.getQuote().get().getAttachments()) {
+          DataMessage.Quote.QuotedAttachment.Builder quotedAttachment = DataMessage.Quote.QuotedAttachment.newBuilder();
+
+          quotedAttachment.setContentType(attachment.getContentType());
+
+          if (attachment.getFileName() != null) {
+            quotedAttachment.setFileName(attachment.getFileName());
           }
+
+          if (attachment.getThumbnail() != null) {
+            quotedAttachment.setThumbnail(createAttachmentPointer(attachment.getThumbnail().asStream(), recipient));
+          }
+
+          quoteBuilder.addAttachments(quotedAttachment);
         }
 
-        builder.addPreview(previewBuilder.build());
-      }
-    }
-
-    if (message.getSticker().isPresent()) {
-      DataMessage.Sticker.Builder stickerBuilder = DataMessage.Sticker.newBuilder();
-
-      stickerBuilder.setPackId(ByteString.copyFrom(message.getSticker().get().getPackId()));
-      stickerBuilder.setPackKey(ByteString.copyFrom(message.getSticker().get().getPackKey()));
-      stickerBuilder.setStickerId(message.getSticker().get().getStickerId());
-
-      if (message.getSticker().get().getAttachment().isStream()) {
-        stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asStream(), true));
-      } else {
-        stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asPointer()));
+        builder.setQuote(quoteBuilder);
       }
 
-      builder.setSticker(stickerBuilder.build());
-    }
+      if (message.getSharedContacts().isPresent()) {
+        builder.addAllContact(createSharedContactContent(message.getSharedContacts().get(), recipient));
+      }
 
-    builder.setTimestamp(message.getTimestamp());
+      if (message.getPreviews().isPresent()) {
+        for (SignalServiceDataMessage.Preview preview : message.getPreviews().get()) {
+          DataMessage.Preview.Builder previewBuilder = DataMessage.Preview.newBuilder();
+          previewBuilder.setTitle(preview.getTitle());
+          previewBuilder.setUrl(preview.getUrl());
 
-    String displayName = apiDatabase.getUserDisplayName();
-    if (displayName != null) {
-      LokiProfile profile = LokiProfile.newBuilder().setDisplayName(displayName).build();
+          if (preview.getImage().isPresent()) {
+            if (preview.getImage().get().isStream()) {
+              previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asStream(), recipient));
+            } else {
+              previewBuilder.setImage(createAttachmentPointer(preview.getImage().get().asPointer()));
+            }
+          }
+
+          builder.addPreview(previewBuilder.build());
+        }
+      }
+
+      if (message.getSticker().isPresent()) {
+        DataMessage.Sticker.Builder stickerBuilder = DataMessage.Sticker.newBuilder();
+
+        stickerBuilder.setPackId(ByteString.copyFrom(message.getSticker().get().getPackId()));
+        stickerBuilder.setPackKey(ByteString.copyFrom(message.getSticker().get().getPackKey()));
+        stickerBuilder.setStickerId(message.getSticker().get().getStickerId());
+
+        if (message.getSticker().get().getAttachment().isStream()) {
+          stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asStream(), true, recipient));
+        } else {
+          stickerBuilder.setData(createAttachmentPointer(message.getSticker().get().getAttachment().asPointer()));
+        }
+
+        builder.setSticker(stickerBuilder.build());
+      }
+
+      // Loki - Attach profile
+      LokiProfile.Builder profile = LokiProfile.newBuilder();
+      String displayName = userDatabase.getDisplayName(userHexEncodedPublicKey);
+      String url = userDatabase.getProfilePictureURL(userHexEncodedPublicKey);
+      if (displayName != null) { profile.setDisplayName(displayName); }
+      profile.setAvatar(url != null ? url : "");
       builder.setProfile(profile);
-    }
 
-    container.setDataMessage(builder);
+      builder.setTimestamp(message.getTimestamp());
+      container.setDataMessage(builder);
+    } else {
+      // Loki - Send an address message is we don't have any data content
+      SignalServiceProtos.LokiAddressMessage.Builder addressMessage = SignalServiceProtos.LokiAddressMessage.newBuilder().setType(SignalServiceProtos.LokiAddressMessage.Type.HOST_UNREACHABLE);
+      container.setLokiAddressMessage(addressMessage);
+    }
 
     return container.build().toByteArray();
   }
@@ -634,7 +716,7 @@ public class SignalServiceMessageSender {
     Content.Builder     container = Content.newBuilder();
     SyncMessage.Builder builder   = createSyncMessageBuilder();
     builder.setContacts(SyncMessage.Contacts.newBuilder()
-                                            .setBlob(createAttachmentPointer(contacts))
+                                            .setData(ByteString.readFrom(contacts.getInputStream()))
                                             .setComplete(complete));
 
     return container.setSyncMessage(builder).build().toByteArray();
@@ -644,7 +726,7 @@ public class SignalServiceMessageSender {
     Content.Builder     container = Content.newBuilder();
     SyncMessage.Builder builder   = createSyncMessageBuilder();
     builder.setGroups(SyncMessage.Groups.newBuilder()
-                                        .setBlob(createAttachmentPointer(groups)));
+                                        .setData(ByteString.readFrom(groups.getInputStream())));
 
     return container.setSyncMessage(builder).build().toByteArray();
   }
@@ -653,7 +735,7 @@ public class SignalServiceMessageSender {
     SignalServiceAddress address = new SignalServiceAddress(transcript.getDestination().get());
     SendMessageResult    result  = SendMessageResult.success(address, unidentifiedAccess.isPresent(), true);
 
-    return createMultiDeviceSentTranscriptContent(createMessageContent(transcript.getMessage()),
+    return createMultiDeviceSentTranscriptContent(createMessageContent(transcript.getMessage(), address),
                                                   Optional.of(address),
                                                   transcript.getTimestamp(),
                                                   Collections.singletonList(result));
@@ -803,7 +885,7 @@ public class SignalServiceMessageSender {
     return builder;
   }
 
-  private GroupContext createGroupContent(SignalServiceGroup group) throws IOException {
+  private GroupContext createGroupContent(SignalServiceGroup group, SignalServiceAddress recipient) throws IOException {
     GroupContext.Builder builder = GroupContext.newBuilder();
     builder.setId(ByteString.copyFrom(group.getGroupId()));
 
@@ -815,10 +897,11 @@ public class SignalServiceMessageSender {
 
       if (group.getName().isPresent()) builder.setName(group.getName().get());
       if (group.getMembers().isPresent()) builder.addAllMembers(group.getMembers().get());
+      if (group.getAdmins().isPresent()) builder.addAllAdmins(group.getAdmins().get());
 
       if (group.getAvatar().isPresent()) {
         if (group.getAvatar().get().isStream()) {
-          builder.setAvatar(createAttachmentPointer(group.getAvatar().get().asStream()));
+          builder.setAvatar(createAttachmentPointer(group.getAvatar().get().asStream(), recipient));
         } else {
           builder.setAvatar(createAttachmentPointer(group.getAvatar().get().asPointer()));
         }
@@ -830,7 +913,7 @@ public class SignalServiceMessageSender {
     return builder.build();
   }
 
-  private List<DataMessage.Contact> createSharedContactContent(List<SharedContact> contacts) throws IOException {
+  private List<DataMessage.Contact> createSharedContactContent(List<SharedContact> contacts, SignalServiceAddress recipient) throws IOException {
     List<DataMessage.Contact> results = new LinkedList<DataMessage.Contact>();
 
     for (SharedContact contact : contacts) {
@@ -909,7 +992,7 @@ public class SignalServiceMessageSender {
       }
 
       if (contact.getAvatar().isPresent()) {
-        AttachmentPointer pointer = contact.getAvatar().get().getAttachment().isStream() ? createAttachmentPointer(contact.getAvatar().get().getAttachment().asStream())
+        AttachmentPointer pointer = contact.getAvatar().get().getAttachment().isStream() ? createAttachmentPointer(contact.getAvatar().get().getAttachment().asStream(), recipient)
                                                                                          : createAttachmentPointer(contact.getAvatar().get().getAttachment().asPointer());
         contactBuilder.setAvatar(DataMessage.Contact.Avatar.newBuilder()
                                                            .setAvatar(pointer)
@@ -931,7 +1014,8 @@ public class SignalServiceMessageSender {
                                               List<Optional<UnidentifiedAccess>> unidentifiedAccess,
                                               long                               timestamp,
                                               byte[]                             content,
-                                              boolean                            online)
+                                              boolean                            online,
+                                              int                                ttl)
       throws IOException
   {
     List<SendMessageResult>                results                    = new LinkedList<SendMessageResult>();
@@ -942,7 +1026,7 @@ public class SignalServiceMessageSender {
       SignalServiceAddress recipient = recipientIterator.next();
 
       try {
-        SendMessageResult result = sendMessage(messageID, recipient, unidentifiedAccessIterator.next(), timestamp, content, online);
+        SendMessageResult result = sendMessage(messageID, recipient, unidentifiedAccessIterator.next(), timestamp, content, online, ttl);
         results.add(result);
       } catch (UntrustedIdentityException e) {
         Log.w(TAG, e);
@@ -958,69 +1042,192 @@ public class SignalServiceMessageSender {
 
     return results;
   }
+
+  public SendMessageResult lokiSendSyncMessage(long messageID, SignalServiceAddress recipient, Optional<UnidentifiedAccessPair> unidentifiedAccess, long timestamp, byte[] content, int ttl)
+    throws IOException
+  {
+    return sendMessage(messageID, recipient, getTargetUnidentifiedAccess(unidentifiedAccess), timestamp, content, false, ttl, false, true);
+  }
+
   private SendMessageResult sendMessage(long                         messageID,
                                         SignalServiceAddress         recipient,
                                         Optional<UnidentifiedAccess> unidentifiedAccess,
                                         long                         timestamp,
                                         byte[]                       content,
-                                        boolean                      online)
+                                        boolean                      online,
+                                        int                          ttl)
           throws UntrustedIdentityException, IOException {
-    return sendMessage(messageID, recipient, unidentifiedAccess, timestamp, content, online, false);
+    return sendMessage(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, false, true);
   }
 
   private SendMessageResult sendMessage(final long                   messageID,
-                                        SignalServiceAddress         recipient,
+                                        final SignalServiceAddress   recipient,
                                         Optional<UnidentifiedAccess> unidentifiedAccess,
                                         long                         timestamp,
                                         byte[]                       content,
                                         boolean                      online,
-                                        boolean                      isFriendRequest)
-      throws UntrustedIdentityException, IOException
+                                        int                          ttl,
+                                        boolean                      isFriendRequest,
+                                        boolean                      updateFriendRequestStatus)
+    throws IOException
+  {
+    long threadID = threadDatabase.getThreadID(recipient.getNumber());
+    LokiPublicChat publicChat = threadDatabase.getPublicChat(threadID);
+    try {
+        if (recipient.equals(localAddress)) {
+            return SendMessageResult.success(recipient, false, false);
+        } else if (publicChat != null) {
+            return sendMessageToPublicChat(messageID, recipient, timestamp, content, publicChat);
+        } else {
+            return sendMessageToPrivateChat(messageID, recipient, unidentifiedAccess, timestamp, content, online, ttl, isFriendRequest, updateFriendRequestStatus);
+        }
+    } catch (PushNetworkException e) {
+        return SendMessageResult.networkFailure(recipient);
+    } catch (UntrustedIdentityException e) {
+        return SendMessageResult.identityFailure(recipient, e.getIdentityKey());
+    }
+  }
+
+  private SendMessageResult sendMessageToPublicChat(final long                   messageID,
+                                                    final SignalServiceAddress   recipient,
+                                                    long                         timestamp,
+                                                    byte[]                       content,
+                                                    LokiPublicChat               publicChat) {
+    final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
+    try {
+      SignalServiceProtos.DataMessage data = SignalServiceProtos.Content.parseFrom(content).getDataMessage();
+      String body = (data.getBody() != null && data.getBody().length() > 0) ? data.getBody() : Long.toString(data.getTimestamp());
+      LokiPublicChatMessage.Quote quote = null;
+      if (data.hasQuote()) {
+        long quoteID = data.getQuote().getId();
+        String quoteeHexEncodedPublicKey = data.getQuote().getAuthor();
+        long serverID = messageDatabase.getQuoteServerID(quoteID, quoteeHexEncodedPublicKey);
+        quote = new LokiPublicChatMessage.Quote(quoteID, quoteeHexEncodedPublicKey, data.getQuote().getText(), serverID);
+      }
+      SignalServiceProtos.DataMessage.Preview linkPreview = (data.getPreviewList().size() > 0) ? data.getPreviewList().get(0) : null;
+      ArrayList<LokiPublicChatMessage.Attachment> attachments = new ArrayList<>();
+      if (linkPreview != null && linkPreview.hasImage()) {
+        AttachmentPointer attachmentPointer = linkPreview.getImage();
+        String caption = attachmentPointer.hasCaption() ? attachmentPointer.getCaption() : null;
+        attachments.add(new LokiPublicChatMessage.Attachment(
+                LokiPublicChatMessage.Attachment.Kind.LinkPreview,
+                publicChat.getServer(),
+                attachmentPointer.getId(),
+                attachmentPointer.getContentType(),
+                attachmentPointer.getSize(),
+                attachmentPointer.getFileName(),
+                attachmentPointer.getFlags(),
+                attachmentPointer.getWidth(),
+                attachmentPointer.getHeight(),
+                caption,
+                attachmentPointer.getUrl(),
+                linkPreview.getUrl(),
+                linkPreview.getTitle()
+        ));
+      }
+      for (AttachmentPointer attachmentPointer : data.getAttachmentsList()) {
+        String caption = attachmentPointer.hasCaption() ? attachmentPointer.getCaption() : null;
+        attachments.add(new LokiPublicChatMessage.Attachment(
+                LokiPublicChatMessage.Attachment.Kind.Attachment,
+                publicChat.getServer(),
+                attachmentPointer.getId(),
+                attachmentPointer.getContentType(),
+                attachmentPointer.getSize(),
+                attachmentPointer.getFileName(),
+                attachmentPointer.getFlags(),
+                attachmentPointer.getWidth(),
+                attachmentPointer.getHeight(),
+                caption,
+                attachmentPointer.getUrl(),
+                null,
+                null
+        ));
+      }
+      LokiPublicChatMessage message = new LokiPublicChatMessage(userHexEncodedPublicKey, "", body, timestamp, LokiPublicChatAPI.getPublicChatMessageType(), quote, attachments);
+      byte[] privateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
+      new LokiPublicChatAPI(userHexEncodedPublicKey, privateKey, apiDatabase, userDatabase).sendMessage(message, publicChat.getChannel(), publicChat.getServer()).success(new Function1<LokiPublicChatMessage, Unit>() {
+
+        @Override
+        public Unit invoke(LokiPublicChatMessage message) {
+          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+          messageDatabase.setServerID(messageID, message.getServerID());
+          f.set(Unit.INSTANCE);
+          return Unit.INSTANCE;
+        }
+      }).fail(new Function1<Exception, Unit>() {
+
+        @Override
+        public Unit invoke(Exception exception) {
+          @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+          f.setException(exception);
+          return Unit.INSTANCE;
+        }
+      });
+    } catch (Exception exception) {
+      @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+      f.setException(exception);
+    }
+    @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
+    try {
+      f.get(1, TimeUnit.MINUTES);
+      return SendMessageResult.success(recipient, false, false);
+    } catch (Exception exception) {
+      return SendMessageResult.networkFailure(recipient);
+    }
+  }
+
+  private SendMessageResult sendMessageToPrivateChat(final long                   messageID,
+                                                     final SignalServiceAddress   recipient,
+                                                     Optional<UnidentifiedAccess> unidentifiedAccess,
+                                                     final long                   timestamp,
+                                                     byte[]                       content,
+                                                     boolean                      online,
+                                                     int                          ttl,
+                                                     boolean                      isFriendRequest,
+                                                     final boolean                updateFriendRequestStatus)
+      throws IOException, UntrustedIdentityException
   {
     final SettableFuture<?>[] future = { new SettableFuture<Unit>() };
+    final long threadID = threadDatabase.getThreadID(recipient.getNumber());
     try {
       OutgoingPushMessageList messages = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online, isFriendRequest);
       OutgoingPushMessage message = messages.getMessages().get(0);
       final SignalServiceProtos.Envelope.Type type = SignalServiceProtos.Envelope.Type.valueOf(message.type);
-      // TODO: isPing
-      int day = 24 * 60 * 60 * 1000;
-      int ttl = isFriendRequest ? 4 * day : day;
-      SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, userPublicKey, SignalServiceAddress.DEFAULT_DEVICE_ID, message.content, recipient.getNumber(), ttl, false);
-      // TODO: PoW
+      final boolean isFriendRequestMessage = isFriendRequest;
+      final String senderID = type == SignalServiceProtos.Envelope.Type.UNIDENTIFIED_SENDER ? "" : userHexEncodedPublicKey;
+      final int senderDeviceID = type == SignalServiceProtos.Envelope.Type.UNIDENTIFIED_SENDER ? 0 : SignalServiceAddress.DEFAULT_DEVICE_ID;
+      // Make sure we have a valid ttl; otherwise default to a day
+      if (ttl <= 0) { ttl = 24 * 60 * 60 * 1000; }
+      SignalMessageInfo messageInfo = new SignalMessageInfo(type, timestamp, senderID, senderDeviceID, message.content, recipient.getNumber(), ttl, false);
+      // TODO: PoW indicator
       // Update the message and thread if needed
-      if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-        messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
-        long threadID = threadDatabase.getThreadID(messageID);
-        threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENDING);
-      }
-      LokiAPI api = new LokiAPI(userPublicKey, apiDatabase);
+      if (isFriendRequestMessage && updateFriendRequestStatus && eventListener.isPresent()) { eventListener.get().onFriendRequestSending(messageID, threadID); }
+      LokiAPI api = new LokiAPI(userHexEncodedPublicKey, apiDatabase, broadcaster);
       api.sendSignalMessage(messageInfo, new Function0<Unit>() {
 
-          @Override
-          public Unit invoke() {
-            // TODO: onP2PSuccess
-            return Unit.INSTANCE;
-          }
+        @Override
+        public Unit invoke() {
+          // TODO: onP2PSuccess
+          return Unit.INSTANCE;
+        }
       }).success(new Function1<Set<Promise<Map<?, ?>, Exception>>, Unit>() {
 
         @Override
         public Unit invoke(Set<Promise<Map<?, ?>, Exception>> promises) {
-          final boolean[] isSuccess = { false };
-          final int[] promiseCount = { promises.size() };
-          final int[] errorCount = { 0 };
+          final boolean[] isSuccess = {false};
+          final int[] promiseCount = {promises.size()};
+          final int[] errorCount = {0};
           for (Promise<Map<?, ?>, Exception> promise : promises) {
             promise.success(new Function1<Map<?, ?>, Unit>() {
 
               @Override
               public Unit invoke(Map<?, ?> map) {
                 if (isSuccess[0]) { return Unit.INSTANCE; } // Succeed as soon as the first promise succeeds
+                broadcaster.broadcast("messageSent", timestamp);
                 isSuccess[0] = true;
                 // Update the message and thread if needed
-                if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-                  messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_PENDING);
-                  // TODO: Expiration
-                  long threadID = threadDatabase.getThreadID(messageID);
-                  threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.REQUEST_SENT);
+                if (isFriendRequestMessage && updateFriendRequestStatus && eventListener.isPresent()) {
+                    eventListener.get().onFriendRequestSent(messageID, threadID);
                 }
                 @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
                 f.set(Unit.INSTANCE);
@@ -1032,11 +1239,10 @@ public class SignalServiceMessageSender {
               public Unit invoke(Exception exception) {
                 errorCount[0] += 1;
                 if (errorCount[0] != promiseCount[0]) { return Unit.INSTANCE; } // Only error out if all promises failed
+                broadcaster.broadcast("messageFailed", timestamp);
                 // Update the message and thread if needed
-                if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-                  messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
-                  long threadID = threadDatabase.getThreadID(messageID);
-                  threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
+                if (isFriendRequestMessage && updateFriendRequestStatus && eventListener.isPresent()) {
+                    eventListener.get().onFriendRequestSendingFailed(messageID, threadID);
                 }
                 @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
                 f.setException(exception);
@@ -1051,85 +1257,27 @@ public class SignalServiceMessageSender {
         @Override
         public Unit invoke(Exception exception) { // The snode is unreachable
           // Update the message and thread if needed
-          if (type == SignalServiceProtos.Envelope.Type.FRIEND_REQUEST) {
-            messageDatabase.setFriendRequestStatus(messageID, LokiMessageFriendRequestStatus.REQUEST_SENDING_OR_FAILED);
-            long threadID = threadDatabase.getThreadID(messageID);
-            threadDatabase.setFriendRequestStatus(threadID, LokiThreadFriendRequestStatus.NONE);
+          if (isFriendRequestMessage && eventListener.isPresent()) {
+              eventListener.get().onFriendRequestSendingFailed(messageID, threadID);
           }
           @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
           f.setException(exception);
           return Unit.INSTANCE;
         }
       });
-    } catch (Exception exception) {
-      @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
-      f.setException(exception);
+    } catch (InvalidKeyException e) {
+        throw new IOException(e);
     }
     @SuppressWarnings("unchecked") SettableFuture<Unit> f = (SettableFuture<Unit>)future[0];
     try {
-      f.get();
+      f.get(1, TimeUnit.MINUTES);
       return SendMessageResult.success(recipient, false, false);
     } catch (Exception exception) {
       return SendMessageResult.networkFailure(recipient);
     }
-
-    /* Loki - Original code
-  }
-    for (int i=0;i<4;i++) {
-      try {
-        OutgoingPushMessageList            messages         = getEncryptedMessages(socket, recipient, unidentifiedAccess, timestamp, content, online);
-
-        Optional<SignalServiceMessagePipe> pipe             = this.pipe.get();
-        Optional<SignalServiceMessagePipe> unidentifiedPipe = this.unidentifiedPipe.get();
-
-        if (pipe.isPresent() && !unidentifiedAccess.isPresent()) {
-          try {
-            Log.w(TAG, "Transmitting over pipe...");
-            SendMessageResponse response = pipe.get().send(messages, Optional.<UnidentifiedAccess>absent());
-            return SendMessageResult.success(recipient, false, response.getNeedsSync());
-          } catch (IOException e) {
-            Log.w(TAG, e);
-            Log.w(TAG, "Falling back to new connection...");
-          }
-        } else if (unidentifiedPipe.isPresent() && unidentifiedAccess.isPresent()) {
-          try {
-            Log.w(TAG, "Transmitting over unidentified pipe...");
-            SendMessageResponse response = unidentifiedPipe.get().send(messages, unidentifiedAccess);
-            return SendMessageResult.success(recipient, true, response.getNeedsSync());
-          } catch (IOException e) {
-            Log.w(TAG, e);
-            Log.w(TAG, "Falling back to new connection...");
-          }
-        }
-
-        Log.w(TAG, "Not transmitting over pipe...");
-        SendMessageResponse response = socket.sendMessage(messages, unidentifiedAccess);
-        return SendMessageResult.success(recipient, unidentifiedAccess.isPresent(), response.getNeedsSync());
-
-      } catch (InvalidKeyException ike) {
-        Log.w(TAG, ike);
-        unidentifiedAccess = Optional.absent();
-      } catch (AuthorizationFailedException afe) {
-        Log.w(TAG, afe);
-        if (unidentifiedAccess.isPresent()) {
-          unidentifiedAccess = Optional.absent();
-        } else {
-          throw afe;
-        }
-      } catch (MismatchedDevicesException mde) {
-        Log.w(TAG, mde);
-        handleMismatchedDevices(socket, recipient, mde.getMismatchedDevices());
-      } catch (StaleDevicesException ste) {
-        Log.w(TAG, ste);
-        handleStaleDevices(recipient, ste.getStaleDevices());
-      }
-    }
-
-    throw new IOException("Failed to resolve conflicts after 3 attempts!");
-     */
   }
 
-  private List<AttachmentPointer> createAttachmentPointers(Optional<List<SignalServiceAttachment>> attachments) throws IOException {
+  private List<AttachmentPointer> createAttachmentPointers(Optional<List<SignalServiceAttachment>> attachments, SignalServiceAddress recipient) throws IOException {
     List<AttachmentPointer> pointers = new LinkedList<AttachmentPointer>();
 
     if (!attachments.isPresent() || attachments.get().isEmpty()) {
@@ -1140,7 +1288,7 @@ public class SignalServiceMessageSender {
     for (SignalServiceAttachment attachment : attachments.get()) {
       if (attachment.isStream()) {
         Log.w(TAG, "Found attachment, creating pointer...");
-        pointers.add(createAttachmentPointer(attachment.asStream()));
+        pointers.add(createAttachmentPointer(attachment.asStream(), recipient));
       } else if (attachment.isPointer()) {
         Log.w(TAG, "Including existing attachment pointer...");
         pointers.add(createAttachmentPointer(attachment.asPointer()));
@@ -1156,7 +1304,8 @@ public class SignalServiceMessageSender {
                                                          .setId(attachment.getId())
                                                          .setKey(ByteString.copyFrom(attachment.getKey()))
                                                          .setDigest(ByteString.copyFrom(attachment.getDigest().get()))
-                                                         .setSize(attachment.getSize().get());
+                                                         .setSize(attachment.getSize().get())
+                                                         .setUrl(attachment.getUrl());
 
     if (attachment.getFileName().isPresent()) {
       builder.setFileName(attachment.getFileName().get());
@@ -1186,15 +1335,21 @@ public class SignalServiceMessageSender {
   }
 
   private AttachmentPointer createAttachmentPointer(SignalServiceAttachmentStream attachment)
-    throws IOException
+          throws IOException
   {
-    return createAttachmentPointer(attachment, false);
+    return createAttachmentPointer(attachment, false, null);
   }
 
-  private AttachmentPointer createAttachmentPointer(SignalServiceAttachmentStream attachment, boolean usePadding)
+  private AttachmentPointer createAttachmentPointer(SignalServiceAttachmentStream attachment, SignalServiceAddress recipient)
+    throws IOException
+  {
+    return createAttachmentPointer(attachment, false, recipient);
+  }
+
+  private AttachmentPointer createAttachmentPointer(SignalServiceAttachmentStream attachment, boolean usePadding, SignalServiceAddress recipient)
       throws IOException
   {
-    SignalServiceAttachmentPointer pointer = uploadAttachment(attachment, usePadding);
+    SignalServiceAttachmentPointer pointer = uploadAttachment(attachment, usePadding, recipient);
     return createAttachmentPointer(pointer);
   }
 
@@ -1212,19 +1367,11 @@ public class SignalServiceMessageSender {
 
     if (!recipient.equals(localAddress) || unidentifiedAccess.isPresent()) {
       if (isFriendRequest) {
-        messages.add(getEncryptedFriendRequestMessage(recipient, SignalServiceAddress.DEFAULT_DEVICE_ID, plaintext));
+        messages.add(getEncryptedFriendRequestMessage(recipient, SignalServiceAddress.DEFAULT_DEVICE_ID, plaintext, unidentifiedAccess));
       } else {
         messages.add(getEncryptedMessage(socket, recipient, unidentifiedAccess, SignalServiceAddress.DEFAULT_DEVICE_ID, plaintext));
       }
     }
-
-    /* Loki - Disable this as we don't support multi-device sending yet
-    for (int deviceId : store.getSubDeviceSessions(recipient.getNumber())) {
-      if (store.containsSession(new SignalProtocolAddress(recipient.getNumber(), deviceId))) {
-        messages.add(getEncryptedMessage(socket, recipient, unidentifiedAccess, deviceId, plaintext));
-      }
-    }
-     */
 
     return new OutgoingPushMessageList(recipient.getNumber(), timestamp, messages, online);
   }
@@ -1237,7 +1384,7 @@ public class SignalServiceMessageSender {
       throws IOException, InvalidKeyException, UntrustedIdentityException
   {
     SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceId);
-    SignalServiceCipher cipher = new SignalServiceCipher(localAddress, store, null);
+    SignalServiceCipher cipher = new SignalServiceCipher(localAddress, store, sessionResetProtocol,null);
 
     // Loki - Use custom pre key bundle handling
     if (!store.containsSession(signalProtocolAddress)) {
@@ -1264,7 +1411,7 @@ public class SignalServiceMessageSender {
       }
     }
 
-    // Ensure all session building processing has been done
+    // Ensure all session building processing has finished
     synchronized (SessionCipher.SESSION_LOCK) {
       try {
         return cipher.encrypt(signalProtocolAddress, unidentifiedAccess, plaintext);
@@ -1274,10 +1421,23 @@ public class SignalServiceMessageSender {
     }
   }
 
-  private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceID, byte[] plaintext) {
-      SignalProtocolAddress signalProtocolAddress = new SignalProtocolAddress(recipient.getNumber(), deviceID);
-      LokiServiceCipher cipher = new LokiServiceCipher(localAddress, store, null, null, null);
-      return cipher.encryptFriendRequest(signalProtocolAddress, plaintext);
+  private OutgoingPushMessage getEncryptedFriendRequestMessage(SignalServiceAddress recipient, int deviceID, byte[] plaintext, Optional<UnidentifiedAccess> unidentifiedAccess)
+    throws InvalidKeyException
+  {
+      SignalProtocolAddress destination = new SignalProtocolAddress(recipient.getNumber(), deviceID);
+      byte[] userPrivateKey = store.getIdentityKeyPair().getPrivateKey().serialize();
+      FallbackSessionCipher cipher = new FallbackSessionCipher(userPrivateKey, recipient.getNumber());
+      PushTransportDetails transportDetails = new PushTransportDetails(FallbackSessionCipher.getSessionVersion());
+      byte[] bytes = cipher.encrypt(transportDetails.getPaddedMessageBody(plaintext));
+      if (bytes == null) { bytes = new byte[0]; }
+      if (unidentifiedAccess.isPresent()) {
+          SealedSessionCipher sealedSessionCipher = new SealedSessionCipher(store, null, destination);
+          LokiFriendRequestMessage message = new LokiFriendRequestMessage(bytes);
+          byte[] ciphertext = sealedSessionCipher.encrypt(destination, unidentifiedAccess.get().getUnidentifiedCertificate(), message);
+          return new OutgoingPushMessage(SignalServiceProtos.Envelope.Type.UNIDENTIFIED_SENDER_VALUE, deviceID, 0, Base64.encodeBytes(ciphertext));
+      }
+
+      return new OutgoingPushMessage(SignalServiceProtos.Envelope.Type.FRIEND_REQUEST_VALUE, deviceID, 0, Base64.encodeBytes(bytes));
   }
 
   private void handleMismatchedDevices(PushServiceSocket socket, SignalServiceAddress recipient,
@@ -1331,6 +1491,10 @@ public class SignalServiceMessageSender {
 
   public static interface EventListener {
     public void onSecurityEvent(SignalServiceAddress address);
+    public void onSyncEvent(long messageID, long timestamp, byte[] message, int ttl);
+    public void onFriendRequestSending(long messageID, long threadID);
+    public void onFriendRequestSent(long messageID, long threadID);
+    public void onFriendRequestSendingFailed(long messageID, long threadID);
   }
 
 }

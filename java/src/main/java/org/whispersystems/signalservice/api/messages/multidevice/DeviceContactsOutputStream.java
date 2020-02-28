@@ -80,8 +80,8 @@ public class DeviceContactsOutputStream extends ChunkedOutputStream {
 
     byte[] serializedContactDetails = contactDetails.build().toByteArray();
 
-    writeVarint32(serializedContactDetails.length);
+    // Loki - Since iOS has trouble parsing variable length integers, just write a fixed length one
+    out.write(toByteArray(serializedContactDetails.length));
     out.write(serializedContactDetails);
   }
-
 }

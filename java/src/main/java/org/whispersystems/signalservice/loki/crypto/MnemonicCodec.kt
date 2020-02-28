@@ -67,14 +67,14 @@ class MnemonicCodec(private val languageFileDirectory: File) {
         val result = mutableListOf<String>()
         val n = wordSet.size.toLong()
         val characterCount = string.length
-        for (chunkStartIndex in 0 until (characterCount - 8) step 8) {
+        for (chunkStartIndex in 0..(characterCount - 8) step 8) {
             val chunkEndIndex = chunkStartIndex + 8
             val p1 = string.substring(0 until chunkStartIndex)
             val p2 = swap(string.substring(chunkStartIndex until chunkEndIndex))
             val p3 = string.substring(chunkEndIndex until characterCount)
             string = p1 + p2 + p3
         }
-        for (chunkStartIndex in 0 until (characterCount - 8) step 8) {
+        for (chunkStartIndex in 0..(characterCount - 8) step 8) {
             val chunkEndIndex = chunkStartIndex + 8
             val x = string.substring(chunkStartIndex until chunkEndIndex).toLong(16)
             val w1 = x % n
@@ -101,7 +101,7 @@ class MnemonicCodec(private val languageFileDirectory: File) {
         // Get checksum word
         val checksumWord = words.removeAt(words.lastIndex)
         // Decode
-        for (chunkStartIndex in 0 until (words.size - 3) step 3) {
+        for (chunkStartIndex in 0..(words.size - 3) step 3) {
             try {
                 val w1 = truncatedWordSet.indexOf(words[chunkStartIndex].substring(0 until prefixLength))
                 val w2 = truncatedWordSet.indexOf(words[chunkStartIndex + 1].substring(0 until prefixLength))
@@ -109,7 +109,7 @@ class MnemonicCodec(private val languageFileDirectory: File) {
                 val x = w1 + n * ((n - w1 + w2) % n) + n * n * ((n - w2 + w3) % n)
                 if (x % n != w1.toLong()) { throw DecodingError.Generic }
                 val string = "0000000" + x.toString(16)
-                result += swap(string.substring(string.lastIndex - 8 until string.lastIndex))
+                result += swap(string.substring(string.length - 8 until string.length))
             } catch (e: Exception) {
                 throw DecodingError.InvalidWord
             }
@@ -131,7 +131,7 @@ class MnemonicCodec(private val languageFileDirectory: File) {
     }
 
     private fun determineChecksumIndex(x: List<String>, prefixLength: Int): Int {
-        val bytes = x.joinToString { it.substring(0 until prefixLength) }.toByteArray()
+        val bytes = x.joinToString("") { it.substring(0 until prefixLength) }.toByteArray()
         val crc32 = CRC32()
         crc32.update(bytes)
         val checksum = crc32.value

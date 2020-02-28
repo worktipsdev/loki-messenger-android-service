@@ -4,11 +4,13 @@ import nl.komponents.kovenant.*
 import nl.komponents.kovenant.functional.bind
 import org.whispersystems.libsignal.logging.Log
 import org.whispersystems.signalservice.internal.push.SignalServiceProtos
+import org.whispersystems.signalservice.loki.utilities.Broadcaster
 import java.security.SecureRandom
+import java.util.*
 
 private class PromiseCanceledException : Exception("Promise canceled.")
 
-class LokiLongPoller(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol, private val onMessagesReceived: (List<SignalServiceProtos.Envelope>) -> Unit) {
+class LokiLongPoller(private val userHexEncodedPublicKey: String, private val database: LokiAPIDatabaseProtocol, private val broadcaster: Broadcaster, private val onMessagesReceived: (List<SignalServiceProtos.Envelope>) -> Unit) {
     private var hasStarted: Boolean = false
     private var hasStopped: Boolean = false
     private var connections: Set<Promise<*, Exception>> = setOf()
@@ -17,6 +19,7 @@ class LokiLongPoller(private val userHexEncodedPublicKey: String, private val da
     // region Settings
     companion object {
         private val connectionCount = 3
+        private val retryInterval: Long = 4 * 1000
     }
     // endregion
 
@@ -42,7 +45,8 @@ class LokiLongPoller(private val userHexEncodedPublicKey: String, private val da
     // region Private API
     private fun openConnections() {
         if (hasStopped) { return }
-        LokiSwarmAPI(database).getSwarm(userHexEncodedPublicKey).bind {
+        val thread = Thread.currentThread()
+        LokiSwarmAPI(database, broadcaster).getSwarm(userHexEncodedPublicKey).bind {
             usedSnodes.clear()
             connections = (0 until connectionCount).map {
                 val deferred = deferred<Unit, Exception>()
@@ -51,7 +55,12 @@ class LokiLongPoller(private val userHexEncodedPublicKey: String, private val da
             }.toSet()
             all(connections.toList(), cancelOthersOnError = false)
         }.always {
-            openConnections()
+            Timer().schedule(object : TimerTask() {
+
+                override fun run() {
+                    thread.run { openConnections() }
+                }
+            }, retryInterval)
         }
     }
 
@@ -68,7 +77,7 @@ class LokiLongPoller(private val userHexEncodedPublicKey: String, private val da
                     Log.d("Loki", "Long polling connection to $nextSnode canceled.")
                 } else {
                     Log.d("Loki", "Long polling connection to $nextSnode failed; dropping it and switching to next snode.")
-                    LokiSwarmAPI(database).dropIfNeeded(nextSnode, userHexEncodedPublicKey)
+                    LokiSwarmAPI(database, broadcaster).dropIfNeeded(nextSnode, userHexEncodedPublicKey)
                     openConnectionToNextSnode(deferred)
                 }
             }
@@ -78,12 +87,12 @@ class LokiLongPoller(private val userHexEncodedPublicKey: String, private val da
     }
 
     private fun longPoll(target: LokiAPITarget, deferred: Deferred<Unit, Exception>): Promise<Unit, Exception> {
-        return LokiAPI(userHexEncodedPublicKey, database).getRawMessages(target, true).bind { rawResponse ->
+        return LokiAPI(userHexEncodedPublicKey, database, broadcaster).getRawMessages(target, true).bind(LokiAPI.sharedWorkContext) { rawResponse ->
             if (deferred.promise.isDone()) {
                 // The long polling connection has been canceled; don't recurse
                 task { Unit }
             } else {
-                val messages = LokiAPI(userHexEncodedPublicKey, database).parseRawMessagesResponse(rawResponse, target)
+                val messages = LokiAPI(userHexEncodedPublicKey, database, broadcaster).parseRawMessagesResponse(rawResponse, target)
                 onMessagesReceived(messages)
                 longPoll(target, deferred)
             }

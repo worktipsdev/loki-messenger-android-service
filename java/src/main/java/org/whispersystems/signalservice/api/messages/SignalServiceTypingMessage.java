@@ -37,4 +37,7 @@ public class SignalServiceTypingMessage {
   public boolean isTypingStopped() {
     return action == Action.STOPPED;
   }
+
+  // 1 minute
+  public int getTTL() { return 2 * 60 * 1000; }
 }

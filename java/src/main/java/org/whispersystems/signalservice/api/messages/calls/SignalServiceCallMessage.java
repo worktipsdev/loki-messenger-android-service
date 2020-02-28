@@ -105,4 +105,7 @@ public class SignalServiceCallMessage {
   public Optional<BusyMessage> getBusyMessage() {
     return busyMessage;
   }
+
+  // 2 minutes
+  public int getTTL() { return 2 * 60 * 1000; }
 }

@@ -1,8 +1,8 @@
 buildscript {
     repositories {
+        mavenLocal()
         google()
         jcenter()
-        mavenLocal()
         mavenCentral()
     }
 
@@ -20,9 +20,9 @@ version          = version_number
 group            = group_info
 
 repositories {
+    mavenLocal()
     google()
     jcenter()
-    mavenLocal()
     mavenCentral()
 }
 
@@ -31,7 +31,6 @@ configurations.all {
 }
 
 dependencies {
-    implementation "org.signal:signal-metadata-android:${signal_version}"
     implementation (project(':java')) {
         exclude group: 'org.signal', module: 'signal-metadata-java'
         exclude group: 'org.apache.httpcomponents', module: 'httpclient'
@@ -42,8 +41,8 @@ android {
     compileSdkVersion 25
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     libraryVariants.all { variant ->

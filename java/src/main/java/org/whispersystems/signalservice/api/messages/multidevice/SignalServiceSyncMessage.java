@@ -216,4 +216,5 @@ public class SignalServiceSyncMessage {
     return stickerPackOperations;
   }
 
+  public int getTTL() { return 24 * 60 * 60 * 1000; }
 }

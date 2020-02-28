@@ -4,9 +4,9 @@ buildscript {
     ext.kovenant_version = "3.3.0"
 
     repositories {
+        mavenLocal()
         google()
         jcenter()
-        mavenLocal()
         mavenCentral()
     }
 
@@ -21,15 +21,15 @@ apply plugin: "kotlin"
 apply plugin: "maven"
 apply plugin: "signing"
 
-sourceCompatibility = 6
+sourceCompatibility = 7
 archivesBaseName    = "signal-service-java"
 version             = version_number
 group               = group_info
 
 repositories {
+    mavenLocal()
     google()
     jcenter()
-    mavenLocal()
     mavenCentral()
 }
 
@@ -42,7 +42,7 @@ dependencies {
     implementation "com.googlecode.libphonenumber:libphonenumber:8.10.7"
     implementation "com.fasterxml.jackson.core:jackson-databind:2.9.8"
 
-    implementation "org.signal:signal-metadata-java:${signal_version}"
+    implementation "org.whispersystems:curve25519-java:${curve25519_version}"
     implementation "com.squareup.okhttp3:okhttp:3.12.1"
     implementation "org.threeten:threetenbp:1.3.6"
 

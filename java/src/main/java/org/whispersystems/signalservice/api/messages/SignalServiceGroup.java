@@ -25,6 +25,12 @@ import java.util.List;
  */
 public class SignalServiceGroup {
 
+  public enum GroupType {
+    SIGNAL,
+    PUBLIC_CHAT,
+    RSS_FEED
+  }
+
   public enum Type {
     UNKNOWN,
     UPDATE,
@@ -33,19 +39,21 @@ public class SignalServiceGroup {
     REQUEST_INFO
   }
 
-  private final byte[]                         groupId;
-  private final Type                           type;
-  private final Optional<String>               name;
-  private final Optional<List<String>>         members;
+  private final byte[]                            groupId;
+  private final GroupType                         groupType;
+  private final Type                              type;
+  private final Optional<String>                  name;
+  private final Optional<List<String>>            members;
   private final Optional<SignalServiceAttachment> avatar;
+  private final Optional<List<String>>            admins;
 
 
   /**
    * Construct a DELIVER group context.
    * @param groupId
    */
-  public SignalServiceGroup(byte[] groupId) {
-    this(Type.DELIVER, groupId, null, null, null);
+  public SignalServiceGroup(byte[] groupId, GroupType groupType) {
+    this(Type.DELIVER, groupId, groupType, null, null, null, null);
   }
 
   /**
@@ -56,20 +64,25 @@ public class SignalServiceGroup {
    * @param members The group membership list.
    * @param avatar The group avatar icon.
    */
-  public SignalServiceGroup(Type type, byte[] groupId, String name,
+  public SignalServiceGroup(Type type, byte[] groupId, GroupType groupType, String name,
                             List<String> members,
-                            SignalServiceAttachment avatar)
+                            SignalServiceAttachment avatar,
+                            List<String> admins)
   {
     this.type    = type;
     this.groupId = groupId;
+    this.groupType = groupType;
     this.name    = Optional.fromNullable(name);
     this.members = Optional.fromNullable(members);
     this.avatar  = Optional.fromNullable(avatar);
+    this.admins  = Optional.fromNullable(admins);
   }
 
   public byte[] getGroupId() {
     return groupId;
   }
+
+  public GroupType getGroupType() { return  groupType; }
 
   public Type getType() {
     return type;
@@ -87,6 +100,10 @@ public class SignalServiceGroup {
     return avatar;
   }
 
+  public Optional<List<String>> getAdmins() {
+    return admins;
+  }
+
   public static Builder newUpdateBuilder() {
     return new Builder(Type.UPDATE);
   }
@@ -97,18 +114,21 @@ public class SignalServiceGroup {
 
   public static class Builder {
 
+    private GroupType            groupType;
     private Type                 type;
     private byte[]               id;
     private String               name;
     private List<String>         members;
     private SignalServiceAttachment avatar;
+    private List<String>         admins;
 
     private Builder(Type type) {
       this.type = type;
     }
 
-    public Builder withId(byte[] id) {
+    public Builder withId(byte[] id, GroupType type) {
       this.id = id;
+      this.groupType = type;
       return this;
     }
 
@@ -127,14 +147,19 @@ public class SignalServiceGroup {
       return this;
     }
 
+    public Builder withAdmins(List<String> admins) {
+      this.admins = admins;
+      return this;
+    }
+
     public SignalServiceGroup build() {
       if (id == null) throw new IllegalArgumentException("No group ID specified!");
 
-      if (type == Type.UPDATE && name == null && members == null && avatar == null) {
+      if (type == Type.UPDATE && name == null && members == null && avatar == null && admins == null) {
         throw new IllegalArgumentException("Group update with no updates!");
       }
 
-      return new SignalServiceGroup(type, id, name, members, avatar);
+      return new SignalServiceGroup(type, id, groupType, name, members, avatar, admins);
     }
 
   }
